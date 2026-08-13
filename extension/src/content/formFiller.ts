@@ -29,7 +29,7 @@ export function fillFormFields(
 
     try {
       target = doc.querySelector<HTMLInputElement | HTMLTextAreaElement>(
-        `input[name="${fieldId}"], textarea[name="${fieldId}"], #${CSS.escape(fieldId)}`
+        `[data-autofiller-id="${CSS.escape(fieldId)}"], input[name="${fieldId}"], textarea[name="${fieldId}"], #${CSS.escape(fieldId)}`
       );
     } catch {
       // Fallback if querySelector fails on unexpected selector characters

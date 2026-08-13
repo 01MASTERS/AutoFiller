@@ -19,6 +19,7 @@ export function extractFormFields(doc: Document = document): FieldMetadata[] {
     const nameAttr = inputEl.getAttribute('name');
     const idAttr = inputEl.id;
     const fieldId = nameAttr || idAttr || `field-${fallbackIndex}`;
+    inputEl.setAttribute('data-autofiller-id', fieldId);
 
     let labelText = '';
     if (container) {
