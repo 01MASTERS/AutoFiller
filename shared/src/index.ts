@@ -53,3 +53,30 @@ export interface FillResult {
   error?: string;
 }
 
+export interface ModelsResponse {
+  status: 'success' | 'error';
+  provider: 'ollama' | 'gemini';
+  models: string[];
+  error?: string;
+}
+
+export type LogLevel = 'INFO' | 'SUCCESS' | 'WARN' | 'ERROR';
+export type LogSource = 'EXTENSION_POPUP' | 'BACKGROUND' | 'CONTENT_SCRIPT' | 'BACKEND_API' | 'LLM_GATEWAY';
+
+export interface LogEntry {
+  id: string;
+  timestamp: string;
+  level: LogLevel;
+  source: LogSource;
+  tag: string;
+  message: string;
+  details?: Record<string, unknown>;
+}
+
+export interface LogsResponse {
+  status: 'success' | 'error';
+  logs: LogEntry[];
+  total: number;
+  error?: string;
+}
+

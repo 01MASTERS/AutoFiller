@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from 'express';
 import { corsMiddleware } from './middleware/cors.js';
 import { apiRouter } from './routes/api.js';

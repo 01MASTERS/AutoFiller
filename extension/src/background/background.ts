@@ -40,6 +40,8 @@ export async function updateStatusState(
   return statusData;
 }
 
+import { ExtensionLogger } from '../utils/logger.js';
+
 export async function handleTriggerAutofill(options?: {
   provider?: 'ollama' | 'gemini';
   model?: string;
@@ -47,6 +49,7 @@ export async function handleTriggerAutofill(options?: {
 }) {
   try {
     await updateStatusState('analyzing');
+    await ExtensionLogger.log('INFO', 'BACKGROUND', 'AUTOFILL_START', `Starting autofill workflow (provider: ${options?.provider || 'ollama'}, model: ${options?.model || 'default'})`);
 
     if (typeof chrome === 'undefined' || !chrome.tabs) {
       throw new Error('Chrome tabs API not available');
@@ -57,9 +60,18 @@ export async function handleTriggerAutofill(options?: {
       throw new Error('No active tab found');
     }
 
-    const scanResponse = (await chrome.tabs.sendMessage(activeTab.id, {
-      action: 'SCAN_FIELDS',
-    })) as { status: string; fields?: FieldMetadata[]; error?: string };
+    let scanResponse: { status: string; fields?: FieldMetadata[]; error?: string } | null = null;
+    try {
+      scanResponse = (await chrome.tabs.sendMessage(activeTab.id, {
+        action: 'SCAN_FIELDS',
+      })) as { status: string; fields?: FieldMetadata[]; error?: string };
+    } catch {
+      const errorMsg =
+        'Content script not loaded on this tab. Please refresh the page tab and try again.';
+      await ExtensionLogger.log('ERROR', 'BACKGROUND', 'SCAN_FIELDS_FAIL', errorMsg);
+      await updateStatusState('error', { error: errorMsg });
+      return { status: 'error', error: errorMsg };
+    }
 
     if (
       !scanResponse ||
@@ -69,9 +81,12 @@ export async function handleTriggerAutofill(options?: {
     ) {
       const errorMsg =
         scanResponse?.error || 'No fillable text fields found on this form';
+      await ExtensionLogger.log('WARN', 'BACKGROUND', 'SCAN_NO_FIELDS', errorMsg);
       await updateStatusState('error', { error: errorMsg });
       return { status: 'error', error: errorMsg };
     }
+
+    await ExtensionLogger.log('SUCCESS', 'BACKGROUND', 'SCAN_FIELDS_SUCCESS', `Extracted ${scanResponse.fields.length} form field(s) from active tab`);
 
     let backendUrl = 'http://localhost:3456/autofill';
     if (typeof chrome !== 'undefined' && chrome.storage?.local) {
@@ -107,6 +122,7 @@ export async function handleTriggerAutofill(options?: {
       const errData = (await backendRes.json().catch(() => ({}))) as { error?: string };
       const errorMsg =
         errData.error || `Backend HTTP request failed with status ${backendRes.status}`;
+      await ExtensionLogger.log('ERROR', 'BACKGROUND', 'BACKEND_HTTP_ERROR', errorMsg);
       await updateStatusState('error', { error: errorMsg });
       return { status: 'error', error: errorMsg };
     }
@@ -118,9 +134,13 @@ export async function handleTriggerAutofill(options?: {
       Object.keys(autofillData.mappings).length === 0
     ) {
       const errorMsg = autofillData.error || 'LLM returned no field mappings';
+      await ExtensionLogger.log('ERROR', 'BACKGROUND', 'LLM_MAPPING_EMPTY', errorMsg);
       await updateStatusState('error', { error: errorMsg });
       return { status: 'error', error: errorMsg };
     }
+
+    const mappedCount = Object.keys(autofillData.mappings).length;
+    await ExtensionLogger.log('SUCCESS', 'BACKGROUND', 'LLM_MAPPING_SUCCESS', `LLM generated ${mappedCount} field mapping(s)`);
 
     await updateStatusState('filling');
 
@@ -131,11 +151,14 @@ export async function handleTriggerAutofill(options?: {
 
     if (!fillResponse || fillResponse.status !== 'success' || !fillResponse.result) {
       const errorMsg = fillResponse?.error || 'Form filling failed in content script';
+      await ExtensionLogger.log('ERROR', 'BACKGROUND', 'DOM_FILL_FAIL', errorMsg);
       await updateStatusState('error', { error: errorMsg });
       return { status: 'error', error: errorMsg };
     }
 
     const { filledCount, failedCount } = fillResponse.result;
+    await ExtensionLogger.log('SUCCESS', 'BACKGROUND', 'AUTOFILL_COMPLETE', `Successfully filled ${filledCount} field(s), ${failedCount} failed`);
+
     await updateStatusState('done', { filledCount, failedCount });
 
     return {
@@ -145,6 +168,7 @@ export async function handleTriggerAutofill(options?: {
     };
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : String(err);
+    await ExtensionLogger.log('ERROR', 'BACKGROUND', 'AUTOFILL_EXCEPTION', errorMsg);
     await updateStatusState('error', { error: errorMsg });
     return { status: 'error', error: errorMsg };
   }
