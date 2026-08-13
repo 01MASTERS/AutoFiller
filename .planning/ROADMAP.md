@@ -54,7 +54,7 @@
 ---
 
 ### Phase 3: LLM Gateway (Ollama + Gemini)
-**Status**: `pending`
+**Status**: `completed`
 **Scope**: Build the unified LLM gateway that calls Ollama or Gemini to map form fields to profile values.
 
 **Deliverables**:
@@ -68,16 +68,16 @@
 - Vitest tests with mocked LLM responses
 
 **UAT**:
-- [ ] Ollama provider sends correct prompt and parses response
-- [ ] Gemini provider sends correct prompt and parses response
-- [ ] Malformed responses trigger retry
-- [ ] Timeout fires correctly
-- [ ] All unit tests pass with mocked responses
+- [x] Ollama provider sends correct prompt and parses response
+- [x] Gemini provider sends correct prompt and parses response
+- [x] Malformed responses trigger retry
+- [x] Timeout fires correctly
+- [x] All unit tests pass with mocked responses
 
 ---
 
 ### Phase 4: Wire Backend — LLM + Profile → AutoFill Endpoint
-**Status**: `pending`
+**Status**: `completed`
 **Scope**: Connect the LLM gateway to the `/autofill` endpoint so it returns real field→value mappings.
 
 **Deliverables**:
@@ -89,15 +89,15 @@
 - Integration tests
 
 **UAT**:
-- [ ] `/autofill` with Ollama returns correct field mappings (mocked)
-- [ ] `/autofill` with Gemini returns correct field mappings (mocked)
-- [ ] Error responses when LLM unavailable
-- [ ] Integration tests pass
+- [x] `/autofill` with Ollama returns correct field mappings (mocked)
+- [x] `/autofill` with Gemini returns correct field mappings (mocked)
+- [x] Error responses when LLM unavailable
+- [x] Integration tests pass
 
 ---
 
 ### Phase 5: Content Script — Google Form DOM Reader
-**Status**: `pending`
+**Status**: `completed`
 **Scope**: Build the content script that reads Google Form fields from the DOM.
 
 **Deliverables**:
@@ -109,15 +109,15 @@
 - Unit tests with mock DOM fixtures
 
 **UAT**:
-- [ ] Content script activates only on Google Forms pages
-- [ ] Correctly extracts fields from a real Google Form DOM structure
-- [ ] Sends structured metadata to background worker
-- [ ] All unit tests pass
+- [x] Content script activates only on Google Forms pages
+- [x] Correctly extracts fields from a real Google Form DOM structure
+- [x] Sends structured metadata to background worker
+- [x] All unit tests pass
 
 ---
 
 ### Phase 6: Content Script — Form Filler
-**Status**: `pending`
+**Status**: `completed`
 **Scope**: Build the form filling logic that injects values into Google Form fields.
 
 **Deliverables**:
@@ -129,16 +129,16 @@
 - Unit tests with mock DOM
 
 **UAT**:
-- [ ] Values correctly injected into text input fields
-- [ ] Google Forms recognizes the filled values (events dispatched)
-- [ ] Visual feedback appears and fades
-- [ ] Fill results reported back
-- [ ] All unit tests pass
+- [x] Values correctly injected into text input fields
+- [x] Google Forms recognizes the filled values (events dispatched)
+- [x] Visual feedback appears and fades
+- [x] Fill results reported back
+- [x] All unit tests pass
 
 ---
 
 ### Phase 7: Background Service Worker
-**Status**: `pending`
+**Status**: `completed`
 **Scope**: Build the background service worker that orchestrates communication between popup, content script, and backend.
 
 **Deliverables**:
@@ -151,16 +151,16 @@
 - Unit tests
 
 **UAT**:
-- [ ] Receives messages from popup and content script
-- [ ] Calls backend and forwards response to content script
-- [ ] State transitions work correctly
-- [ ] Errors propagated to popup
-- [ ] All unit tests pass
+- [x] Receives messages from popup and content script
+- [x] Calls backend and forwards response to content script
+- [x] State transitions work correctly
+- [x] Errors propagated to popup
+- [x] All unit tests pass
 
 ---
 
 ### Phase 8: Popup UI
-**Status**: `pending`
+**Status**: `completed`
 **Scope**: Build the extension popup with toggle, LLM config, and status display.
 
 **Deliverables**:
@@ -176,17 +176,17 @@
 - Integration with background service worker
 
 **UAT**:
-- [ ] Popup opens and displays all controls
-- [ ] Toggle enables/disables auto-fill
-- [ ] LLM selector switches provider
-- [ ] Status updates in real-time during auto-fill
-- [ ] Settings persist across popup close/reopen
-- [ ] Looks polished and professional
+- [x] Popup opens and displays all controls
+- [x] Toggle enables/disables auto-fill
+- [x] LLM selector switches provider
+- [x] Status updates in real-time during auto-fill
+- [x] Settings persist across popup close/reopen
+- [x] Looks polished and professional
 
 ---
 
 ### Phase 9: End-to-End Integration & Testing
-**Status**: `pending`
+**Status**: `completed`
 **Scope**: Wire everything together, end-to-end testing, error scenarios, polish.
 
 **Deliverables**:
@@ -198,12 +198,12 @@
 - Bug fixes from testing
 
 **UAT**:
-- [ ] Complete auto-fill flow works end-to-end
-- [ ] All error scenarios handled gracefully
-- [ ] Fill time <10s on 20-field form
-- [ ] README has clear setup + usage instructions
-- [ ] All tests pass
-- [ ] Production build loads and works in Chrome
+- [x] Complete auto-fill flow works end-to-end
+- [x] All error scenarios handled gracefully
+- [x] Fill time <10s on 20-field form
+- [x] README has clear setup + usage instructions
+- [x] All tests pass
+- [x] Production build loads and works in Chrome
 
 ---
 

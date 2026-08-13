@@ -43,3 +43,13 @@ export interface UserProfile {
   links?: Record<string, string>;
   custom?: Record<string, string>;
 }
+
+export interface FillResult {
+  status: 'success' | 'partial' | 'error';
+  filledCount: number;
+  failedCount: number;
+  filledFields: string[];
+  failedFields: string[];
+  error?: string;
+}
+

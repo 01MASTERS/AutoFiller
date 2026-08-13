@@ -2,11 +2,93 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AutoFiller</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/src/popup/popup.css">
 </head>
 <body>
-  <h1>AutoFiller</h1>
-  <p>Extension loaded successfully.</p>
+  <div class="popup-container">
+    <header class="popup-header">
+      <div class="brand">
+        <svg class="brand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+        </svg>
+        <h1 class="brand-title">AutoFiller</h1>
+      </div>
+      <div id="backend-status-pill" class="status-pill checking">
+        <span class="pill-dot"></span>
+        <span class="pill-text">Checking</span>
+      </div>
+    </header>
+
+    <section class="action-section">
+      <button id="autofill-btn" class="btn primary-btn">
+        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+        </svg>
+        <span>Auto-Fill Form</span>
+      </button>
+    </section>
+
+    <div id="status-banner" class="status-banner idle">
+      <span id="status-text">Ready to auto-fill form fields</span>
+    </div>
+
+    <section class="card profile-card">
+      <div class="card-header">
+        <div class="card-title">
+          <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+            <circle cx="12" cy="7" r="4"/>
+          </svg>
+          <span>Active Profile</span>
+        </div>
+        <span class="badge success-badge">Loaded</span>
+      </div>
+      <div class="card-body">
+        <div class="profile-info">
+          <span id="profile-name" class="profile-name">Jane Doe</span>
+          <span id="profile-email" class="profile-email">jane@example.com</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="card settings-card">
+      <div class="card-header">
+        <div class="card-title">
+          <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+            <line x1="8" y1="21" x2="16" y2="21"/>
+            <line x1="12" y1="17" x2="12" y2="21"/>
+          </svg>
+          <span>AI Model Settings</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="form-group">
+          <label for="provider-select">Provider</label>
+          <select id="provider-select" class="form-select">
+            <option value="ollama">Ollama (Local - Free)</option>
+            <option value="gemini">Google Gemini (Cloud)</option>
+          </select>
+        </div>
+
+        <div id="ollama-settings" class="form-group">
+          <label for="ollama-model-input">Ollama Model</label>
+          <input type="text" id="ollama-model-input" class="form-input" placeholder="llama3.2" value="llama3.2">
+        </div>
+
+        <div id="gemini-settings" class="form-group hidden">
+          <label for="gemini-key-input">Gemini API Key</label>
+          <input type="password" id="gemini-key-input" class="form-input" placeholder="Enter Gemini API key...">
+        </div>
+      </div>
+    </section>
+  </div>
+
   <script type="module" src="/src/popup/popup.ts"></script>
 </body>
 </html>

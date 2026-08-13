@@ -10,4 +10,14 @@ export default defineManifest({
   action: {
     default_popup: 'src/popup/popup.html',
   },
+  background: {
+    service_worker: 'src/background/background.ts',
+    type: 'module',
+  },
+  content_scripts: [
+    {
+      matches: ['https://docs.google.com/forms/*'],
+      js: ['src/content/contentScript.ts'],
+    },
+  ],
 });

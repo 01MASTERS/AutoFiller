@@ -41,6 +41,7 @@ export const autofillRequestSchema = z.object({
   fields: z.array(fieldMetadataSchema).min(1, 'At least one field must be provided'),
   provider: z.enum(['ollama', 'gemini']).optional(),
   model: z.string().optional(),
+  apiKey: z.string().optional(),
 });
 
 export type UserProfileValidated = z.infer<typeof userProfileSchema>;
