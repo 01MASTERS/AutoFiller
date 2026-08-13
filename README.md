@@ -88,8 +88,16 @@ Edit `backend/profile.json` to define your auto-fill profile details:
 }
 ```
 
-### 3. Start Backend & Build Extension
+### 3. Start Backend & Extension
 
+**Option A (Windows 1-Click Startup Script):**
+Double-click `start.bat` or run:
+```cmd
+.\start.bat
+```
+*This automatically installs dependencies, creates missing `.env` & `profile.json` templates, compiles shared types, starts the server and extension watcher, and opens the Debug Log Dashboard.*
+
+**Option B (Manual npm command):**
 ```bash
 # Start backend server + extension compiler in watch mode
 npm run dev
