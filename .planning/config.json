@@ -1,0 +1,21 @@
+{
+  "version": "1.0",
+  "project": "AutoFiller",
+  "created": "2026-08-13",
+  "workflow": {
+    "auto_commit": true,
+    "commit_prefix": "gsd",
+    "require_tests": true,
+    "require_review": false,
+    "parallel_agents": true
+  },
+  "testing": {
+    "framework": "vitest",
+    "e2e_framework": "playwright",
+    "coverage_threshold": 80
+  },
+  "llm": {
+    "default_provider": "ollama",
+    "providers": ["ollama", "gemini"]
+  }
+}
