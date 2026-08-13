@@ -1,0 +1,25 @@
+{
+  "name": "autofiller",
+  "private": true,
+  "workspaces": [
+    "extension",
+    "backend",
+    "shared"
+  ],
+  "scripts": {
+    "dev": "concurrently --names ext,srv --prefix-colors blue,green \"npm run dev -w extension\" \"npm run dev -w backend\"",
+    "build": "npm run build -w shared && npm run build -w extension && npm run build -w backend",
+    "test": "npm run test -w extension && npm run test -w backend",
+    "lint": "eslint \"extension/src/**/*.ts\" \"backend/src/**/*.ts\" \"shared/src/**/*.ts\"",
+    "format": "prettier --write \"extension/src/**/*.ts\" \"backend/src/**/*.ts\" \"shared/src/**/*.ts\"",
+    "format:check": "prettier --check \"extension/src/**/*.ts\" \"backend/src/**/*.ts\" \"shared/src/**/*.ts\""
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "concurrently": "^9.1.2",
+    "eslint": "^8.57.0",
+    "eslint-config-prettier": "^9.1.0",
+    "prettier": "^3.3.3"
+  }
+}

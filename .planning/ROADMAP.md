@@ -9,7 +9,7 @@
 ---
 
 ### Phase 1: Project Scaffolding & Build Pipeline
-**Status**: `pending`
+**Status**: `completed`
 **Scope**: Set up the monorepo structure, TypeScript config, Vite build for extension, Node.js backend scaffold, ESLint + Prettier, and basic CI.
 
 **Deliverables**:
@@ -23,11 +23,11 @@
 - README with setup instructions
 
 **UAT**:
-- [ ] `npm install` succeeds
-- [ ] `npm run build` produces a loadable Chrome extension
-- [ ] `npm run dev` starts backend + watches extension
-- [ ] Extension loads in Chrome without errors
-- [ ] ESLint + Prettier pass on all files
+- [x] `npm install` succeeds
+- [x] `npm run build` produces a loadable Chrome extension
+- [x] `npm run dev` starts backend + watches extension
+- [x] Extension loads in Chrome without errors
+- [x] ESLint + Prettier pass on all files
 
 ---
 
