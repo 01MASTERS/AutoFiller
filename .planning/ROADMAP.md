@@ -32,7 +32,7 @@
 ---
 
 ### Phase 2: Profile Store & Backend API
-**Status**: `pending`
+**Status**: `completed`
 **Scope**: Implement the backend server with profile JSON loading and REST API endpoints.
 
 **Deliverables**:
@@ -45,11 +45,11 @@
 - Vitest tests for all endpoints
 
 **UAT**:
-- [ ] Backend starts and serves `/health`
-- [ ] `/profile` returns the profile JSON
-- [ ] `/autofill` accepts field metadata and returns stub response
-- [ ] CORS headers correct
-- [ ] All API tests pass
+- [x] Backend starts and serves `/health`
+- [x] `/profile` returns the profile JSON
+- [x] `/autofill` accepts field metadata and returns stub response
+- [x] CORS headers correct
+- [x] All API tests pass
 
 ---
 

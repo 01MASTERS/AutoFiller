@@ -10,10 +10,13 @@
     "lint": "eslint \"src/**/*.ts\""
   },
   "dependencies": {
+    "cors": "^2.8.5",
     "express": "^5.0.0",
+    "zod": "^3.23.8",
     "@autofiller/shared": "*"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.17",
     "@types/express": "latest",
     "@types/supertest": "^6.0.2",
     "supertest": "^7.0.0",

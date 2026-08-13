@@ -1,16 +1,17 @@
 import express from 'express';
-import { HealthResponse } from '@autofiller/shared';
+import { corsMiddleware } from './middleware/cors.js';
+import { apiRouter } from './routes/api.js';
+import { errorHandler } from './middleware/errorHandler.js';
 
 export const app = express();
 const PORT = process.env.PORT || 3456;
 
-app.get('/health', (req, res) => {
-  const response: HealthResponse = {
-    status: 'ok',
-    timestamp: new Date().toISOString(),
-  };
-  res.json(response);
-});
+app.use(corsMiddleware);
+app.use(express.json());
+
+app.use('/', apiRouter);
+
+app.use(errorHandler);
 
 if (process.env.NODE_ENV !== 'test') {
   app.listen(PORT, () => {
