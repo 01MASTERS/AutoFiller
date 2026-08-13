@@ -260,6 +260,19 @@ apiRouter.post('/autofill', async (req: Request, res: Response, next: NextFuncti
       { apiKey, model }
     );
 
+    LoggerService.getInstance().addLog({
+      level: 'SUCCESS',
+      source: 'BACKEND_API',
+      tag: 'LLM_RESPONSE',
+      message: `LLM (${provider}/${model || 'default'}) mapped ${Object.keys(mappings).length} field(s): ${JSON.stringify(mappings)}`,
+      details: {
+        provider,
+        model,
+        mappings,
+        fieldsScanned: body.fields.map((f) => ({ id: f.id, label: f.label })),
+      },
+    });
+
     const response: AutofillResponse = {
       status: 'success',
       mappings,

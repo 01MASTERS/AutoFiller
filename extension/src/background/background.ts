@@ -140,7 +140,17 @@ export async function handleTriggerAutofill(options?: {
     }
 
     const mappedCount = Object.keys(autofillData.mappings).length;
-    await ExtensionLogger.log('SUCCESS', 'BACKGROUND', 'LLM_MAPPING_SUCCESS', `LLM generated ${mappedCount} field mapping(s)`);
+    await ExtensionLogger.log(
+      'SUCCESS',
+      'BACKGROUND',
+      'LLM_MAPPING_SUCCESS',
+      `LLM response received (${mappedCount} field mapping(s)): ${JSON.stringify(autofillData.mappings)}`,
+      {
+        provider: options?.provider,
+        model: options?.model,
+        mappings: autofillData.mappings,
+      }
+    );
 
     await updateStatusState('filling');
 
@@ -156,8 +166,28 @@ export async function handleTriggerAutofill(options?: {
       return { status: 'error', error: errorMsg };
     }
 
-    const { filledCount, failedCount } = fillResponse.result;
-    await ExtensionLogger.log('SUCCESS', 'BACKGROUND', 'AUTOFILL_COMPLETE', `Successfully filled ${filledCount} field(s), ${failedCount} failed`);
+    const { filledCount, failedCount, filledFields, failedFields } = fillResponse.result;
+
+    const filledDetails: Record<string, string> = {};
+    if (Array.isArray(filledFields)) {
+      filledFields.forEach((fieldId) => {
+        filledDetails[fieldId] = autofillData.mappings[fieldId] || '(filled)';
+      });
+    }
+
+    await ExtensionLogger.log(
+      'SUCCESS',
+      'BACKGROUND',
+      'AUTOFILL_COMPLETE',
+      `Form filled successfully: ${filledCount} field(s) populated: ${JSON.stringify(filledDetails)}${failedCount > 0 ? `, ${failedCount} failed: [${failedFields.join(', ')}]` : ''}`,
+      {
+        filledCount,
+        failedCount,
+        filledFields: filledDetails,
+        failedFields,
+        mappings: autofillData.mappings,
+      }
+    );
 
     await updateStatusState('done', { filledCount, failedCount });
 
