@@ -35,6 +35,13 @@
 
 _(None yet — will be populated as development progresses)_
 
+## Quick Tasks Completed
+
+| Task | Description | Date | Status |
+|---|---|---|---|
+| `detailed-llm-form-logs` | Detailed LLM response mappings & filled form field values added to backend/extension logs & Debug Dashboard | 2026-08-13 | complete ✓ |
+
 ## Open Questions
 
 _(None — all initial questions resolved during project setup)_
+
