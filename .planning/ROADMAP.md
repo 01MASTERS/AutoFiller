@@ -207,24 +207,69 @@
 
 ---
 
+### Phase 10: Dynamic Model Discovery & Provider Management UI
+**Status**: `completed`
+**Scope**: Fetch available models dynamically for Ollama and Google Gemini. Auto-fetch Ollama models on server switch/selection, fetch Gemini models after API key entry, add refresh icons for validating keys/fetching models, and provide a polished model selection UI in the extension popup.
+
+**Deliverables**:
+- Backend API endpoint (`GET /models?provider=...` or `/models/ollama`, `/models/gemini`) to fetch available models
+- Ollama model list pre-fetching on provider select/server status check
+- Gemini model discovery upon API key validation/entry
+- Refresh buttons next to providers with loading spinners, validation, and error states
+- Modern extension Popup UI with dynamic model selection dropdowns
+- Persistent local storage for selected models and model lists
+- Unit tests for backend model discovery endpoints and popup logic
+
+**UAT**:
+- [x] Backend fetches available models from local Ollama instance (`/api/tags`)
+- [x] Backend fetches available Gemini models using provided API key
+- [x] Popup auto-fetches Ollama models when Ollama provider is selected
+- [x] Popup fetches Gemini models after user enters a valid Gemini API key
+- [x] Refresh button re-checks provider connection and updates model lists
+- [x] Model dropdowns dynamically populate with available models and persist selection
+---
+
+### Phase 11: Systematic Event & Error Logging System (Debug Log Viewer)
+**Status**: `completed`
+**Scope**: Build a central logging system across extension (popup, background service worker, content scripts) and backend server. Track events, errors, and successes with timestamps and contextual metadata, auto-logged during runtime events and phase completions. Provide a dedicated Log Viewer UI in the extension to view, filter, debug, and export event logs.
+
+**Deliverables**:
+- Centralized `Logger` utility for backend (file/console/in-memory ring buffer) and extension (`chrome.storage.local` log storage)
+- Event tracking types (`INFO`, `SUCCESS`, `WARN`, `ERROR`) with process tags (e.g. `SCAN_FIELDS`, `LLM_FETCH`, `DOM_FILL`, `PHASE_UPDATE`)
+- API endpoint `GET /logs` and `POST /logs` in backend for aggregated logging
+- Event Log Viewer UI panel in extension popup with filtering, search, and clear/export actions
+- Automatic event logging integration across all extension background worker message channels and LLM calls
+- Vitest unit tests for logger services and log viewer UI
+
+**UAT**:
+- [x] Extension logs background, content script, and backend events with timestamp and status
+- [x] Popup displays dedicated "Activity Log" viewer section or tab
+- [x] Users can filter logs by level (INFO/SUCCESS/ERROR) or search by keyword
+- [x] Errors during form scanning, LLM gateway, or DOM filling show detailed stack/messages in log viewer
+- [x] Logs persist cleanly in storage with automatic retention limits (e.g. max 500 entries)
+- [x] Log export option (JSON/text download) works cleanly
+- [x] All unit tests pass
+
+---
+
 ## Future Roadmap (Post v1.0)
 
-### Phase 10: Advanced Form Elements (Playwright Integration)
+### Phase 12: Advanced Form Elements (Playwright Integration)
 **Status**: `future`
 **Scope**: Integrate Playwright to handle dropdowns, checkboxes, radio buttons, date pickers — simulating human-like interaction.
 
-### Phase 11: Multi-Profile Support
+### Phase 13: Multi-Profile Support
 **Status**: `future`
 **Scope**: Support multiple profiles with a profile switcher in the popup.
 
-### Phase 12: Profile Editor UI
+### Phase 14: Profile Editor UI
 **Status**: `future`
 **Scope**: Web-based profile editor served from the backend.
 
-### Phase 13: Multi-Provider Forms
+### Phase 15: Multi-Provider Forms
 **Status**: `future`
 **Scope**: Extend to Typeform, JotForm, Microsoft Forms, etc.
 
-### Phase 14: Chrome Web Store Publishing
+### Phase 16: Chrome Web Store Publishing
 **Status**: `future`
 **Scope**: Package, review, and publish to Chrome Web Store.

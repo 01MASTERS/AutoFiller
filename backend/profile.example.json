@@ -1,0 +1,41 @@
+{
+  "name": "Jane Doe",
+  "email": "jane.doe@example.com",
+  "phone": "+1 (555) 123-4567",
+  "address": "123 Innovation Way, San Francisco, CA 94105, USA",
+  "education": [
+    {
+      "degree": "B.S. Computer Science",
+      "school": "Stanford University",
+      "year": "2024"
+    }
+  ],
+  "experience": [
+    {
+      "title": "Software Engineer",
+      "company": "TechCorp",
+      "duration": "2024 - Present"
+    }
+  ],
+  "skills": [
+    "TypeScript",
+    "Node.js",
+    "React",
+    "Express",
+    "Python"
+  ],
+  "links": {
+    "LinkedIn": "https://linkedin.com/in/janedoe",
+    "GitHub": "https://github.com/janedoe",
+    "Portfolio": "https://janedoe.dev"
+  },
+  "custom": {
+    "First Name": "Jane",
+    "Last Name": "Doe",
+    "City": "San Francisco",
+    "State": "California",
+    "Country": "United States",
+    "Work Authorization": "US Citizen",
+    "Notice Period": "Immediate"
+  }
+}
