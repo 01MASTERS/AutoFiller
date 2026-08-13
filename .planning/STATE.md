@@ -40,6 +40,7 @@ _(None yet — will be populated as development progresses)_
 | Task | Description | Date | Status |
 |---|---|---|---|
 | `detailed-llm-form-logs` | Detailed LLM response mappings & filled form field values added to backend/extension logs & Debug Dashboard | 2026-08-13 | complete ✓ |
+| `log-expand-collapse-ui` | Expand icon & Read More / Collapse toggle for long messages and JSON details in Debug Log Dashboard | 2026-08-13 | complete ✓ |
 
 ## Open Questions
 

@@ -63,39 +63,100 @@ apiRouter.delete('/logs', (req: Request, res: Response) => {
   logger.clearLogs();
   res.json({ status: 'success', message: 'Logs cleared' });
 });
-
 apiRouter.get('/logs-ui', (req: Request, res: Response) => {
   const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>AutoFiller — Activity & Debug Log Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AutoFiller — Activity & Debug Logs</title>
   <style>
     :root {
       --bg: #0f172a;
       --card-bg: #1e293b;
       --text: #f8fafc;
       --muted: #94a3b8;
-      --border: rgba(255,255,255,0.1);
-      --primary: #3b82f6;
+      --border: #334155;
+      --accent: #3b82f6;
       --success: #10b981;
       --danger: #ef4444;
       --warning: #f59e0b;
     }
-    body { font-family: monospace, sans-serif; background: var(--bg); color: var(--text); padding: 24px; margin: 0; }
-    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 16px; }
-    h1 { font-size: 22px; margin: 0; color: #60a5fa; }
-    .controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
-    .btn { padding: 8px 14px; border-radius: 6px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text); font-weight: 600; cursor: pointer; }
-    .btn:hover { background: #334155; }
-    .btn-primary { background: var(--primary); border: none; }
-    .btn-primary:hover { background: #2563eb; }
-    .filter-btn.active { border-color: var(--primary); background: rgba(59, 130, 246, 0.2); color: #93c5fd; }
-    input[type="text"] { padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--card-bg); color: var(--text); flex-grow: 1; max-width: 300px; }
-    .log-container { background: #090d16; border: 1px solid var(--border); border-radius: 8px; padding: 12px; max-height: 70vh; overflow-y: auto; }
-    .log-item { padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 13px; line-height: 1.5; font-family: 'Consolas', monospace; }
-    .time { color: var(--muted); }
-    .level { font-weight: bold; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin: 0 4px; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 20px;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+    h1 { margin: 0; font-size: 20px; color: var(--text); }
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+    .btn {
+      background: var(--card-bg);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+    .btn:hover { background: var(--border); }
+    .btn-primary { background: var(--accent); border-color: var(--accent); color: white; }
+    .btn-primary:hover { opacity: 0.9; }
+    .filter-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
+    input[type="text"] {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 12px;
+      border-radius: 6px;
+      flex-grow: 1;
+      min-width: 200px;
+    }
+    .log-container {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .log-item {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+    .log-item:last-child { border-bottom: none; }
+    .log-header {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .time { color: var(--muted); font-size: 12px; }
+    .level {
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 11px;
+    }
     .level-INFO { background: rgba(59,130,246,0.2); color: #93c5fd; }
     .level-SUCCESS { background: rgba(16,185,129,0.2); color: #6ee7b7; }
     .level-WARN { background: rgba(245,158,11,0.2); color: #fde68a; }
@@ -103,7 +164,35 @@ apiRouter.get('/logs-ui', (req: Request, res: Response) => {
     .tag { color: #a78bfa; font-weight: 600; }
     .source { color: var(--muted); }
     .message { color: var(--text); }
-    .details { color: #cbd5e1; font-size: 11px; margin-top: 4px; background: rgba(255,255,255,0.03); padding: 6px; border-radius: 4px; white-space: pre-wrap; word-break: break-all; }
+    .toggle-btn {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border);
+      color: #60a5fa;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.2s ease;
+      margin-left: 6px;
+    }
+    .toggle-btn:hover { background: rgba(96,165,250,0.15); color: #93c5fd; }
+    .details {
+      color: #cbd5e1;
+      font-size: 11px;
+      margin-top: 6px;
+      background: rgba(0,0,0,0.3);
+      padding: 10px 14px;
+      border-radius: 6px;
+      border: 1px solid rgba(255,255,255,0.05);
+      white-space: pre-wrap;
+      word-break: break-all;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .hidden { display: none !important; }
   </style>
 </head>
 <body>
@@ -126,12 +215,13 @@ apiRouter.get('/logs-ui', (req: Request, res: Response) => {
   </div>
 
   <div class="log-container" id="log-container">
-    <div style="color:var(--muted)">Loading activity logs...</div>
+    <div style="color:var(--muted); padding: 15px;">Loading activity logs...</div>
   </div>
 
   <script>
     let activeLevel = '';
     let currentLogs = [];
+    const expandedIndices = new Set();
 
     function setFilter(level) {
       activeLevel = level;
@@ -154,29 +244,73 @@ apiRouter.get('/logs-ui', (req: Request, res: Response) => {
           renderLogs(currentLogs);
         }
       } catch (err) {
-        document.getElementById('log-container').innerHTML = '<div style="color:var(--danger)">Failed to load logs</div>';
+        document.getElementById('log-container').innerHTML = '<div style="color:var(--danger); padding:15px;">Failed to load logs</div>';
       }
     }
 
     function renderLogs(logs) {
       const container = document.getElementById('log-container');
       if (logs.length === 0) {
-        container.innerHTML = '<div style="color:var(--muted)">No log entries found.</div>';
+        container.innerHTML = '<div style="color:var(--muted); padding:15px;">No log entries found.</div>';
         return;
       }
 
-      container.innerHTML = logs.map(l => {
+      container.innerHTML = logs.map((l, index) => {
         const date = new Date(l.timestamp).toLocaleTimeString();
-        const detailsStr = l.details ? '<div class="details">' + JSON.stringify(l.details, null, 2) + '</div>' : '';
-        return '<div class="log-item">' +
-          '<span class="time">[' + date + ']</span> ' +
-          '<span class="level level-' + l.level + '">' + l.level + '</span> ' +
-          '<span class="source">[' + l.source + ']</span> ' +
-          '<span class="tag">#' + l.tag + ':</span> ' +
-          '<span class="message">' + escapeHtml(l.message) + '</span>' +
+        const msg = l.message || '';
+        const isLongMsg = msg.length > 140;
+        const shortMsg = isLongMsg ? msg.substring(0, 140) + '...' : msg;
+        const hasDetails = Boolean(l.details);
+        const isExpandable = isLongMsg || hasDetails;
+        const isExpanded = expandedIndices.has(index);
+
+        const toggleBtn = isExpandable
+          ? '<button class="toggle-btn" onclick="toggleLog(' + index + ')"><span id="icon-' + index + '">' + (isExpanded ? '▼' : '▶') + '</span> <span id="text-' + index + '">' + (isExpanded ? 'Collapse' : 'Read More') + '</span></button>'
+          : '';
+
+        const detailsStr = hasDetails
+          ? '<div class="details ' + (isExpanded ? '' : 'hidden') + '" id="details-' + index + '">' + escapeHtml(JSON.stringify(l.details, null, 2)) + '</div>'
+          : '';
+
+        return '<div class="log-item" id="log-item-' + index + '">' +
+          '<div class="log-header">' +
+            '<span class="time">[' + date + ']</span> ' +
+            '<span class="level level-' + l.level + '">' + l.level + '</span> ' +
+            '<span class="source">[' + l.source + ']</span> ' +
+            '<span class="tag">#' + l.tag + ':</span> ' +
+            (isLongMsg
+              ? '<span class="message ' + (isExpanded ? 'hidden' : '') + '" id="msg-trunc-' + index + '">' + escapeHtml(shortMsg) + '</span>' +
+                '<span class="message ' + (isExpanded ? '' : 'hidden') + '" id="msg-full-' + index + '">' + escapeHtml(msg) + '</span>'
+              : '<span class="message">' + escapeHtml(msg) + '</span>') +
+            toggleBtn +
+          '</div>' +
           detailsStr +
         '</div>';
       }).join('');
+    }
+
+    function toggleLog(index) {
+      const icon = document.getElementById('icon-' + index);
+      const text = document.getElementById('text-' + index);
+      const details = document.getElementById('details-' + index);
+      const msgTrunc = document.getElementById('msg-trunc-' + index);
+      const msgFull = document.getElementById('msg-full-' + index);
+
+      if (expandedIndices.has(index)) {
+        expandedIndices.delete(index);
+        if (icon) icon.textContent = '▶';
+        if (text) text.textContent = 'Read More';
+        if (details) details.classList.add('hidden');
+        if (msgTrunc) msgTrunc.classList.remove('hidden');
+        if (msgFull) msgFull.classList.add('hidden');
+      } else {
+        expandedIndices.add(index);
+        if (icon) icon.textContent = '▼';
+        if (text) text.textContent = 'Collapse';
+        if (details) details.classList.remove('hidden');
+        if (msgTrunc) msgTrunc.classList.add('hidden');
+        if (msgFull) msgFull.classList.remove('hidden');
+      }
     }
 
     function escapeHtml(str) {
@@ -195,6 +329,7 @@ apiRouter.get('/logs-ui', (req: Request, res: Response) => {
     async function clearLogs() {
       if (confirm('Clear all log entries?')) {
         await fetch('/logs', { method: 'DELETE' });
+        expandedIndices.clear();
         fetchLogs();
       }
     }
