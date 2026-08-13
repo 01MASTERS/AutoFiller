@@ -9,7 +9,7 @@
 | **Milestone** | 1 — Production-Ready v1.0 |
 | **Current Phase** | 2 — Profile Store & Backend API |
 | **Next Phase** | 2 — Execute Phase |
-| **Status** | Phase 2 planned (2 plans, 2 waves) — ready to execute |
+| **Status** | Phase 2 planned (3 plans, 2 waves) — ready to execute |
 | **Last Updated** | 2026-08-13 |
 
 ## Decision Log
