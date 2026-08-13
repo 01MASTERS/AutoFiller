@@ -12,6 +12,7 @@ export interface LLMProvider {
     profile: UserProfile,
     options?: LLMOptions
   ): Promise<Record<string, string>>;
+  fetchAvailableModels?(options?: LLMOptions): Promise<string[]>;
 }
 
 export class LLMProviderError extends Error {

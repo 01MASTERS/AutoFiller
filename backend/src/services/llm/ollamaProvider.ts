@@ -60,4 +60,34 @@ export class OllamaProvider implements LLMProvider {
       );
     }
   }
+
+  async fetchAvailableModels(options?: LLMOptions): Promise<string[]> {
+    const timeoutMs = options?.timeoutMs || 10000;
+    const url = `${this.host.replace(/\/$/, '')}/api/tags`;
+
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+
+      if (!response.ok) {
+        throw new LLMProviderError(
+          `Ollama tags API returned status ${response.status}`
+        );
+      }
+
+      const data = (await response.json()) as { models?: Array<{ name: string }> };
+      if (Array.isArray(data?.models) && data.models.length > 0) {
+        return data.models.map((m) => m.name);
+      }
+      return ['llama3.2'];
+    } catch (err) {
+      if (err instanceof LLMProviderError) throw err;
+      throw new LLMProviderError(
+        `Ollama service not reachable at ${this.host}. Ensure Ollama is running. (${err instanceof Error ? err.message : String(err)})`,
+        err
+      );
+    }
+  }
 }

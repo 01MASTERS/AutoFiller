@@ -38,4 +38,17 @@ export class LLMGateway {
 
     throw lastError || new LLMProviderError('LLM gateway failed after retries');
   }
+
+  async getAvailableModels(
+    providerName: 'ollama' | 'gemini',
+    options?: LLMOptions
+  ): Promise<string[]> {
+    const provider = providerName === 'gemini' ? this.geminiProvider : this.ollamaProvider;
+    if (provider.fetchAvailableModels) {
+      return await provider.fetchAvailableModels(options);
+    }
+    return providerName === 'gemini'
+      ? ['gemini-1.5-flash', 'gemini-1.5-pro']
+      : ['llama3.2'];
+  }
 }
