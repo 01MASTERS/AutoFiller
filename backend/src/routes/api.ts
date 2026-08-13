@@ -165,20 +165,23 @@ apiRouter.get('/logs-ui', (req: Request, res: Response) => {
     .source { color: var(--muted); }
     .message { color: var(--text); }
     .toggle-btn {
-      background: rgba(255,255,255,0.06);
-      border: 1px solid var(--border);
-      color: #60a5fa;
+      margin-left: auto;
+      background: transparent;
+      border: none;
+      color: var(--muted);
       font-size: 11px;
-      padding: 2px 8px;
+      padding: 3px 6px;
       border-radius: 4px;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
-      gap: 4px;
+      justify-content: center;
       transition: all 0.2s ease;
-      margin-left: 6px;
     }
-    .toggle-btn:hover { background: rgba(96,165,250,0.15); color: #93c5fd; }
+    .toggle-btn:hover {
+      background: rgba(255,255,255,0.08);
+      color: var(--text);
+    }
     .details {
       color: #cbd5e1;
       font-size: 11px;
@@ -265,7 +268,7 @@ apiRouter.get('/logs-ui', (req: Request, res: Response) => {
         const isExpanded = expandedIndices.has(index);
 
         const toggleBtn = isExpandable
-          ? '<button class="toggle-btn" onclick="toggleLog(' + index + ')"><span id="icon-' + index + '">' + (isExpanded ? '▼' : '▶') + '</span> <span id="text-' + index + '">' + (isExpanded ? 'Collapse' : 'Read More') + '</span></button>'
+          ? '<button class="toggle-btn" id="toggle-btn-' + index + '" onclick="toggleLog(' + index + ')" title="' + (isExpanded ? 'Collapse details' : 'Expand details') + '"><span id="icon-' + index + '">' + (isExpanded ? '▲' : '▼') + '</span></button>'
           : '';
 
         const detailsStr = hasDetails
@@ -290,23 +293,23 @@ apiRouter.get('/logs-ui', (req: Request, res: Response) => {
     }
 
     function toggleLog(index) {
+      const btn = document.getElementById('toggle-btn-' + index);
       const icon = document.getElementById('icon-' + index);
-      const text = document.getElementById('text-' + index);
       const details = document.getElementById('details-' + index);
       const msgTrunc = document.getElementById('msg-trunc-' + index);
       const msgFull = document.getElementById('msg-full-' + index);
 
       if (expandedIndices.has(index)) {
         expandedIndices.delete(index);
-        if (icon) icon.textContent = '▶';
-        if (text) text.textContent = 'Read More';
+        if (icon) icon.textContent = '▼';
+        if (btn) btn.title = 'Expand details';
         if (details) details.classList.add('hidden');
         if (msgTrunc) msgTrunc.classList.remove('hidden');
         if (msgFull) msgFull.classList.add('hidden');
       } else {
         expandedIndices.add(index);
-        if (icon) icon.textContent = '▼';
-        if (text) text.textContent = 'Collapse';
+        if (icon) icon.textContent = '▲';
+        if (btn) btn.title = 'Collapse details';
         if (details) details.classList.remove('hidden');
         if (msgTrunc) msgTrunc.classList.add('hidden');
         if (msgFull) msgFull.classList.remove('hidden');
