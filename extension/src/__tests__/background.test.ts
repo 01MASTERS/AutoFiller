@@ -65,7 +65,13 @@ describe('background service worker', () => {
       if (message.action === 'FILL_FIELDS') {
         return Promise.resolve({
           status: 'success',
-          result: { status: 'success', filledCount: 1, failedCount: 0, filledFields: ['entry.1'], failedFields: [] },
+          result: {
+            status: 'success',
+            filledCount: 1,
+            failedCount: 0,
+            filledFields: ['entry.1'],
+            failedFields: [],
+          },
         });
       }
       return Promise.reject(new Error('Unknown action'));
@@ -89,7 +95,7 @@ describe('background service worker', () => {
       expect.objectContaining({
         method: 'POST',
         body: expect.stringContaining('"provider":"ollama"'),
-      })
+      }),
     );
     expect(sendMessageTabMock).toHaveBeenCalledWith(101, {
       action: 'FILL_FIELDS',

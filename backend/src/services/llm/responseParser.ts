@@ -13,7 +13,10 @@ export function parseLLMJsonResponse(rawResponse: string): Record<string, string
     cleaned = codeBlockMatch[1].trim();
   } else {
     // Strip leading/trailing backticks if any
-    cleaned = cleaned.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+    cleaned = cleaned
+      .replace(/^```(?:json)?\s*/i, '')
+      .replace(/\s*```$/i, '')
+      .trim();
   }
 
   let parsed: unknown;
@@ -22,7 +25,7 @@ export function parseLLMJsonResponse(rawResponse: string): Record<string, string
   } catch (err) {
     throw new LLMParseError(
       `Failed to parse JSON response: ${err instanceof Error ? err.message : String(err)}`,
-      rawResponse
+      rawResponse,
     );
   }
 
@@ -39,7 +42,7 @@ export function parseLLMJsonResponse(rawResponse: string): Record<string, string
     } else {
       throw new LLMParseError(
         `Value for key "${key}" is not a string (got ${typeof value})`,
-        rawResponse
+        rawResponse,
       );
     }
   }

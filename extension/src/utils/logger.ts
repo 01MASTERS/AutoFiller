@@ -9,7 +9,7 @@ export class ExtensionLogger {
     source: LogSource,
     tag: string,
     message: string,
-    details?: Record<string, unknown>
+    details?: Record<string, unknown>,
   ): Promise<LogEntry> {
     const entry: LogEntry = {
       id: `ext-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,

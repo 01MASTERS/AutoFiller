@@ -12,4 +12,15 @@ describe('GET /profile', () => {
     expect(response.body).toHaveProperty('phone');
     expect(typeof response.body.name).toBe('string');
   });
+
+  it('preserves alternate phone and custom properties if present in profile', async () => {
+    const response = await request(app).get('/profile');
+    expect(response.status).toBe(200);
+    if ('alternate phone' in response.body) {
+      expect(typeof response.body['alternate phone']).toBe('string');
+    }
+    if (response.body.custom) {
+      expect(typeof response.body.custom).toBe('object');
+    }
+  });
 });

@@ -80,7 +80,7 @@ describe('fillFormFields', () => {
 
     const result = fillFormFields(
       { 'entry.400': 'Value 1', 'entry.999': 'Missing Value' },
-      document
+      document,
     );
 
     expect(result.status).toBe('partial');

@@ -91,4 +91,25 @@ describe('extractFormFields', () => {
       required: undefined,
     });
   });
+
+  it('correctly handles Phone and Alternate Phone fields with unique IDs', () => {
+    document.body.innerHTML = `
+      <div role="listitem">
+        <div role="heading">Phone Number</div>
+        <input type="tel" name="phone_field" aria-label="Phone Number" />
+      </div>
+      <div role="listitem">
+        <div role="heading">Alternate Phone Number</div>
+        <input type="tel" name="phone_field" aria-label="Alternate Phone Number" />
+      </div>
+    `;
+
+    const fields = extractFormFields(document);
+
+    expect(fields).toHaveLength(2);
+    expect(fields[0].id).toBe('phone_field');
+    expect(fields[0].label).toBe('Phone Number');
+    expect(fields[1].id).toBe('phone_field-2');
+    expect(fields[1].label).toBe('Alternate Phone Number');
+  });
 });

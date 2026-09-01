@@ -2,7 +2,7 @@ import { FillResult } from '@autofiller/shared';
 
 export function fillFormFields(
   mappings: Record<string, string>,
-  doc: Document = document
+  doc: Document = document,
 ): FillResult {
   const filledFields: string[] = [];
   const failedFields: string[] = [];
@@ -29,7 +29,7 @@ export function fillFormFields(
 
     try {
       target = doc.querySelector<HTMLInputElement | HTMLTextAreaElement>(
-        `[data-autofiller-id="${CSS.escape(fieldId)}"], input[name="${fieldId}"], textarea[name="${fieldId}"], #${CSS.escape(fieldId)}`
+        `[data-autofiller-id="${CSS.escape(fieldId)}"], input[name="${fieldId}"], textarea[name="${fieldId}"], #${CSS.escape(fieldId)}`,
       );
     } catch {
       // Fallback if querySelector fails on unexpected selector characters
@@ -40,13 +40,13 @@ export function fillFormFields(
       target =
         Array.from(
           doc.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(
-            'input[type="text"], input[type="email"], input[type="tel"], input:not([type]), textarea'
-          )
+            'input[type="text"], input[type="email"], input[type="tel"], input:not([type]), textarea',
+          ),
         ).find(
           (el) =>
             el.id === fieldId ||
             el.getAttribute('name') === fieldId ||
-            el.getAttribute('aria-describedby')?.includes(fieldId)
+            el.getAttribute('aria-describedby')?.includes(fieldId),
         ) || null;
     }
 

@@ -14,5 +14,7 @@ describe('GET /test-form', () => {
     expect(response.text).toContain('entry.102');
     expect(response.text).toContain('entry.103');
     expect(response.text).toContain('entry.104');
+    expect(response.text).toContain('entry.105');
+    expect(response.text).toContain('Alternate Phone Number');
   });
 });

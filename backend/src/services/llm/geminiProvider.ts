@@ -8,12 +8,12 @@ export class GeminiProvider implements LLMProvider {
   async mapFields(
     fields: FieldMetadata[],
     profile: UserProfile,
-    options?: LLMOptions
+    options?: LLMOptions,
   ): Promise<Record<string, string>> {
     const apiKey = options?.apiKey || process.env.GEMINI_API_KEY;
     if (!apiKey) {
       throw new LLMProviderError(
-        'Gemini API key not provided. Set GEMINI_API_KEY or pass key in settings.'
+        'Gemini API key not provided. Set GEMINI_API_KEY or pass key in settings.',
       );
     }
 
@@ -25,9 +25,9 @@ export class GeminiProvider implements LLMProvider {
     const model = ai.getGenerativeModel({
       model: modelName,
       generationConfig: {
-        responseMimeType: 'application/json'
+        responseMimeType: 'application/json',
       },
-      systemInstruction: prompt.systemPrompt
+      systemInstruction: prompt.systemPrompt,
     });
 
     try {
@@ -55,7 +55,7 @@ export class GeminiProvider implements LLMProvider {
       }
       throw new LLMProviderError(
         `Gemini API request failed: ${err instanceof Error ? err.message : String(err)}`,
-        err
+        err,
       );
     }
   }
@@ -63,9 +63,7 @@ export class GeminiProvider implements LLMProvider {
   async fetchAvailableModels(options?: LLMOptions): Promise<string[]> {
     const apiKey = options?.apiKey || process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      throw new LLMProviderError(
-        'Gemini API key is required to list available models.'
-      );
+      throw new LLMProviderError('Gemini API key is required to list available models.');
     }
 
     const timeoutMs = options?.timeoutMs || 10000;
@@ -79,7 +77,7 @@ export class GeminiProvider implements LLMProvider {
 
       if (!response.ok) {
         throw new LLMProviderError(
-          `Gemini API returned status ${response.status}: Invalid API Key or access denied`
+          `Gemini API returned status ${response.status}: Invalid API Key or access denied`,
         );
       }
 
@@ -89,9 +87,7 @@ export class GeminiProvider implements LLMProvider {
 
       if (Array.isArray(data?.models) && data.models.length > 0) {
         const generationModels = data.models
-          .filter((m) =>
-            m.supportedGenerationMethods?.includes('generateContent')
-          )
+          .filter((m) => m.supportedGenerationMethods?.includes('generateContent'))
           .map((m) => m.name.replace(/^models\//, ''));
 
         if (generationModels.length > 0) {
@@ -104,7 +100,7 @@ export class GeminiProvider implements LLMProvider {
       if (err instanceof LLMProviderError) throw err;
       throw new LLMProviderError(
         `Failed to fetch Gemini models: ${err instanceof Error ? err.message : String(err)}`,
-        err
+        err,
       );
     }
   }

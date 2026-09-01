@@ -28,20 +28,25 @@ export interface UserProfile {
   name: string;
   email: string;
   phone: string;
+  alternatePhone?: string;
+  'alternate phone'?: string;
   address?: string;
   education?: Array<{
-    degree: string;
-    school: string;
+    degree?: string;
+    school?: string;
     year?: string;
+    [key: string]: unknown;
   }>;
   experience?: Array<{
-    title: string;
-    company: string;
+    title?: string;
+    company?: string;
     duration?: string;
+    [key: string]: unknown;
   }>;
   skills?: string[];
   links?: Record<string, string>;
-  custom?: Record<string, string>;
+  custom?: Record<string, unknown>;
+  [key: string]: unknown;
 }
 
 export interface FillResult {
@@ -61,7 +66,8 @@ export interface ModelsResponse {
 }
 
 export type LogLevel = 'INFO' | 'SUCCESS' | 'WARN' | 'ERROR';
-export type LogSource = 'EXTENSION_POPUP' | 'BACKGROUND' | 'CONTENT_SCRIPT' | 'BACKEND_API' | 'LLM_GATEWAY';
+export type LogSource =
+  'EXTENSION_POPUP' | 'BACKGROUND' | 'CONTENT_SCRIPT' | 'BACKEND_API' | 'LLM_GATEWAY';
 
 export interface LogEntry {
   id: string;
@@ -79,4 +85,3 @@ export interface LogsResponse {
   total: number;
   error?: string;
 }
-

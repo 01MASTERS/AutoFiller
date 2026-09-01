@@ -8,7 +8,7 @@ describe('responseParser', () => {
     const result = parseLLMJsonResponse(raw);
     expect(result).toEqual({
       'entry.123': 'Jane Doe',
-      'entry.456': 'jane@example.com'
+      'entry.456': 'jane@example.com',
     });
   });
 
@@ -29,7 +29,7 @@ describe('responseParser', () => {
     const result = parseLLMJsonResponse(raw);
     expect(result).toEqual({
       'entry.123': '12345',
-      'entry.456': 'true'
+      'entry.456': 'true',
     });
   });
 

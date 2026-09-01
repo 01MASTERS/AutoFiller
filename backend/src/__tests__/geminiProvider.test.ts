@@ -5,14 +5,14 @@ import { FieldMetadata, UserProfile } from '@autofiller/shared';
 
 const generateContentMock = vi.fn();
 const getGenerativeModelMock = vi.fn().mockImplementation(() => ({
-  generateContent: generateContentMock
+  generateContent: generateContentMock,
 }));
 
 vi.mock('@google/generative-ai', () => {
   return {
     GoogleGenerativeAI: vi.fn().mockImplementation(() => ({
-      getGenerativeModel: getGenerativeModelMock
-    }))
+      getGenerativeModel: getGenerativeModelMock,
+    })),
   };
 });
 
@@ -33,8 +33,8 @@ describe('GeminiProvider', () => {
   it('successfully calls Gemini SDK and returns mapping', async () => {
     generateContentMock.mockResolvedValue({
       response: {
-        text: () => '{"entry.1": "Bob"}'
-      }
+        text: () => '{"entry.1": "Bob"}',
+      },
     });
 
     const provider = new GeminiProvider();
@@ -43,8 +43,8 @@ describe('GeminiProvider', () => {
     expect(getGenerativeModelMock).toHaveBeenCalledWith(
       expect.objectContaining({
         model: 'gemini-1.5-flash',
-        generationConfig: { responseMimeType: 'application/json' }
-      })
+        generationConfig: { responseMimeType: 'application/json' },
+      }),
     );
     expect(result).toEqual({ 'entry.1': 'Bob' });
   });
@@ -52,13 +52,13 @@ describe('GeminiProvider', () => {
   it('throws LLMProviderError on empty SDK response text', async () => {
     generateContentMock.mockResolvedValue({
       response: {
-        text: () => ''
-      }
+        text: () => '',
+      },
     });
 
     const provider = new GeminiProvider();
-    await expect(
-      provider.mapFields(fields, profile, { apiKey: 'test-api-key' })
-    ).rejects.toThrow(LLMProviderError);
+    await expect(provider.mapFields(fields, profile, { apiKey: 'test-api-key' })).rejects.toThrow(
+      LLMProviderError,
+    );
   });
 });

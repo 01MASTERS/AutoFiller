@@ -16,7 +16,7 @@ export class LLMGateway {
     providerName: 'ollama' | 'gemini',
     fields: FieldMetadata[],
     profile: UserProfile,
-    options?: LLMOptions
+    options?: LLMOptions,
   ): Promise<Record<string, string>> {
     const provider = providerName === 'gemini' ? this.geminiProvider : this.ollamaProvider;
     const maxRetries = 2;
@@ -41,14 +41,12 @@ export class LLMGateway {
 
   async getAvailableModels(
     providerName: 'ollama' | 'gemini',
-    options?: LLMOptions
+    options?: LLMOptions,
   ): Promise<string[]> {
     const provider = providerName === 'gemini' ? this.geminiProvider : this.ollamaProvider;
     if (provider.fetchAvailableModels) {
       return await provider.fetchAvailableModels(options);
     }
-    return providerName === 'gemini'
-      ? ['gemini-1.5-flash', 'gemini-1.5-pro']
-      : ['llama3.2'];
+    return providerName === 'gemini' ? ['gemini-1.5-flash', 'gemini-1.5-pro'] : ['llama3.2'];
   }
 }

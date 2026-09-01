@@ -391,12 +391,10 @@ apiRouter.post('/autofill', async (req: Request, res: Response, next: NextFuncti
     const apiKey = (req.headers['x-gemini-api-key'] as string) || body.apiKey;
     const model = body.model;
 
-    const mappings = await llmGatewayInstance.mapFields(
-      provider,
-      body.fields,
-      profile,
-      { apiKey, model }
-    );
+    const mappings = await llmGatewayInstance.mapFields(provider, body.fields, profile, {
+      apiKey,
+      model,
+    });
 
     LoggerService.getInstance().addLog({
       level: 'SUCCESS',
@@ -470,6 +468,11 @@ apiRouter.get('/test-form', (req: Request, res: Response) => {
       <div role="listitem" class="item">
         <div role="heading" class="heading">Phone Number</div>
         <input type="tel" name="entry.103" aria-label="Phone Number" placeholder="(555) 000-0000" />
+      </div>
+
+      <div role="listitem" class="item">
+        <div role="heading" class="heading">Alternate Phone Number</div>
+        <input type="tel" name="entry.105" aria-label="Alternate Phone Number" placeholder="(555) 000-0000" />
       </div>
 
       <div role="listitem" class="item">

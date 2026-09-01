@@ -13,7 +13,7 @@ export class OllamaProvider implements LLMProvider {
   async mapFields(
     fields: FieldMetadata[],
     profile: UserProfile,
-    options?: LLMOptions
+    options?: LLMOptions,
   ): Promise<Record<string, string>> {
     const prompt = buildFieldMappingPrompt(fields, profile);
     const model = options?.model || 'llama3.2';
@@ -24,20 +24,20 @@ export class OllamaProvider implements LLMProvider {
       const response = await fetch(url, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           model,
           prompt: prompt.combinedPrompt,
           format: 'json',
-          stream: false
+          stream: false,
         }),
-        signal: AbortSignal.timeout(timeoutMs)
+        signal: AbortSignal.timeout(timeoutMs),
       });
 
       if (!response.ok) {
         throw new LLMProviderError(
-          `Ollama API returned HTTP status ${response.status}: ${response.statusText}`
+          `Ollama API returned HTTP status ${response.status}: ${response.statusText}`,
         );
       }
 
@@ -56,7 +56,7 @@ export class OllamaProvider implements LLMProvider {
       }
       throw new LLMProviderError(
         `Ollama not reachable at ${this.host}. Ensure Ollama is running. (${err instanceof Error ? err.message : String(err)})`,
-        err
+        err,
       );
     }
   }
@@ -72,9 +72,7 @@ export class OllamaProvider implements LLMProvider {
       });
 
       if (!response.ok) {
-        throw new LLMProviderError(
-          `Ollama tags API returned status ${response.status}`
-        );
+        throw new LLMProviderError(`Ollama tags API returned status ${response.status}`);
       }
 
       const data = (await response.json()) as { models?: Array<{ name: string }> };
@@ -86,7 +84,7 @@ export class OllamaProvider implements LLMProvider {
       if (err instanceof LLMProviderError) throw err;
       throw new LLMProviderError(
         `Ollama service not reachable at ${this.host}. Ensure Ollama is running. (${err instanceof Error ? err.message : String(err)})`,
-        err
+        err,
       );
     }
   }

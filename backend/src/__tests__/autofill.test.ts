@@ -44,7 +44,7 @@ describe('POST /autofill', () => {
       'ollama',
       payload.fields,
       expect.objectContaining({ name: expect.any(String) }),
-      { apiKey: undefined, model: undefined }
+      { apiKey: undefined, model: undefined },
     );
   });
 
@@ -66,17 +66,15 @@ describe('POST /autofill', () => {
 
     expect(response.status).toBe(200);
     expect(response.body.status).toBe('success');
-    expect(mapFieldsMock).toHaveBeenCalledWith(
-      'gemini',
-      payload.fields,
-      expect.anything(),
-      { apiKey: 'custom-header-api-key', model: 'gemini-1.5-flash' }
-    );
+    expect(mapFieldsMock).toHaveBeenCalledWith('gemini', payload.fields, expect.anything(), {
+      apiKey: 'custom-header-api-key',
+      model: 'gemini-1.5-flash',
+    });
   });
 
   it('returns 502 Bad Gateway when LLM gateway fails', async () => {
     mapFieldsMock.mockRejectedValue(
-      new LLMProviderError('Ollama not reachable at http://localhost:11434')
+      new LLMProviderError('Ollama not reachable at http://localhost:11434'),
     );
 
     const payload = {

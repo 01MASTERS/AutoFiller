@@ -3,7 +3,7 @@ setlocal enabledelayedexpansion
 title AutoFiller — Startup Script
 
 echo ===================================================
-echo ⚡ AutoFiller — Chrome Extension & LLM Backend
+echo ⚡ AutoFiller — Chrome Extension ^& LLM Backend
 echo ===================================================
 echo.
 
@@ -11,7 +11,7 @@ echo.
 where node >nul 2>nul
 if %errorlevel% neq 0 (
     echo [ERROR] Node.js is not installed or not in PATH!
-    echo Please install Node.js (v18+) from https://nodejs.org/
+    echo Please install Node.js v18+ from https://nodejs.org/
     pause
     exit /b 1
 )
@@ -25,16 +25,16 @@ if %errorlevel% neq 0 (
 )
 
 :: Install dependencies if node_modules is missing
-if not exist "node_modules\" (
+if not exist "node_modules" (
     echo [1/4] Installing project dependencies...
     call npm install
-    if %errorlevel% neq 0 (
+    if !errorlevel! neq 0 (
         echo [ERROR] Failed to install dependencies!
         pause
         exit /b 1
     )
 ) else (
-    echo [1/4] Dependencies verified (node_modules present).
+    echo [1/4] Dependencies verified - node_modules present.
 )
 
 :: Setup backend env file if missing
@@ -42,7 +42,7 @@ if not exist "backend\.env" (
     echo [2/4] Creating backend\.env from template...
     copy "backend\.env.example" "backend\.env" >nul
 ) else (
-    echo [2/4] Backend environment file verified (backend\.env present).
+    echo [2/4] Backend environment file verified - backend\.env present.
 )
 
 :: Setup backend profile file if missing
@@ -50,7 +50,7 @@ if not exist "backend\profile.json" (
     echo [3/4] Creating backend\profile.json from template...
     copy "backend\profile.example.json" "backend\profile.json" >nul
 ) else (
-    echo [3/4] User profile verified (backend\profile.json present).
+    echo [3/4] User profile verified - backend\profile.json present.
 )
 
 :: Build shared types package

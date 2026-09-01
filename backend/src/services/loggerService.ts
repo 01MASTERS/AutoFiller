@@ -53,7 +53,7 @@ export class LoggerService {
         (l) =>
           l.message.toLowerCase().includes(q) ||
           l.tag.toLowerCase().includes(q) ||
-          (l.details && JSON.stringify(l.details).toLowerCase().includes(q))
+          (l.details && JSON.stringify(l.details).toLowerCase().includes(q)),
       );
     }
 

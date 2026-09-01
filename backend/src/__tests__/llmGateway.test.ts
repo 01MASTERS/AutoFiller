@@ -9,10 +9,10 @@ describe('LLMGateway', () => {
 
   it('routes to Ollama provider when requested', async () => {
     const mockOllama: LLMProvider = {
-      mapFields: vi.fn().mockResolvedValue({ 'entry.1': 'Charlie' })
+      mapFields: vi.fn().mockResolvedValue({ 'entry.1': 'Charlie' }),
     };
     const mockGemini: LLMProvider = {
-      mapFields: vi.fn()
+      mapFields: vi.fn(),
     };
 
     const gateway = new LLMGateway({ ollama: mockOllama, gemini: mockGemini });
@@ -25,10 +25,10 @@ describe('LLMGateway', () => {
 
   it('routes to Gemini provider when requested', async () => {
     const mockOllama: LLMProvider = {
-      mapFields: vi.fn()
+      mapFields: vi.fn(),
     };
     const mockGemini: LLMProvider = {
-      mapFields: vi.fn().mockResolvedValue({ 'entry.1': 'Charlie' })
+      mapFields: vi.fn().mockResolvedValue({ 'entry.1': 'Charlie' }),
     };
 
     const gateway = new LLMGateway({ ollama: mockOllama, gemini: mockGemini });

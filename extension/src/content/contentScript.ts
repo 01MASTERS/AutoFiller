@@ -34,7 +34,7 @@ if (typeof chrome !== 'undefined' && chrome.runtime?.onMessage) {
             failedCount: result.failedCount,
             filledFields: filledMap,
             failedFields: result.failedFields,
-          }
+          },
         );
         sendResponse({ status: 'success', result });
       } catch (error) {

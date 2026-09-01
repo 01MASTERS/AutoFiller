@@ -16,7 +16,12 @@ export default defineManifest({
   },
   content_scripts: [
     {
-      matches: ['https://docs.google.com/forms/*', 'http://localhost:3456/*', 'http://127.0.0.1:3456/*', '<all_urls>'],
+      matches: [
+        'https://docs.google.com/forms/*',
+        'http://localhost:3456/*',
+        'http://127.0.0.1:3456/*',
+        '<all_urls>',
+      ],
       js: ['src/content/contentScript.ts'],
     },
   ],

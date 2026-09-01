@@ -22,7 +22,7 @@ export function updateBackendStatusUI(status: 'online' | 'offline' | 'checking')
 
 export function updateStatusBannerUI(
   state: 'idle' | 'analyzing' | 'filling' | 'done' | 'error',
-  details?: { filledCount?: number; failedCount?: number; error?: string }
+  details?: { filledCount?: number; failedCount?: number; error?: string },
 ) {
   const banner = document.getElementById('status-banner');
   const textEl = document.getElementById('status-text');
@@ -44,7 +44,11 @@ export function updateStatusBannerUI(
       const rawError = details?.error || 'Auto-fill failed';
       if (rawError.includes('Ollama') || rawError.includes('11434')) {
         textEl.textContent = 'Ollama service offline. Run "ollama run llama3.2" to start.';
-      } else if (rawError.includes('3456') || rawError.includes('Failed to fetch') || rawError.includes('Backend')) {
+      } else if (
+        rawError.includes('3456') ||
+        rawError.includes('Failed to fetch') ||
+        rawError.includes('Backend')
+      ) {
         textEl.textContent = 'Backend server offline. Start server with "npm run dev".';
       } else {
         textEl.textContent = rawError;
@@ -141,7 +145,7 @@ export function toggleProviderSettingsUI(provider: 'ollama' | 'gemini') {
 export async function fetchProviderModels(
   provider: 'ollama' | 'gemini',
   apiKey?: string,
-  preferredModel?: string
+  preferredModel?: string,
 ): Promise<string[]> {
   const statusMsgEl = document.getElementById(`${provider}-status-msg`);
   const refreshBtn = document.getElementById(`refresh-${provider}-btn`);
@@ -195,7 +199,7 @@ export async function fetchProviderModels(
 export function populateModelDropdown(
   provider: 'ollama' | 'gemini',
   models: string[],
-  preferredModel?: string
+  preferredModel?: string,
 ) {
   const selectEl = document.getElementById(`${provider}-model-select`) as HTMLSelectElement | null;
   if (!selectEl) return;
@@ -263,7 +267,12 @@ export function bindPopupEvents() {
   const openLogsBtn = document.getElementById('open-logs-btn');
 
   openLogsBtn?.addEventListener('click', () => {
-    ExtensionLogger.log('INFO', 'EXTENSION_POPUP', 'LOGS_UI_OPEN', 'User opened Debug Log Dashboard');
+    ExtensionLogger.log(
+      'INFO',
+      'EXTENSION_POPUP',
+      'LOGS_UI_OPEN',
+      'User opened Debug Log Dashboard',
+    );
     if (typeof chrome !== 'undefined' && chrome.tabs?.create) {
       chrome.tabs.create({ url: 'http://localhost:3456/logs-ui' });
     } else if (typeof window !== 'undefined') {
@@ -273,10 +282,18 @@ export function bindPopupEvents() {
 
   providerSelect?.addEventListener('change', async () => {
     const settings = await saveSettings();
-    ExtensionLogger.log('INFO', 'EXTENSION_POPUP', 'PROVIDER_SWITCH', `Switched provider to ${settings.provider}`);
+    ExtensionLogger.log(
+      'INFO',
+      'EXTENSION_POPUP',
+      'PROVIDER_SWITCH',
+      `Switched provider to ${settings.provider}`,
+    );
 
-    const selectEl = document.getElementById(`${settings.provider}-model-select`) as HTMLSelectElement | null;
-    const activeModel = settings.provider === 'gemini' ? settings.geminiModel : settings.ollamaModel;
+    const selectEl = document.getElementById(
+      `${settings.provider}-model-select`,
+    ) as HTMLSelectElement | null;
+    const activeModel =
+      settings.provider === 'gemini' ? settings.geminiModel : settings.ollamaModel;
 
     if (!selectEl || selectEl.options.length <= 1) {
       if (settings.provider === 'ollama') {
@@ -289,12 +306,22 @@ export function bindPopupEvents() {
 
   ollamaSelect?.addEventListener('change', async () => {
     const settings = await saveSettings();
-    ExtensionLogger.log('INFO', 'EXTENSION_POPUP', 'MODEL_CHANGE', `Selected Ollama model: ${settings.ollamaModel}`);
+    ExtensionLogger.log(
+      'INFO',
+      'EXTENSION_POPUP',
+      'MODEL_CHANGE',
+      `Selected Ollama model: ${settings.ollamaModel}`,
+    );
   });
 
   geminiSelect?.addEventListener('change', async () => {
     const settings = await saveSettings();
-    ExtensionLogger.log('INFO', 'EXTENSION_POPUP', 'MODEL_CHANGE', `Selected Gemini model: ${settings.geminiModel}`);
+    ExtensionLogger.log(
+      'INFO',
+      'EXTENSION_POPUP',
+      'MODEL_CHANGE',
+      `Selected Gemini model: ${settings.geminiModel}`,
+    );
   });
 
   geminiInput?.addEventListener('blur', async () => {
@@ -319,9 +346,15 @@ export function bindPopupEvents() {
   autofillBtn?.addEventListener('click', async () => {
     updateStatusBannerUI('analyzing');
     const settings = await saveSettings();
-    const activeModel = settings.provider === 'gemini' ? settings.geminiModel : settings.ollamaModel;
+    const activeModel =
+      settings.provider === 'gemini' ? settings.geminiModel : settings.ollamaModel;
 
-    ExtensionLogger.log('INFO', 'EXTENSION_POPUP', 'TRIGGER_AUTOFILL_CLICK', `Auto-fill form clicked with provider: ${settings.provider}, model: ${activeModel}`);
+    ExtensionLogger.log(
+      'INFO',
+      'EXTENSION_POPUP',
+      'TRIGGER_AUTOFILL_CLICK',
+      `Auto-fill form clicked with provider: ${settings.provider}, model: ${activeModel}`,
+    );
 
     if (typeof chrome !== 'undefined' && chrome.runtime?.sendMessage) {
       chrome.runtime.sendMessage({

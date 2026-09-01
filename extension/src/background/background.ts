@@ -12,7 +12,7 @@ export interface StatusDetails {
 
 export async function updateStatusState(
   state: AutofillState,
-  details?: { filledCount?: number; failedCount?: number; error?: string }
+  details?: { filledCount?: number; failedCount?: number; error?: string },
 ): Promise<StatusDetails> {
   const statusData: StatusDetails = {
     currentState: state,
@@ -49,7 +49,12 @@ export async function handleTriggerAutofill(options?: {
 }) {
   try {
     await updateStatusState('analyzing');
-    await ExtensionLogger.log('INFO', 'BACKGROUND', 'AUTOFILL_START', `Starting autofill workflow (provider: ${options?.provider || 'ollama'}, model: ${options?.model || 'default'})`);
+    await ExtensionLogger.log(
+      'INFO',
+      'BACKGROUND',
+      'AUTOFILL_START',
+      `Starting autofill workflow (provider: ${options?.provider || 'ollama'}, model: ${options?.model || 'default'})`,
+    );
 
     if (typeof chrome === 'undefined' || !chrome.tabs) {
       throw new Error('Chrome tabs API not available');
@@ -79,14 +84,18 @@ export async function handleTriggerAutofill(options?: {
       !scanResponse.fields ||
       scanResponse.fields.length === 0
     ) {
-      const errorMsg =
-        scanResponse?.error || 'No fillable text fields found on this form';
+      const errorMsg = scanResponse?.error || 'No fillable text fields found on this form';
       await ExtensionLogger.log('WARN', 'BACKGROUND', 'SCAN_NO_FIELDS', errorMsg);
       await updateStatusState('error', { error: errorMsg });
       return { status: 'error', error: errorMsg };
     }
 
-    await ExtensionLogger.log('SUCCESS', 'BACKGROUND', 'SCAN_FIELDS_SUCCESS', `Extracted ${scanResponse.fields.length} form field(s) from active tab`);
+    await ExtensionLogger.log(
+      'SUCCESS',
+      'BACKGROUND',
+      'SCAN_FIELDS_SUCCESS',
+      `Extracted ${scanResponse.fields.length} form field(s) from active tab`,
+    );
 
     let backendUrl = 'http://localhost:3456/autofill';
     if (typeof chrome !== 'undefined' && chrome.storage?.local) {
@@ -149,7 +158,7 @@ export async function handleTriggerAutofill(options?: {
         provider: options?.provider,
         model: options?.model,
         mappings: autofillData.mappings,
-      }
+      },
     );
 
     await updateStatusState('filling');
@@ -186,7 +195,7 @@ export async function handleTriggerAutofill(options?: {
         filledFields: filledDetails,
         failedFields,
         mappings: autofillData.mappings,
-      }
+      },
     );
 
     await updateStatusState('done', { filledCount, failedCount });
