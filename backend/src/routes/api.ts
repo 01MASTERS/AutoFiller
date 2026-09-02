@@ -70,170 +70,468 @@ apiRouter.get('/logs-ui', (req: Request, res: Response) => {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AutoFiller — Activity & Debug Logs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #0f172a;
-      --card-bg: #1e293b;
-      --text: #f8fafc;
-      --muted: #94a3b8;
-      --border: #334155;
+      --bg: #080c14;
+      --card-bg: #0d121f;
+      --border: rgba(255, 255, 255, 0.08);
+      --border-subtle: rgba(255, 255, 255, 0.04);
+      --text: #f1f5f9;
+      --muted: #64748b;
+      --muted-light: #94a3b8;
       --accent: #3b82f6;
-      --success: #10b981;
-      --danger: #ef4444;
-      --warning: #f59e0b;
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-mono: 'JetBrains Mono', 'SF Mono', Consolas, Menlo, monospace;
     }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-family: var(--font-sans);
       background-color: var(--bg);
       color: var(--text);
-      margin: 0;
-      padding: 20px;
-    }
-    .header {
+      min-height: 100vh;
+      padding: 24px;
       display: flex;
-      justify-content: space-between;
+      flex-direction: column;
       align-items: center;
-      margin-bottom: 20px;
-      padding-bottom: 10px;
-      border-bottom: 1px solid var(--border);
     }
-    h1 { margin: 0; font-size: 20px; color: var(--text); }
-    .controls {
+
+    .container {
+      width: 100%;
+      max-width: 1360px;
       display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* Header Bar */
+    .header {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    }
+    .brand-section {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .pulse-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 10px #10b981;
+      animation: livePulse 2s infinite ease-in-out;
+    }
+    @keyframes livePulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.9); }
+    }
+    .brand-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .brand-status {
+      font-size: 11px;
+      color: var(--muted);
+      font-family: var(--font-mono);
+      background: rgba(255,255,255,0.04);
+      padding: 2px 8px;
+      border-radius: 6px;
+      border: 1px solid var(--border-subtle);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
       gap: 10px;
-      margin-bottom: 20px;
-      flex-wrap: wrap;
     }
     .btn {
-      background: var(--card-bg);
-      color: var(--text);
+      background: rgba(255,255,255,0.04);
       border: 1px solid var(--border);
-      padding: 8px 16px;
+      color: var(--muted-light);
+      padding: 7px 14px;
       border-radius: 6px;
       cursor: pointer;
+      font-size: 12px;
       font-weight: 500;
-      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+      font-family: var(--font-mono);
     }
-    .btn:hover { background: var(--border); }
-    .btn-primary { background: var(--accent); border-color: var(--accent); color: white; }
-    .btn-primary:hover { opacity: 0.9; }
-    .filter-btn.active { background: var(--accent); color: white; border-color: var(--accent); }
-    input[type="text"] {
+    .btn:hover {
+      background: rgba(255,255,255,0.08);
+      color: #fff;
+      border-color: rgba(255,255,255,0.15);
+    }
+    .btn-primary {
+      background: rgba(59, 130, 246, 0.12);
+      border-color: rgba(59, 130, 246, 0.35);
+      color: #93c5fd;
+    }
+    .btn-primary:hover {
+      background: rgba(59, 130, 246, 0.22);
+      color: #fff;
+      border-color: #3b82f6;
+    }
+    .btn-danger:hover {
+      background: rgba(239, 68, 68, 0.15);
+      color: #fca5a5;
+      border-color: rgba(239, 68, 68, 0.4);
+    }
+
+    /* Controls Bar */
+    .controls {
       background: var(--card-bg);
       border: 1px solid var(--border);
-      color: var(--text);
-      padding: 8px 12px;
-      border-radius: 6px;
-      flex-grow: 1;
-      min-width: 200px;
+      border-radius: 10px;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
     }
+    .filter-group {
+      display: flex;
+      gap: 4px;
+      background: rgba(0,0,0,0.3);
+      padding: 3px;
+      border-radius: 6px;
+      border: 1px solid var(--border-subtle);
+    }
+    .filter-chip {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--muted);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 500;
+      padding: 5px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .filter-chip:hover {
+      color: #cbd5e1;
+      background: rgba(255,255,255,0.03);
+    }
+    .filter-chip.active {
+      color: #fff;
+      background: rgba(255,255,255,0.08);
+      border-color: rgba(255,255,255,0.12);
+      font-weight: 600;
+    }
+    .count-tag {
+      font-size: 10px;
+      padding: 1px 5px;
+      border-radius: 4px;
+      background: rgba(255,255,255,0.08);
+    }
+
+    .search-box {
+      flex: 1;
+      min-width: 240px;
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .search-input {
+      width: 100%;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: #fff;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      padding: 7px 32px 7px 12px;
+      outline: none;
+      transition: border-color 0.15s ease;
+    }
+    .search-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 1px var(--accent);
+    }
+    .kbd-shortcut {
+      position: absolute;
+      right: 10px;
+      font-size: 10px;
+      font-family: var(--font-mono);
+      color: var(--muted);
+      background: rgba(255,255,255,0.06);
+      padding: 1px 5px;
+      border-radius: 3px;
+      pointer-events: none;
+    }
+
+    /* Log Stream Container */
     .log-container {
       background: var(--card-bg);
       border: 1px solid var(--border);
-      border-radius: 8px;
+      border-radius: 12px;
       overflow: hidden;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
     }
-    .log-item {
+
+    .log-stream {
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      line-height: 1.6;
+      max-height: 700px;
+      overflow-y: auto;
+    }
+
+    .log-row {
       display: flex;
-      flex-direction: column;
-      gap: 4px;
-      padding: 10px 14px;
-      border-bottom: 1px solid var(--border);
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-      font-size: 13px;
-      line-height: 1.5;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 8px 18px;
+      border-bottom: 1px solid var(--border-subtle);
+      transition: background 0.12s ease;
+      cursor: pointer;
+      position: relative;
     }
-    .log-item:last-child { border-bottom: none; }
-    .log-header {
-      display: flex;
-      align-items: baseline;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-    .time { color: var(--muted); font-size: 12px; }
-    .level {
-      font-weight: 600;
-      padding: 2px 6px;
-      border-radius: 4px;
-      font-size: 11px;
-    }
-    .level-INFO { background: rgba(59,130,246,0.2); color: #93c5fd; }
-    .level-SUCCESS { background: rgba(16,185,129,0.2); color: #6ee7b7; }
-    .level-WARN { background: rgba(245,158,11,0.2); color: #fde68a; }
-    .level-ERROR { background: rgba(239,68,68,0.2); color: #fca5a5; }
-    .tag { color: #a78bfa; font-weight: 600; }
-    .tag-ERROR { color: #f87171 !important; font-weight: 700; }
-    .tag-WARN { color: #fbbf24 !important; font-weight: 700; }
-    .tag-SUCCESS { color: #34d399 !important; font-weight: 700; }
-    .source { color: var(--muted); }
-    .message { color: var(--text); }
-    .toggle-btn {
-      margin-left: auto;
-      background: transparent;
-      border: none;
+    .log-row:last-child { border-bottom: none; }
+    .log-row:hover { background: rgba(255,255,255,0.02); }
+    .log-row.expanded { background: rgba(255,255,255,0.035); }
+
+    .time {
       color: var(--muted);
       font-size: 11px;
-      padding: 3px 6px;
+      white-space: nowrap;
+      padding-top: 2px;
+      user-select: none;
+    }
+    .level-badge {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 3px;
+      white-space: nowrap;
+      text-transform: uppercase;
+      letter-spacing: 0.02em;
+    }
+    .badge-INFO {
+      background: rgba(59, 130, 246, 0.15);
+      color: #60a5fa;
+      border: 1px solid rgba(59, 130, 246, 0.25);
+    }
+    .badge-SUCCESS {
+      background: rgba(16, 185, 129, 0.15);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.25);
+    }
+    .badge-WARN {
+      background: rgba(245, 158, 11, 0.15);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.25);
+    }
+    .badge-ERROR {
+      background: rgba(239, 68, 68, 0.15);
+      color: #f87171;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .source-tag {
+      color: var(--muted);
+      font-size: 11px;
+      white-space: nowrap;
+    }
+
+    .event-tag {
+      font-weight: 600;
+      font-size: 11px;
+      white-space: nowrap;
+    }
+    .tag-INFO { color: #a78bfa; }
+    .tag-SUCCESS { color: #34d399; }
+    .tag-WARN { color: #fbbf24; }
+    .tag-ERROR { color: #f87171; font-weight: 700; }
+
+    .message-body {
+      flex: 1;
+      word-break: break-word;
+      color: #e2e8f0;
+    }
+
+    .toggle-icon {
+      color: var(--muted);
+      font-size: 10px;
+      padding: 2px 5px;
       border-radius: 4px;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.2s ease;
+      transition: all 0.2s;
+      user-select: none;
+      margin-left: auto;
     }
-    .toggle-btn:hover {
+    .toggle-icon:hover {
       background: rgba(255,255,255,0.08);
-      color: var(--text);
+      color: #fff;
     }
-    .details {
+    .log-row.expanded .toggle-icon {
+      color: #fff;
+    }
+
+    .details-box {
+      margin-top: 8px;
+      background: #05070d;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 6px;
+      padding: 12px 14px;
       color: #cbd5e1;
       font-size: 11px;
-      margin-top: 6px;
-      background: rgba(0,0,0,0.3);
-      padding: 10px 14px;
-      border-radius: 6px;
-      border: 1px solid rgba(255,255,255,0.05);
       white-space: pre-wrap;
       word-break: break-all;
       max-height: 400px;
       overflow-y: auto;
+      box-shadow: inset 0 2px 6px rgba(0,0,0,0.5);
     }
+
     .hidden { display: none !important; }
+
+    /* Toast notification */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #1e293b;
+      color: #fff;
+      border: 1px solid rgba(255,255,255,0.15);
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 12px;
+      font-family: var(--font-mono);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      opacity: 0;
+      transform: translateY(8px);
+      transition: all 0.2s ease;
+      pointer-events: none;
+      z-index: 1000;
+    }
+    #toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
   </style>
 </head>
 <body>
-  <div class="header">
-    <h1>⚡ AutoFiller — Activity & Debug Logs</h1>
-    <div style="display:flex; gap:10px;">
-      <button class="btn btn-primary" onclick="copyLogs()">📋 Copy Logs to Clipboard</button>
-      <button class="btn" onclick="clearLogs()">🗑️ Clear Logs</button>
+  <div class="container">
+    <div class="header">
+      <div class="brand-section">
+        <div class="pulse-dot" title="Live AutoFiller Stream Active"></div>
+        <div class="brand-title">
+          <span>⚡ AutoFiller</span>
+          <span style="font-weight:400; color:var(--muted); font-size:13px;">/</span>
+          <span style="font-weight:500; font-size:13px; color:#cbd5e1;">Diagnostics & Logs</span>
+        </div>
+        <div class="brand-status" id="connection-status">Live Connected (3s)</div>
+      </div>
+      <div class="header-actions">
+        <button class="btn btn-primary" onclick="copyLogs()">📋 Copy Logs</button>
+        <button class="btn btn-danger" onclick="clearLogs()">🗑️ Clear</button>
+      </div>
+    </div>
+
+    <div class="controls">
+      <div class="filter-group">
+        <button class="filter-chip active" id="chip-all" onclick="setFilter('')">
+          <span>ALL</span>
+          <span class="count-tag" id="cnt-all">0</span>
+        </button>
+        <button class="filter-chip" id="chip-error" onclick="setFilter('ERROR')">
+          <span>ERROR</span>
+          <span class="count-tag" id="cnt-error" style="color:#f87171;">0</span>
+        </button>
+        <button class="filter-chip" id="chip-warn" onclick="setFilter('WARN')">
+          <span>WARN</span>
+          <span class="count-tag" id="cnt-warn" style="color:#fbbf24;">0</span>
+        </button>
+        <button class="filter-chip" id="chip-success" onclick="setFilter('SUCCESS')">
+          <span>SUCCESS</span>
+          <span class="count-tag" id="cnt-success" style="color:#34d399;">0</span>
+        </button>
+        <button class="filter-chip" id="chip-info" onclick="setFilter('INFO')">
+          <span>INFO</span>
+          <span class="count-tag" id="cnt-info">0</span>
+        </button>
+      </div>
+
+      <div class="search-box">
+        <input type="text" id="search-input" class="search-input" placeholder="Filter by keyword, fid, tag..." oninput="fetchLogs()" />
+        <span class="kbd-shortcut">/</span>
+      </div>
+
+      <button class="btn" onclick="fetchLogs(true)" title="Force refresh stream">🔄 Refresh</button>
+    </div>
+
+    <div class="log-container">
+      <div class="log-stream" id="log-stream">
+        <div style="color:var(--muted); padding: 20px; font-family:var(--font-mono); font-size:12px;">Loading activity stream...</div>
+      </div>
     </div>
   </div>
 
-  <div class="controls">
-    <button class="btn filter-btn active" onclick="setFilter('')">ALL</button>
-    <button class="btn filter-btn" onclick="setFilter('SUCCESS')">SUCCESS</button>
-    <button class="btn filter-btn" onclick="setFilter('ERROR')">ERROR</button>
-    <button class="btn filter-btn" onclick="setFilter('INFO')">INFO</button>
-    <button class="btn filter-btn" onclick="setFilter('WARN')">WARN</button>
-    <input type="text" id="search-input" placeholder="Search logs..." oninput="fetchLogs()" />
-    <button class="btn" onclick="fetchLogs()">🔄 Refresh</button>
-  </div>
-
-  <div class="log-container" id="log-container">
-    <div style="color:var(--muted); padding: 15px;">Loading activity logs...</div>
-  </div>
+  <div id="toast">Copied to clipboard!</div>
 
   <script>
     let activeLevel = '';
     let currentLogs = [];
     const expandedIds = new Set();
 
+    // Focus search on '/'
+    document.addEventListener('keydown', (e) => {
+      if (e.key === '/' && document.activeElement !== document.getElementById('search-input')) {
+        e.preventDefault();
+        document.getElementById('search-input').focus();
+      }
+    });
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2000);
+    }
+
     function setFilter(level) {
       activeLevel = level;
-      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-      event.target.classList.add('active');
+      document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+      const chipId = level ? 'chip-' + level.toLowerCase() : 'chip-all';
+      const activeEl = document.getElementById(chipId);
+      if (activeEl) activeEl.classList.add('active');
       fetchLogs(true);
+    }
+
+    function updateCounters(logs) {
+      let err = 0, warn = 0, succ = 0, info = 0;
+      logs.forEach(l => {
+        if (l.level === 'ERROR') err++;
+        else if (l.level === 'WARN') warn++;
+        else if (l.level === 'SUCCESS') succ++;
+        else if (l.level === 'INFO') info++;
+      });
+      document.getElementById('cnt-all').textContent = logs.length;
+      document.getElementById('cnt-error').textContent = err;
+      document.getElementById('cnt-warn').textContent = warn;
+      document.getElementById('cnt-success').textContent = succ;
+      document.getElementById('cnt-info').textContent = info;
     }
 
     function areLogsEqual(prev, next) {
@@ -258,6 +556,7 @@ apiRouter.get('/logs-ui', (req: Request, res: Response) => {
         const data = await res.json();
         if (data.status === 'success') {
           const newLogs = data.logs || [];
+          updateCounters(newLogs);
           if (!forceRender && areLogsEqual(currentLogs, newLogs)) {
             return;
           }
@@ -265,20 +564,19 @@ apiRouter.get('/logs-ui', (req: Request, res: Response) => {
           renderLogs(currentLogs);
         }
       } catch (err) {
-        document.getElementById('log-container').innerHTML = '<div style="color:var(--danger); padding:15px;">Failed to load logs</div>';
+        document.getElementById('log-stream').innerHTML = '<div style="color:#f87171; padding:20px; font-family:var(--font-mono); font-size:12px;">Failed to connect to backend logs service.</div>';
       }
     }
 
     function renderLogs(logs) {
-      const container = document.getElementById('log-container');
+      const container = document.getElementById('log-stream');
       if (logs.length === 0) {
-        container.innerHTML = '<div style="color:var(--muted); padding:15px;">No log entries found.</div>';
+        container.innerHTML = '<div style="color:var(--muted); padding:24px; text-align:center; font-family:var(--font-mono); font-size:12px;">No matching log events found.</div>';
         return;
       }
 
-      // Preserve scroll positions of open details elements before updating DOM
       const scrollMap = new Map();
-      document.querySelectorAll('.details').forEach(el => {
+      document.querySelectorAll('.details-box').forEach(el => {
         if (el.id && el.scrollTop > 0) {
           scrollMap.set(el.id, el.scrollTop);
         }
@@ -294,54 +592,54 @@ apiRouter.get('/logs-ui', (req: Request, res: Response) => {
         const isExpanded = expandedIds.has(l.id);
 
         const toggleBtn = isExpandable
-          ? '<button class="toggle-btn" id="toggle-btn-' + l.id + '" onclick="toggleLog(\\'' + l.id + '\\')" title="' + (isExpanded ? 'Collapse details' : 'Expand details') + '"><span id="icon-' + l.id + '">' + (isExpanded ? '▲' : '▼') + '</span></button>'
+          ? '<span class="toggle-icon" id="icon-' + l.id + '">' + (isExpanded ? '▲' : '▼') + '</span>'
           : '';
 
         const detailsStr = hasDetails
-          ? '<div class="details ' + (isExpanded ? '' : 'hidden') + '" id="details-' + l.id + '">' + escapeHtml(JSON.stringify(l.details, null, 2)) + '</div>'
+          ? '<div class="details-box ' + (isExpanded ? '' : 'hidden') + '" id="details-' + l.id + '">' + escapeHtml(JSON.stringify(l.details, null, 2)) + '</div>'
           : '';
 
-        return '<div class="log-item" id="log-item-' + l.id + '">' +
-          '<div class="log-header">' +
-            '<span class="time">[' + date + ']</span> ' +
-            '<span class="level level-' + l.level + '">' + l.level + '</span> ' +
-            '<span class="source">[' + l.source + ']</span> ' +
-            '<span class="tag tag-' + l.level + '">#' + l.tag + ':</span> ' +
+        return '<div class="log-row ' + (isExpanded ? 'expanded' : '') + '" id="row-' + l.id + '" onclick="toggleLog(\\'' + l.id + '\\', ' + isExpandable + ')">' +
+          '<span class="time">' + date + '</span>' +
+          '<span class="level-badge badge-' + l.level + '">' + l.level + '</span>' +
+          '<span class="source-tag">[' + l.source + ']</span>' +
+          '<span class="event-tag tag-' + l.level + '">#' + l.tag + ':</span>' +
+          '<div class="message-body">' +
             (isLongMsg
-              ? '<span class="message ' + (isExpanded ? 'hidden' : '') + '" id="msg-trunc-' + l.id + '">' + escapeHtml(shortMsg) + '</span>' +
-                '<span class="message ' + (isExpanded ? '' : 'hidden') + '" id="msg-full-' + l.id + '">' + escapeHtml(msg) + '</span>'
-              : '<span class="message">' + escapeHtml(msg) + '</span>') +
-            toggleBtn +
+              ? '<span id="msg-trunc-' + l.id + '" class="' + (isExpanded ? 'hidden' : '') + '">' + escapeHtml(shortMsg) + '</span>' +
+                '<span id="msg-full-' + l.id + '" class="' + (isExpanded ? '' : 'hidden') + '">' + escapeHtml(msg) + '</span>'
+              : '<span>' + escapeHtml(msg) + '</span>') +
+            detailsStr +
           '</div>' +
-          detailsStr +
+          toggleBtn +
         '</div>';
       }).join('');
 
-      // Restore scroll positions
       scrollMap.forEach((top, id) => {
         const el = document.getElementById(id);
         if (el) el.scrollTop = top;
       });
     }
 
-    function toggleLog(id) {
-      const btn = document.getElementById('toggle-btn-' + id);
+    function toggleLog(id, isExpandable) {
+      if (!isExpandable) return;
       const icon = document.getElementById('icon-' + id);
+      const row = document.getElementById('row-' + id);
       const details = document.getElementById('details-' + id);
       const msgTrunc = document.getElementById('msg-trunc-' + id);
       const msgFull = document.getElementById('msg-full-' + id);
 
       if (expandedIds.has(id)) {
         expandedIds.delete(id);
+        if (row) row.classList.remove('expanded');
         if (icon) icon.textContent = '▼';
-        if (btn) btn.title = 'Expand details';
         if (details) details.classList.add('hidden');
         if (msgTrunc) msgTrunc.classList.remove('hidden');
         if (msgFull) msgFull.classList.add('hidden');
       } else {
         expandedIds.add(id);
+        if (row) row.classList.add('expanded');
         if (icon) icon.textContent = '▲';
-        if (btn) btn.title = 'Collapse details';
         if (details) details.classList.remove('hidden');
         if (msgTrunc) msgTrunc.classList.add('hidden');
         if (msgFull) msgFull.classList.remove('hidden');
@@ -358,14 +656,15 @@ apiRouter.get('/logs-ui', (req: Request, res: Response) => {
       ).join('\\n');
 
       await navigator.clipboard.writeText(text);
-      alert('Logs copied to clipboard (' + currentLogs.length + ' entries)!');
+      showToast('Copied ' + currentLogs.length + ' logs to clipboard');
     }
 
     async function clearLogs() {
-      if (confirm('Clear all log entries?')) {
+      if (confirm('Clear all activity logs?')) {
         await fetch('/logs', { method: 'DELETE' });
         expandedIds.clear();
         fetchLogs(true);
+        showToast('Logs cleared');
       }
     }
 

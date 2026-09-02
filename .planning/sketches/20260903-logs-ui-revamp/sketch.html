@@ -1,0 +1,839 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AutoFiller Logs UI — Design Sketches</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #090d16;
+      --card-bg: #111726;
+      --border: #1e293b;
+      --border-subtle: rgba(255,255,255,0.06);
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent: #3b82f6;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --error: #ef4444;
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Meta Switcher Bar */
+    .sketch-bar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(13, 18, 30, 0.95);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .sketch-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #94a3b8;
+    }
+    .sketch-brand strong { color: #fff; }
+    .variant-nav {
+      display: flex;
+      background: rgba(255,255,255,0.04);
+      padding: 4px;
+      border-radius: 8px;
+      border: 1px solid var(--border-subtle);
+      gap: 4px;
+    }
+    .variant-btn {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      padding: 6px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .variant-btn:hover { color: #fff; background: rgba(255,255,255,0.05); }
+    .variant-btn.active {
+      background: #2563eb;
+      color: #ffffff;
+      font-weight: 600;
+      box-shadow: 0 2px 8px rgba(37,99,235,0.35);
+    }
+    .badge-pill {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.1);
+    }
+
+    /* Main Container */
+    .viewport {
+      flex: 1;
+      padding: 24px;
+      max-width: 1400px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .variant-pane { display: none; }
+    .variant-pane.active { display: block; animation: fadeIn 0.25s ease-out; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       VARIANT 1: CONSOLE MINIMALIST (Vercel / Railway Terminal Style)
+       ═══════════════════════════════════════════════════════════════ */
+    .v1-container {
+      background: #0b0f19;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      overflow: hidden;
+    }
+    .v1-header {
+      padding: 14px 20px;
+      background: rgba(255,255,255,0.02);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .v1-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #e2e8f0;
+      font-family: var(--font-mono);
+    }
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 10px #10b981;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.9); }
+    }
+    .v1-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .v1-btn {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: #cbd5e1;
+      font-size: 12px;
+      padding: 6px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--font-mono);
+      transition: all 0.15s;
+    }
+    .v1-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+    .v1-btn-primary {
+      background: #1e293b;
+      border-color: #3b82f6;
+      color: #60a5fa;
+    }
+
+    .v1-toolbar {
+      padding: 10px 20px;
+      background: #080c14;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .v1-filters {
+      display: flex;
+      gap: 4px;
+    }
+    .v1-filter-chip {
+      background: transparent;
+      border: 1px solid transparent;
+      color: #64748b;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 500;
+      padding: 4px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .v1-filter-chip:hover { color: #cbd5e1; background: rgba(255,255,255,0.03); }
+    .v1-filter-chip.active {
+      color: #fff;
+      background: rgba(255,255,255,0.08);
+      border-color: rgba(255,255,255,0.12);
+    }
+    .v1-search {
+      flex: 1;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 6px;
+      padding: 6px 12px;
+      color: #fff;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      outline: none;
+      min-width: 220px;
+    }
+    .v1-search:focus { border-color: #3b82f6; }
+
+    .v1-log-stream {
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      line-height: 1.6;
+      max-height: 600px;
+      overflow-y: auto;
+    }
+    .v1-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 7px 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.03);
+      transition: background 0.15s;
+      cursor: pointer;
+      position: relative;
+    }
+    .v1-row:hover { background: rgba(255,255,255,0.025); }
+    .v1-row.expanded { background: rgba(255,255,255,0.035); }
+    .v1-time { color: #64748b; font-size: 11px; white-space: nowrap; padding-top: 2px; }
+    .v1-badge {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 1px 6px;
+      border-radius: 3px;
+      white-space: nowrap;
+      text-transform: uppercase;
+    }
+    .badge-info { background: rgba(59,130,246,0.15); color: #60a5fa; border: 1px solid rgba(59,130,246,0.25); }
+    .badge-success { background: rgba(16,185,129,0.15); color: #34d399; border: 1px solid rgba(16,185,129,0.25); }
+    .badge-warn { background: rgba(245,158,11,0.15); color: #fbbf24; border: 1px solid rgba(245,158,11,0.25); }
+    .badge-error { background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.25); }
+    .v1-src { color: #64748b; font-size: 11px; }
+    .v1-tag { font-weight: 600; color: #a78bfa; font-size: 11px; }
+    .v1-msg { color: #e2e8f0; flex: 1; word-break: break-word; }
+    .v1-chevron { color: #475569; font-size: 10px; margin-left: auto; transition: transform 0.2s; }
+    .v1-row.expanded .v1-chevron { transform: rotate(180deg); color: #94a3b8; }
+
+    .v1-details {
+      margin: 8px 0 4px 0;
+      background: #06090e;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 6px;
+      padding: 12px 14px;
+      color: #94a3b8;
+      font-size: 11px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       VARIANT 2: OBSERVABILITY SUITE (Datadog / Supabase Metrics Style)
+       ═══════════════════════════════════════════════════════════════ */
+    .v2-metrics {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .metric-card {
+      background: #111726;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      transition: transform 0.2s;
+    }
+    .metric-card:hover { transform: translateY(-2px); border-color: rgba(255,255,255,0.15); }
+    .metric-label { font-size: 12px; font-weight: 500; color: #94a3b8; }
+    .metric-val { font-size: 24px; font-weight: 700; color: #fff; font-family: var(--font-mono); }
+    .metric-sub { font-size: 11px; color: #64748b; }
+    .metric-error { border-color: rgba(239,68,68,0.3); }
+    .metric-error .metric-val { color: #f87171; }
+    .metric-success { border-color: rgba(16,185,129,0.3); }
+    .metric-success .metric-val { color: #34d399; }
+
+    .v2-table-box {
+      background: #111726;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .v2-table-header {
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      background: rgba(255,255,255,0.01);
+    }
+    .v2-pills {
+      display: flex;
+      gap: 6px;
+    }
+    .v2-pill {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: #94a3b8;
+      font-size: 12px;
+      padding: 6px 12px;
+      border-radius: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .v2-pill.active { background: #3b82f6; color: #fff; border-color: #3b82f6; }
+    .v2-pill-cnt {
+      background: rgba(0,0,0,0.25);
+      font-size: 10px;
+      padding: 1px 6px;
+      border-radius: 8px;
+    }
+
+    .v2-list {
+      max-height: 540px;
+      overflow-y: auto;
+    }
+    .v2-item {
+      padding: 12px 20px;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .v2-item:last-child { border-bottom: none; }
+    .v2-meta-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 12px;
+    }
+    .v2-source-tag {
+      background: rgba(148, 163, 184, 0.1);
+      color: #94a3b8;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+    }
+    .v2-content-msg {
+      font-size: 13.5px;
+      color: #f1f5f9;
+      font-family: var(--font-mono);
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       VARIANT 3: OBSIDIAN SLEEK (Linear / Raycast Modern Glass Style)
+       ═══════════════════════════════════════════════════════════════ */
+    .v3-layout {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+    }
+    .v3-card {
+      background: radial-gradient(100% 100% at 50% 0%, rgba(30, 41, 59, 0.3) 0%, rgba(15, 23, 42, 0.6) 100%), #0b0f17;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      box-shadow: 0 20px 40px -15px rgba(0,0,0,0.5);
+      overflow: hidden;
+    }
+    .v3-top {
+      padding: 16px 24px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .v3-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 600;
+      font-size: 15px;
+      letter-spacing: -0.01em;
+    }
+    .v3-search-bar {
+      display: flex;
+      align-items: center;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px;
+      padding: 4px 10px;
+      width: 320px;
+      gap: 8px;
+    }
+    .v3-search-bar input {
+      background: transparent;
+      border: none;
+      color: #fff;
+      font-size: 12px;
+      outline: none;
+      width: 100%;
+    }
+    .v3-kbd {
+      font-size: 10px;
+      background: rgba(255,255,255,0.08);
+      padding: 2px 5px;
+      border-radius: 4px;
+      color: #64748b;
+      font-family: var(--font-mono);
+    }
+
+    .v3-feed {
+      max-height: 600px;
+      overflow-y: auto;
+    }
+    .v3-entry {
+      padding: 12px 24px;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      transition: all 0.15s;
+      cursor: pointer;
+    }
+    .v3-entry:hover {
+      background: rgba(255,255,255,0.025);
+    }
+    .v3-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+    .dot-error { background: #f87171; box-shadow: 0 0 8px #f87171; }
+    .dot-warn { background: #fbbf24; box-shadow: 0 0 8px #fbbf24; }
+    .dot-success { background: #34d399; box-shadow: 0 0 8px #34d399; }
+    .dot-info { background: #60a5fa; }
+
+    .v3-badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 6px;
+    }
+    .v3-source {
+      font-size: 11px;
+      color: #64748b;
+      min-width: 90px;
+    }
+    .v3-tag {
+      font-size: 12px;
+      color: #a78bfa;
+      font-weight: 600;
+      min-width: 160px;
+    }
+    .v3-msg {
+      font-size: 13px;
+      color: #cbd5e1;
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .v3-action-hover {
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+    .v3-entry:hover .v3-action-hover {
+      opacity: 1;
+    }
+    .v3-mini-btn {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: #cbd5e1;
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .v3-mini-btn:hover { background: rgba(255,255,255,0.12); color: #fff; }
+
+    /* Comparison Banner */
+    .compare-footer {
+      margin-top: 30px;
+      background: rgba(30, 41, 59, 0.4);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 13px;
+      color: #94a3b8;
+    }
+    .compare-footer strong { color: #f8fafc; }
+    .compare-vote {
+      display: flex;
+      gap: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Switcher -->
+  <header class="sketch-bar">
+    <div class="sketch-brand">
+      <span>🎨 <strong>AutoFiller UI Redesign Sketches</strong></span>
+      <span class="badge-pill">Interactive Prototype</span>
+    </div>
+    <div class="variant-nav">
+      <button class="variant-btn active" onclick="switchVariant('v1')">
+        <span>⚡ Variant 1</span>
+        <span class="badge-pill">Console Minimalist</span>
+      </button>
+      <button class="variant-btn" onclick="switchVariant('v2')">
+        <span>📊 Variant 2</span>
+        <span class="badge-pill">Observability Suite</span>
+      </button>
+      <button class="variant-btn" onclick="switchVariant('v3')">
+        <span>💎 Variant 3</span>
+        <span class="badge-pill">Linear Obsidian</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="viewport">
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         VARIANT 1: CONSOLE MINIMALIST (Vercel / Railway Style)
+         ═══════════════════════════════════════════════════════════════ -->
+    <div id="pane-v1" class="variant-pane active">
+      <div class="v1-container">
+        <div class="v1-header">
+          <div class="v1-title">
+            <span class="live-dot"></span>
+            <span>autofiller://activity-logs</span>
+            <span style="font-size: 11px; color: #64748b; font-weight: 400;">(3s poll • 4 events loaded)</span>
+          </div>
+          <div class="v1-actions">
+            <button class="v1-btn v1-btn-primary" onclick="alert('Logs copied to clipboard!')">📋 Copy Logs</button>
+            <button class="v1-btn" onclick="alert('Logs cleared!')">🗑️ Clear</button>
+          </div>
+        </div>
+
+        <div class="v1-toolbar">
+          <div class="v1-filters">
+            <button class="v1-filter-chip active">ALL (4)</button>
+            <button class="v1-filter-chip">ERROR (1)</button>
+            <button class="v1-filter-chip">WARN (1)</button>
+            <button class="v1-filter-chip">SUCCESS (2)</button>
+          </div>
+          <input type="text" class="v1-search" placeholder="Filter by keyword, fid, or tag... [Press /]" />
+          <button class="v1-btn" style="padding: 6px 10px;">🔄 Refresh</button>
+        </div>
+
+        <div class="v1-log-stream">
+          <!-- Item 1: Error -->
+          <div class="v1-row" onclick="toggleV1Details('v1-d-1')">
+            <span class="v1-time">23:59:12</span>
+            <span class="v1-badge badge-error">ERROR</span>
+            <span class="v1-src">[LLM_GATEWAY]</span>
+            <span class="v1-tag">#LLM_QUOTA_EXCEEDED:</span>
+            <div style="flex:1;">
+              <div class="v1-msg">Gemini Quota Exceeded (429 Rate Limit) - Google AI Studio quota exhausted. Wait a minute or check your quota limits at aistudio.google.com</div>
+              <div id="v1-d-1" class="v1-details hidden">{
+  "provider": "gemini",
+  "model": "gemini-3.7-flash",
+  "httpStatus": 429,
+  "quotaMetric": "generate_content_free_tier_requests",
+  "limit": 20,
+  "retryDelay": "56s",
+  "helpUrl": "https://ai.google.dev/gemini-api/docs/rate-limits"
+}</div>
+            </div>
+            <span class="v1-chevron">▼</span>
+          </div>
+
+          <!-- Item 2: Success -->
+          <div class="v1-row" onclick="toggleV1Details('v1-d-2')">
+            <span class="v1-time">23:58:45</span>
+            <span class="v1-badge badge-success">SUCCESS</span>
+            <span class="v1-src">[BACKGROUND]</span>
+            <span class="v1-tag">#AUTOFILL_COMPLETE:</span>
+            <div style="flex:1;">
+              <div class="v1-msg">Form filled: 5 field(s) populated successfully with profile data</div>
+              <div id="v1-d-2" class="v1-details hidden">{
+  "filledCount": 5,
+  "failedCount": 0,
+  "filledFields": {
+    "entry.100": "Jane Doe",
+    "entry.200": "jane@example.com",
+    "entry.300": "9135517396",
+    "entry.400": "San Francisco",
+    "entry.500": "Senior Full Stack Engineer"
+  }
+}</div>
+            </div>
+            <span class="v1-chevron">▼</span>
+          </div>
+
+          <!-- Item 3: Warning -->
+          <div class="v1-row" onclick="toggleV1Details('v1-d-3')">
+            <span class="v1-time">23:58:40</span>
+            <span class="v1-badge badge-warn">WARN</span>
+            <span class="v1-src">[LLM_GATEWAY]</span>
+            <span class="v1-tag">#LLM_ZERO_MAPPINGS:</span>
+            <div style="flex:1;">
+              <div class="v1-msg">LLM returned 0 field mappings: none of the 3 scanned fields matched the user profile</div>
+              <div id="v1-d-3" class="v1-details hidden">{
+  "provider": "ollama",
+  "model": "llama3.2",
+  "scannedFieldsCount": 3,
+  "scannedFields": [
+    { "id": "entry.901", "label": "Driver License Number" },
+    { "id": "entry.902", "label": "Passport Expiry Date" }
+  ],
+  "hint": "Check backend/profile.json to add custom fields or keys."
+}</div>
+            </div>
+            <span class="v1-chevron">▼</span>
+          </div>
+
+          <!-- Item 4: Success Scan -->
+          <div class="v1-row" onclick="toggleV1Details('v1-d-4')">
+            <span class="v1-time">23:58:39</span>
+            <span class="v1-badge badge-info">INFO</span>
+            <span class="v1-src">[CONTENT_SCRIPT]</span>
+            <span class="v1-tag">#DOM_SCAN_SUCCESS:</span>
+            <div style="flex:1;">
+              <div class="v1-msg">Scanned 5 form field(s) on page (Google Form QA fixture)</div>
+              <div id="v1-d-4" class="v1-details hidden">{
+  "count": 5,
+  "url": "http://localhost:3456/test-form",
+  "title": "QA Test Google Form"
+}</div>
+            </div>
+            <span class="v1-chevron">▼</span>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         VARIANT 2: OBSERVABILITY SUITE (Datadog / Supabase Metrics Style)
+         ═══════════════════════════════════════════════════════════════ -->
+    <div id="pane-v2" class="variant-pane">
+      <div class="v2-metrics">
+        <div class="metric-card">
+          <span class="metric-label">Total Logs Recorded</span>
+          <span class="metric-val">124</span>
+          <span class="metric-sub">Across 8 sessions today</span>
+        </div>
+        <div class="metric-card metric-success">
+          <span class="metric-label">Successful Form Fills</span>
+          <span class="metric-val">19</span>
+          <span class="metric-sub">94.2% fill accuracy</span>
+        </div>
+        <div class="metric-card metric-error">
+          <span class="metric-label">API Quota / Rate Limits</span>
+          <span class="metric-val">2</span>
+          <span class="metric-sub">Gemini free tier quota limit</span>
+        </div>
+        <div class="metric-card">
+          <span class="metric-label">Active Provider</span>
+          <span class="metric-val" style="font-size: 18px; color: #a78bfa;">Gemini 1.5</span>
+          <span class="metric-sub">Ollama standby</span>
+        </div>
+      </div>
+
+      <div class="v2-table-box">
+        <div class="v2-table-header">
+          <div class="v2-pills">
+            <button class="v2-pill active">All Logs <span class="v2-pill-cnt">124</span></button>
+            <button class="v2-pill">Errors <span class="v2-pill-cnt" style="background:rgba(239,68,68,0.3); color:#fca5a5;">2</span></button>
+            <button class="v2-pill">Warnings <span class="v2-pill-cnt" style="background:rgba(245,158,11,0.3); color:#fde68a;">4</span></button>
+            <button class="v2-pill">Fills <span class="v2-pill-cnt" style="background:rgba(16,185,129,0.3); color:#6ee7b7;">19</span></button>
+          </div>
+          <div style="display:flex; gap:10px;">
+            <input type="text" class="v1-search" placeholder="Search parameters..." style="width:240px;" />
+            <button class="v1-btn">Export JSON</button>
+          </div>
+        </div>
+
+        <div class="v2-list">
+          <div class="v2-item">
+            <div class="v2-meta-row">
+              <span class="v1-badge badge-error">ERROR</span>
+              <span class="v2-source-tag">LLM_GATEWAY</span>
+              <span style="font-weight:600; color:#f87171;">#LLM_QUOTA_EXCEEDED</span>
+              <span style="color:#64748b; margin-left:auto; font-size:11px;">1 minute ago</span>
+            </div>
+            <div class="v2-content-msg">
+              Gemini Quota Exceeded (429 Rate Limit) - Google AI Studio quota exhausted. Wait a minute or check your quota limits at aistudio.google.com
+            </div>
+          </div>
+
+          <div class="v2-item">
+            <div class="v2-meta-row">
+              <span class="v1-badge badge-success">SUCCESS</span>
+              <span class="v2-source-tag">BACKGROUND</span>
+              <span style="font-weight:600; color:#34d399;">#AUTOFILL_COMPLETE</span>
+              <span style="color:#64748b; margin-left:auto; font-size:11px;">3 minutes ago</span>
+            </div>
+            <div class="v2-content-msg">
+              Form filled: 5 field(s) populated: {"entry.100":"Jane Doe","entry.200":"jane@example.com"}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         VARIANT 3: OBSIDIAN SLEEK (Linear / Raycast Modern Glass Style)
+         ═══════════════════════════════════════════════════════════════ -->
+    <div id="pane-v3" class="variant-pane">
+      <div class="v3-layout">
+        <div class="v3-card">
+          <div class="v3-top">
+            <div class="v3-brand">
+              <span style="font-size:18px;">⚡</span>
+              <span>Diagnostics</span>
+              <span style="font-size:11px; padding:3px 8px; border-radius:12px; background:rgba(255,255,255,0.06); color:#94a3b8;">System Operational</span>
+            </div>
+
+            <div class="v3-search-bar">
+              <span style="color:#64748b; font-size:12px;">🔍</span>
+              <input type="text" placeholder="Type a command or filter..." />
+              <span class="v3-kbd">⌘K</span>
+            </div>
+
+            <div style="display:flex; gap:8px;">
+              <button class="v1-btn">Copy</button>
+              <button class="v1-btn">Clear</button>
+            </div>
+          </div>
+
+          <div class="v3-feed">
+            <div class="v3-entry">
+              <span class="v3-dot dot-error"></span>
+              <span class="v3-badge badge-error">ERR 429</span>
+              <span class="v3-source">LLM Gateway</span>
+              <span class="v3-tag">LLM_QUOTA_EXCEEDED</span>
+              <span class="v3-msg">Gemini Quota Exceeded (429 Rate Limit) — Google AI Studio quota exhausted</span>
+              <div class="v3-action-hover">
+                <button class="v3-mini-btn" onclick="alert('Viewed details')">Inspect</button>
+              </div>
+            </div>
+
+            <div class="v3-entry">
+              <span class="v3-dot dot-success"></span>
+              <span class="v3-badge badge-success">OK 200</span>
+              <span class="v3-source">Background</span>
+              <span class="v3-tag">AUTOFILL_COMPLETE</span>
+              <span class="v3-msg">Form filled successfully: 5 fields populated</span>
+              <div class="v3-action-hover">
+                <button class="v3-mini-btn">Inspect</button>
+              </div>
+            </div>
+
+            <div class="v3-entry">
+              <span class="v3-dot dot-warn"></span>
+              <span class="v3-badge badge-warn">WARN</span>
+              <span class="v3-source">LLM Gateway</span>
+              <span class="v3-tag">LLM_ZERO_MAPPINGS</span>
+              <span class="v3-msg">LLM returned 0 field mappings: none matched profile.json</span>
+              <div class="v3-action-hover">
+                <button class="v3-mini-btn">Inspect</button>
+              </div>
+            </div>
+
+            <div class="v3-entry">
+              <span class="v3-dot dot-info"></span>
+              <span class="v3-badge badge-info">INFO</span>
+              <span class="v3-source">Content Script</span>
+              <span class="v3-tag">DOM_SCAN_SUCCESS</span>
+              <span class="v3-msg">Scanned 5 form field(s) on page</span>
+              <div class="v3-action-hover">
+                <button class="v3-mini-btn">Inspect</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Comparison Summary Footer -->
+    <div class="compare-footer">
+      <div>
+        <strong>Which direction feels best?</strong>
+        <p style="font-size:12px; color:#64748b; margin-top:2px;">
+          Variant 1 gives maximum developer debugging density with expandable JSON. Variant 2 adds high-level observability stats. Variant 3 provides sleek Linear-style polish.
+        </p>
+      </div>
+      <div class="compare-vote">
+        <button class="v1-btn" onclick="switchVariant('v1')">1. Minimalist</button>
+        <button class="v1-btn" onclick="switchVariant('v2')">2. Metrics</button>
+        <button class="v1-btn" onclick="switchVariant('v3')">3. Obsidian</button>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    function switchVariant(id) {
+      document.querySelectorAll('.variant-btn').forEach((b, i) => {
+        b.classList.toggle('active', (id === 'v1' && i === 0) || (id === 'v2' && i === 1) || (id === 'v3' && i === 2));
+      });
+      document.querySelectorAll('.variant-pane').forEach(p => p.classList.remove('active'));
+      const activePane = document.getElementById('pane-' + id);
+      if (activePane) activePane.classList.add('active');
+    }
+
+    function toggleV1Details(id) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.classList.toggle('hidden');
+      const row = el.closest('.v1-row');
+      if (row) row.classList.toggle('expanded', !el.classList.contains('hidden'));
+    }
+  </script>
+</body>
+</html>
