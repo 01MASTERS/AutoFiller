@@ -112,7 +112,13 @@ The local backend will run at `http://localhost:3456`.
 ollama run llama3.2
 ```
 
-### 5. Load Extension in Chrome
+### 5. Build and Load Extension in Chrome
+
+> If you started AutoFiller using `start.bat`, `extension/dist` is already built for you.
+> If running manually, build the extension first so `extension/dist/manifest.json` is generated:
+> ```bash
+> npm run build -w extension
+> ```
 
 1. Open Chrome and navigate to `chrome://extensions`.
 2. Enable **Developer mode** (toggle switch in the top right).

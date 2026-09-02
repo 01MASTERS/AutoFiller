@@ -54,10 +54,19 @@ if not exist "backend\profile.json" (
 )
 
 :: Build shared types package
-echo [4/4] Building shared package types...
+echo [4/5] Building shared package types...
 call npm run build -w shared
 if %errorlevel% neq 0 (
     echo [ERROR] Shared package build failed!
+    pause
+    exit /b 1
+)
+
+:: Build extension bundle upfront so dist/manifest.json is ready immediately
+echo [5/5] Building Chrome extension bundle (extension/dist)...
+call npm run build -w extension
+if %errorlevel% neq 0 (
+    echo [ERROR] Extension build failed!
     pause
     exit /b 1
 )
