@@ -75,14 +75,15 @@ apiRouter.get('/logs-ui', (req: Request, res: Response) => {
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #080c14;
-      --card-bg: #0d121f;
+      --bg: #07090e;
+      --card-bg: rgba(14, 18, 28, 0.75);
+      --card-solid: #0d121c;
       --border: rgba(255, 255, 255, 0.08);
       --border-subtle: rgba(255, 255, 255, 0.04);
       --text: #f1f5f9;
-      --muted: #64748b;
-      --muted-light: #94a3b8;
-      --accent: #3b82f6;
+      --text-muted: #64748b;
+      --text-dim: #94a3b8;
+      --accent: #6366f1;
       --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       --font-mono: 'JetBrains Mono', 'SF Mono', Consolas, Menlo, monospace;
     }
@@ -91,10 +92,10 @@ apiRouter.get('/logs-ui', (req: Request, res: Response) => {
 
     body {
       font-family: var(--font-sans);
-      background-color: var(--bg);
+      background: radial-gradient(1200px 800px at 50% -120px, rgba(99, 102, 241, 0.08), rgba(56, 189, 248, 0.04) 40%, transparent 80%), var(--bg);
       color: var(--text);
       min-height: 100vh;
-      padding: 24px;
+      padding: 24px 20px;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -102,7 +103,7 @@ apiRouter.get('/logs-ui', (req: Request, res: Response) => {
 
     .container {
       width: 100%;
-      max-width: 1360px;
+      max-width: 1380px;
       display: flex;
       flex-direction: column;
       gap: 16px;
@@ -111,6 +112,8 @@ apiRouter.get('/logs-ui', (req: Request, res: Response) => {
     /* Header Bar */
     .header {
       background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
       border: 1px solid var(--border);
       border-radius: 12px;
       padding: 14px 20px;
@@ -118,53 +121,57 @@ apiRouter.get('/logs-ui', (req: Request, res: Response) => {
       align-items: center;
       justify-content: space-between;
       gap: 16px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+      box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
     }
     .brand-section {
       display: flex;
       align-items: center;
       gap: 12px;
     }
+    .brand-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      color: #fff;
+      letter-spacing: -0.01em;
+    }
+    .system-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      background: rgba(16, 185, 129, 0.08);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      color: #34d399;
+      padding: 3px 9px;
+      border-radius: 20px;
+    }
     .pulse-dot {
-      width: 9px;
-      height: 9px;
+      width: 6px;
+      height: 6px;
       border-radius: 50%;
-      background: #10b981;
-      box-shadow: 0 0 10px #10b981;
+      background: #34d399;
+      box-shadow: 0 0 8px #34d399;
       animation: livePulse 2s infinite ease-in-out;
     }
     @keyframes livePulse {
       0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.4; transform: scale(0.9); }
-    }
-    .brand-title {
-      font-size: 15px;
-      font-weight: 600;
-      color: #fff;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .brand-status {
-      font-size: 11px;
-      color: var(--muted);
-      font-family: var(--font-mono);
-      background: rgba(255,255,255,0.04);
-      padding: 2px 8px;
-      border-radius: 6px;
-      border: 1px solid var(--border-subtle);
+      50% { opacity: 0.35; transform: scale(0.85); }
     }
 
     .header-actions {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
     }
     .btn {
-      background: rgba(255,255,255,0.04);
+      background: rgba(255, 255, 255, 0.04);
       border: 1px solid var(--border);
-      color: var(--muted-light);
-      padding: 7px 14px;
+      color: var(--text-dim);
+      padding: 6px 12px;
       border-radius: 6px;
       cursor: pointer;
       font-size: 12px;
@@ -176,223 +183,309 @@ apiRouter.get('/logs-ui', (req: Request, res: Response) => {
       font-family: var(--font-mono);
     }
     .btn:hover {
-      background: rgba(255,255,255,0.08);
+      background: rgba(255, 255, 255, 0.08);
       color: #fff;
-      border-color: rgba(255,255,255,0.15);
+      border-color: rgba(255, 255, 255, 0.15);
     }
     .btn-primary {
-      background: rgba(59, 130, 246, 0.12);
-      border-color: rgba(59, 130, 246, 0.35);
-      color: #93c5fd;
+      background: rgba(99, 102, 241, 0.12);
+      border-color: rgba(99, 102, 241, 0.35);
+      color: #a5b4fc;
     }
     .btn-primary:hover {
-      background: rgba(59, 130, 246, 0.22);
+      background: rgba(99, 102, 241, 0.22);
+      border-color: #6366f1;
       color: #fff;
-      border-color: #3b82f6;
     }
     .btn-danger:hover {
       background: rgba(239, 68, 68, 0.15);
-      color: #fca5a5;
       border-color: rgba(239, 68, 68, 0.4);
+      color: #fca5a5;
     }
 
-    /* Controls Bar */
-    .controls {
+    /* Control Filter Panel */
+    .controls-panel {
       background: var(--card-bg);
+      backdrop-filter: blur(16px);
       border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 10px 16px;
+      border-radius: 12px;
+      padding: 14px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* Category Filter Strip */
+    .category-strip {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .strip-label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-right: 6px;
+      user-select: none;
+    }
+    .cat-btn {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-dim);
+      font-size: 11.5px;
+      padding: 4px 11px;
+      border-radius: 6px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+    .cat-btn:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.06);
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+    .cat-btn.active {
+      background: rgba(99, 102, 241, 0.15);
+      border-color: rgba(99, 102, 241, 0.4);
+      color: #c7d2fe;
+      font-weight: 600;
+    }
+
+    /* Level and Search Strip */
+    .filter-search-strip {
       display: flex;
       align-items: center;
       gap: 12px;
       flex-wrap: wrap;
     }
-    .filter-group {
+    .level-pills {
       display: flex;
       gap: 4px;
-      background: rgba(0,0,0,0.3);
+      background: rgba(0, 0, 0, 0.35);
       padding: 3px;
       border-radius: 6px;
       border: 1px solid var(--border-subtle);
     }
-    .filter-chip {
+    .level-pill {
       background: transparent;
       border: 1px solid transparent;
-      color: var(--muted);
+      color: var(--text-muted);
       font-family: var(--font-mono);
       font-size: 11px;
       font-weight: 500;
-      padding: 5px 10px;
+      padding: 4px 9px;
       border-radius: 4px;
       cursor: pointer;
-      transition: all 0.15s ease;
       display: flex;
       align-items: center;
       gap: 6px;
+      transition: all 0.15s ease;
     }
-    .filter-chip:hover {
+    .level-pill:hover {
       color: #cbd5e1;
-      background: rgba(255,255,255,0.03);
+      background: rgba(255, 255, 255, 0.03);
     }
-    .filter-chip.active {
+    .level-pill.active {
       color: #fff;
-      background: rgba(255,255,255,0.08);
-      border-color: rgba(255,255,255,0.12);
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.12);
       font-weight: 600;
     }
-    .count-tag {
+    .count-chip {
       font-size: 10px;
       padding: 1px 5px;
       border-radius: 4px;
-      background: rgba(255,255,255,0.08);
+      background: rgba(255, 255, 255, 0.06);
     }
 
-    .search-box {
+    .command-search {
       flex: 1;
       min-width: 240px;
       position: relative;
       display: flex;
       align-items: center;
     }
+    .search-icon {
+      position: absolute;
+      left: 10px;
+      color: var(--text-muted);
+      font-size: 12px;
+      pointer-events: none;
+    }
     .search-input {
       width: 100%;
-      background: rgba(0,0,0,0.3);
+      background: rgba(0, 0, 0, 0.35);
       border: 1px solid var(--border);
       border-radius: 6px;
       color: #fff;
       font-family: var(--font-mono);
       font-size: 12px;
-      padding: 7px 32px 7px 12px;
+      padding: 6px 32px 6px 30px;
       outline: none;
-      transition: border-color 0.15s ease;
+      transition: all 0.15s ease;
     }
     .search-input:focus {
       border-color: var(--accent);
       box-shadow: 0 0 0 1px var(--accent);
+      background: rgba(0, 0, 0, 0.5);
     }
     .kbd-shortcut {
       position: absolute;
-      right: 10px;
+      right: 9px;
       font-size: 10px;
       font-family: var(--font-mono);
-      color: var(--muted);
-      background: rgba(255,255,255,0.06);
+      color: var(--text-muted);
+      background: rgba(255, 255, 255, 0.06);
       padding: 1px 5px;
       border-radius: 3px;
       pointer-events: none;
     }
 
-    /* Log Stream Container */
-    .log-container {
+    /* Stream Feed */
+    .stream-card {
       background: var(--card-bg);
+      backdrop-filter: blur(16px);
       border: 1px solid var(--border);
       border-radius: 12px;
       overflow: hidden;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      box-shadow: 0 16px 36px -10px rgba(0,0,0,0.5);
     }
 
-    .log-stream {
+    .stream-feed {
       font-family: var(--font-mono);
-      font-size: 12.5px;
-      line-height: 1.6;
+      font-size: 12px;
       max-height: 700px;
       overflow-y: auto;
     }
 
-    .log-row {
+    .stream-row {
       display: flex;
       align-items: flex-start;
       gap: 12px;
-      padding: 8px 18px;
+      padding: 9px 18px;
       border-bottom: 1px solid var(--border-subtle);
       transition: background 0.12s ease;
       cursor: pointer;
       position: relative;
     }
-    .log-row:last-child { border-bottom: none; }
-    .log-row:hover { background: rgba(255,255,255,0.02); }
-    .log-row.expanded { background: rgba(255,255,255,0.035); }
+    .stream-row:last-child { border-bottom: none; }
+    .stream-row:hover { background: rgba(255, 255, 255, 0.025); }
+    .stream-row.expanded { background: rgba(255, 255, 255, 0.035); }
 
-    .time {
-      color: var(--muted);
+    /* Glowing Dots */
+    .glow-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      margin-top: 6px;
+      flex-shrink: 0;
+    }
+    .dot-ERROR { background: #f87171; box-shadow: 0 0 9px rgba(248, 113, 113, 0.8); }
+    .dot-WARN { background: #fbbf24; box-shadow: 0 0 8px rgba(251, 191, 36, 0.8); }
+    .dot-SUCCESS { background: #34d399; box-shadow: 0 0 8px rgba(52, 211, 153, 0.8); }
+    .dot-INFO { background: #60a5fa; box-shadow: 0 0 6px rgba(96, 165, 250, 0.6); }
+
+    .time-col {
+      color: var(--text-muted);
       font-size: 11px;
       white-space: nowrap;
       padding-top: 2px;
       user-select: none;
     }
-    .level-badge {
+
+    .badge-col {
       font-size: 10px;
       font-weight: 700;
       padding: 1px 6px;
-      border-radius: 3px;
+      border-radius: 4px;
       white-space: nowrap;
-      text-transform: uppercase;
       letter-spacing: 0.02em;
     }
-    .badge-INFO {
-      background: rgba(59, 130, 246, 0.15);
-      color: #60a5fa;
-      border: 1px solid rgba(59, 130, 246, 0.25);
-    }
-    .badge-SUCCESS {
-      background: rgba(16, 185, 129, 0.15);
-      color: #34d399;
-      border: 1px solid rgba(16, 185, 129, 0.25);
-    }
-    .badge-WARN {
-      background: rgba(245, 158, 11, 0.15);
-      color: #fbbf24;
-      border: 1px solid rgba(245, 158, 11, 0.25);
-    }
     .badge-ERROR {
-      background: rgba(239, 68, 68, 0.15);
+      background: rgba(239, 68, 68, 0.14);
       color: #f87171;
       border: 1px solid rgba(239, 68, 68, 0.3);
     }
+    .badge-WARN {
+      background: rgba(245, 158, 11, 0.14);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.25);
+    }
+    .badge-SUCCESS {
+      background: rgba(16, 185, 129, 0.14);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.25);
+    }
+    .badge-INFO {
+      background: rgba(59, 130, 246, 0.14);
+      color: #60a5fa;
+      border: 1px solid rgba(59, 130, 246, 0.25);
+    }
 
-    .source-tag {
-      color: var(--muted);
+    .source-col {
+      color: var(--text-muted);
       font-size: 11px;
       white-space: nowrap;
     }
 
-    .event-tag {
+    .tag-col {
+      font-size: 11px;
       font-weight: 600;
-      font-size: 11px;
       white-space: nowrap;
     }
-    .tag-INFO { color: #a78bfa; }
-    .tag-SUCCESS { color: #34d399; }
-    .tag-WARN { color: #fbbf24; }
     .tag-ERROR { color: #f87171; font-weight: 700; }
+    .tag-WARN { color: #fbbf24; }
+    .tag-SUCCESS { color: #34d399; }
+    .tag-INFO { color: #a78bfa; }
 
-    .message-body {
+    .message-col {
       flex: 1;
       word-break: break-word;
       color: #e2e8f0;
+      line-height: 1.5;
     }
 
-    .toggle-icon {
-      color: var(--muted);
-      font-size: 10px;
-      padding: 2px 5px;
-      border-radius: 4px;
-      transition: all 0.2s;
-      user-select: none;
+    /* Row Hover Action Buttons */
+    .row-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      opacity: 0;
+      transition: opacity 0.15s ease;
       margin-left: auto;
+      padding-top: 1px;
     }
-    .toggle-icon:hover {
-      background: rgba(255,255,255,0.08);
-      color: #fff;
+    .stream-row:hover .row-actions { opacity: 1; }
+    .stream-row.expanded .row-actions { opacity: 1; }
+
+    .row-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--text-dim);
+      font-size: 10px;
+      padding: 2px 7px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.12s ease;
+      font-family: var(--font-mono);
     }
-    .log-row.expanded .toggle-icon {
+    .row-btn:hover {
+      background: rgba(255, 255, 255, 0.12);
       color: #fff;
     }
 
-    .details-box {
+    /* Details Drawer */
+    .details-drawer {
       margin-top: 8px;
-      background: #05070d;
-      border: 1px solid rgba(255,255,255,0.08);
+      background: #04060a;
+      border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 6px;
       padding: 12px 14px;
       color: #cbd5e1;
@@ -401,24 +494,49 @@ apiRouter.get('/logs-ui', (req: Request, res: Response) => {
       word-break: break-all;
       max-height: 400px;
       overflow-y: auto;
-      box-shadow: inset 0 2px 6px rgba(0,0,0,0.5);
+      box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.6);
+      position: relative;
+    }
+    .drawer-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 6px;
+      margin-bottom: 8px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      color: var(--text-muted);
+      font-size: 10px;
+      user-select: none;
+    }
+    .copy-payload-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--text-dim);
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 10px;
+      cursor: pointer;
+    }
+    .copy-payload-btn:hover {
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
     }
 
     .hidden { display: none !important; }
 
-    /* Toast notification */
+    /* Toast */
     #toast {
       position: fixed;
       bottom: 24px;
       right: 24px;
-      background: #1e293b;
+      background: #182030;
       color: #fff;
-      border: 1px solid rgba(255,255,255,0.15);
+      border: 1px solid rgba(255, 255, 255, 0.15);
       padding: 8px 16px;
       border-radius: 8px;
       font-size: 12px;
       font-family: var(--font-mono);
-      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.6);
       opacity: 0;
       transform: translateY(8px);
       transition: all 0.2s ease;
@@ -433,57 +551,78 @@ apiRouter.get('/logs-ui', (req: Request, res: Response) => {
 </head>
 <body>
   <div class="container">
+    <!-- Header -->
     <div class="header">
       <div class="brand-section">
-        <div class="pulse-dot" title="Live AutoFiller Stream Active"></div>
-        <div class="brand-title">
-          <span>⚡ AutoFiller</span>
-          <span style="font-weight:400; color:var(--muted); font-size:13px;">/</span>
-          <span style="font-weight:500; font-size:13px; color:#cbd5e1;">Diagnostics & Logs</span>
+        <div class="brand-badge">
+          <span style="font-size: 16px;">⚡</span>
+          <span>AutoFiller</span>
+          <span style="color:var(--text-muted); font-size:12px; font-weight:400;">/</span>
+          <span style="color:var(--text-dim); font-size:13px; font-weight:500;">Diagnostics & Activity</span>
         </div>
-        <div class="brand-status" id="connection-status">Live Connected (3s)</div>
+        <div class="system-pill">
+          <span class="pulse-dot"></span>
+          <span id="connection-status">Live Connected (3s)</span>
+        </div>
       </div>
       <div class="header-actions">
-        <button class="btn btn-primary" onclick="copyLogs()">📋 Copy Logs</button>
-        <button class="btn btn-danger" onclick="clearLogs()">🗑️ Clear</button>
+        <button class="btn btn-primary" onclick="copyAllLogs()">📋 Copy Stream</button>
+        <button class="btn btn-danger" onclick="clearAllLogs()">🗑️ Clear</button>
       </div>
     </div>
 
-    <div class="controls">
-      <div class="filter-group">
-        <button class="filter-chip active" id="chip-all" onclick="setFilter('')">
-          <span>ALL</span>
-          <span class="count-tag" id="cnt-all">0</span>
-        </button>
-        <button class="filter-chip" id="chip-error" onclick="setFilter('ERROR')">
-          <span>ERROR</span>
-          <span class="count-tag" id="cnt-error" style="color:#f87171;">0</span>
-        </button>
-        <button class="filter-chip" id="chip-warn" onclick="setFilter('WARN')">
-          <span>WARN</span>
-          <span class="count-tag" id="cnt-warn" style="color:#fbbf24;">0</span>
-        </button>
-        <button class="filter-chip" id="chip-success" onclick="setFilter('SUCCESS')">
-          <span>SUCCESS</span>
-          <span class="count-tag" id="cnt-success" style="color:#34d399;">0</span>
-        </button>
-        <button class="filter-chip" id="chip-info" onclick="setFilter('INFO')">
-          <span>INFO</span>
-          <span class="count-tag" id="cnt-info">0</span>
-        </button>
+    <!-- Controls Panel -->
+    <div class="controls-panel">
+      <!-- Category Options -->
+      <div class="category-strip">
+        <span class="strip-label">Category:</span>
+        <button class="cat-btn active" id="cat-all" onclick="setCategory('')">All Categories</button>
+        <button class="cat-btn" id="cat-llm" onclick="setCategory('LLM')">🤖 LLM & API</button>
+        <button class="cat-btn" id="cat-scan" onclick="setCategory('SCAN')">📄 Form Scanning</button>
+        <button class="cat-btn" id="cat-fill" onclick="setCategory('FILL')">✍️ Form Filling</button>
+        <button class="cat-btn" id="cat-bg" onclick="setCategory('BG')">🧩 Background</button>
+        <button class="cat-btn" id="cat-popup" onclick="setCategory('POPUP')">🎛️ Popup</button>
       </div>
 
-      <div class="search-box">
-        <input type="text" id="search-input" class="search-input" placeholder="Filter by keyword, fid, tag..." oninput="fetchLogs()" />
-        <span class="kbd-shortcut">/</span>
-      </div>
+      <!-- Level & Search Filter Strip -->
+      <div class="filter-search-strip">
+        <div class="level-pills">
+          <button class="level-pill active" id="chip-all" onclick="setLevelFilter('')">
+            <span>ALL</span>
+            <span class="count-chip" id="cnt-all">0</span>
+          </button>
+          <button class="level-pill" id="chip-error" onclick="setLevelFilter('ERROR')">
+            <span>ERRORS</span>
+            <span class="count-chip" id="cnt-error" style="color:#f87171;">0</span>
+          </button>
+          <button class="level-pill" id="chip-warn" onclick="setLevelFilter('WARN')">
+            <span>WARNINGS</span>
+            <span class="count-chip" id="cnt-warn" style="color:#fbbf24;">0</span>
+          </button>
+          <button class="level-pill" id="chip-success" onclick="setLevelFilter('SUCCESS')">
+            <span>SUCCESS</span>
+            <span class="count-chip" id="cnt-success" style="color:#34d399;">0</span>
+          </button>
+          <button class="level-pill" id="chip-info" onclick="setLevelFilter('INFO')">
+            <span>INFO</span>
+            <span class="count-chip" id="cnt-info">0</span>
+          </button>
+        </div>
 
-      <button class="btn" onclick="fetchLogs(true)" title="Force refresh stream">🔄 Refresh</button>
+        <div class="command-search">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="search-input" class="search-input" placeholder="Search parameters, tags, fields..." oninput="applyFiltersAndRender()" />
+          <span class="kbd-shortcut">/</span>
+        </div>
+
+        <button class="btn" onclick="fetchLogs(true)" title="Force refresh">🔄 Refresh</button>
+      </div>
     </div>
 
-    <div class="log-container">
-      <div class="log-stream" id="log-stream">
-        <div style="color:var(--muted); padding: 20px; font-family:var(--font-mono); font-size:12px;">Loading activity stream...</div>
+    <!-- Log Stream Card -->
+    <div class="stream-card">
+      <div class="stream-feed" id="stream-feed">
+        <div style="color:var(--text-muted); padding: 24px; text-align:center; font-family:var(--font-mono); font-size:12px;">Loading activity stream...</div>
       </div>
     </div>
   </div>
@@ -492,10 +631,11 @@ apiRouter.get('/logs-ui', (req: Request, res: Response) => {
 
   <script>
     let activeLevel = '';
-    let currentLogs = [];
+    let activeCategory = '';
+    let rawLogs = [];
     const expandedIds = new Set();
 
-    // Focus search on '/'
+    // '/' to focus search
     document.addEventListener('keydown', (e) => {
       if (e.key === '/' && document.activeElement !== document.getElementById('search-input')) {
         e.preventDefault();
@@ -510,13 +650,43 @@ apiRouter.get('/logs-ui', (req: Request, res: Response) => {
       setTimeout(() => toast.classList.remove('show'), 2000);
     }
 
-    function setFilter(level) {
+    function setCategory(cat) {
+      activeCategory = cat;
+      document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+      const activeBtn = document.getElementById(cat ? 'cat-' + cat.toLowerCase() : 'cat-all');
+      if (activeBtn) activeBtn.classList.add('active');
+      applyFiltersAndRender();
+    }
+
+    function setLevelFilter(level) {
       activeLevel = level;
-      document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
-      const chipId = level ? 'chip-' + level.toLowerCase() : 'chip-all';
-      const activeEl = document.getElementById(chipId);
-      if (activeEl) activeEl.classList.add('active');
-      fetchLogs(true);
+      document.querySelectorAll('.level-pill').forEach(b => b.classList.remove('active'));
+      const activePill = document.getElementById(level ? 'chip-' + level.toLowerCase() : 'chip-all');
+      if (activePill) activePill.classList.add('active');
+      applyFiltersAndRender();
+    }
+
+    function matchesCategory(log, cat) {
+      if (!cat) return true;
+      const s = (log.source || '').toUpperCase();
+      const t = (log.tag || '').toUpperCase();
+
+      if (cat === 'LLM') {
+        return s === 'LLM_GATEWAY' || t.startsWith('LLM_') || t.startsWith('MODELS_');
+      }
+      if (cat === 'SCAN') {
+        return t.includes('SCAN');
+      }
+      if (cat === 'FILL') {
+        return t.includes('FILL');
+      }
+      if (cat === 'BG') {
+        return s === 'BACKGROUND';
+      }
+      if (cat === 'POPUP') {
+        return s === 'EXTENSION_POPUP';
+      }
+      return true;
     }
 
     function updateCounters(logs) {
@@ -546,37 +716,53 @@ apiRouter.get('/logs-ui', (req: Request, res: Response) => {
     }
 
     async function fetchLogs(forceRender = false) {
-      const query = document.getElementById('search-input').value.trim();
-      let url = '/logs?limit=500';
-      if (activeLevel) url += '&level=' + activeLevel;
-      if (query) url += '&query=' + encodeURIComponent(query);
-
       try {
-        const res = await fetch(url);
+        const res = await fetch('/logs?limit=500');
         const data = await res.json();
         if (data.status === 'success') {
           const newLogs = data.logs || [];
-          updateCounters(newLogs);
-          if (!forceRender && areLogsEqual(currentLogs, newLogs)) {
+          if (!forceRender && areLogsEqual(rawLogs, newLogs)) {
             return;
           }
-          currentLogs = newLogs;
-          renderLogs(currentLogs);
+          rawLogs = newLogs;
+          applyFiltersAndRender();
         }
       } catch (err) {
-        document.getElementById('log-stream').innerHTML = '<div style="color:#f87171; padding:20px; font-family:var(--font-mono); font-size:12px;">Failed to connect to backend logs service.</div>';
+        document.getElementById('stream-feed').innerHTML = '<div style="color:#f87171; padding:24px; text-align:center; font-family:var(--font-mono); font-size:12px;">Failed to connect to backend logs service.</div>';
       }
     }
 
-    function renderLogs(logs) {
-      const container = document.getElementById('log-stream');
+    function applyFiltersAndRender() {
+      const query = (document.getElementById('search-input')?.value || '').trim().toLowerCase();
+
+      // Filter by category, level, and search text
+      const filtered = rawLogs.filter(l => {
+        if (activeLevel && l.level !== activeLevel) return false;
+        if (activeCategory && !matchesCategory(l, activeCategory)) return false;
+        if (query) {
+          const matchMsg = (l.message || '').toLowerCase().includes(query);
+          const matchTag = (l.tag || '').toLowerCase().includes(query);
+          const matchSrc = (l.source || '').toLowerCase().includes(query);
+          const matchDet = l.details ? JSON.stringify(l.details).toLowerCase().includes(query) : false;
+          if (!matchMsg && !matchTag && !matchSrc && !matchDet) return false;
+        }
+        return true;
+      });
+
+      updateCounters(rawLogs);
+      renderFeed(filtered);
+    }
+
+    function renderFeed(logs) {
+      const container = document.getElementById('stream-feed');
       if (logs.length === 0) {
-        container.innerHTML = '<div style="color:var(--muted); padding:24px; text-align:center; font-family:var(--font-mono); font-size:12px;">No matching log events found.</div>';
+        container.innerHTML = '<div style="color:var(--text-muted); padding:32px; text-align:center; font-family:var(--font-mono); font-size:12px;">No matching log events in selected category / filter.</div>';
         return;
       }
 
+      // Preserve scroll offsets of open details drawers
       const scrollMap = new Map();
-      document.querySelectorAll('.details-box').forEach(el => {
+      document.querySelectorAll('.details-drawer').forEach(el => {
         if (el.id && el.scrollTop > 0) {
           scrollMap.set(el.id, el.scrollTop);
         }
@@ -591,55 +777,62 @@ apiRouter.get('/logs-ui', (req: Request, res: Response) => {
         const isExpandable = isLongMsg || hasDetails;
         const isExpanded = expandedIds.has(l.id);
 
-        const toggleBtn = isExpandable
-          ? '<span class="toggle-icon" id="icon-' + l.id + '">' + (isExpanded ? '▲' : '▼') + '</span>'
+        const detailsDrawer = hasDetails
+          ? '<div class="details-drawer ' + (isExpanded ? '' : 'hidden') + '" id="details-' + l.id + '">' +
+              '<div class="drawer-header">' +
+                '<span>JSON DIAGNOSTIC PAYLOAD</span>' +
+                '<button class="copy-payload-btn" onclick="event.stopPropagation(); copyPayload(\\'' + l.id + '\\')">Copy Payload</button>' +
+              '</div>' +
+              '<div id="payload-content-' + l.id + '">' + escapeHtml(JSON.stringify(l.details, null, 2)) + '</div>' +
+            '</div>'
           : '';
 
-        const detailsStr = hasDetails
-          ? '<div class="details-box ' + (isExpanded ? '' : 'hidden') + '" id="details-' + l.id + '">' + escapeHtml(JSON.stringify(l.details, null, 2)) + '</div>'
-          : '';
-
-        return '<div class="log-row ' + (isExpanded ? 'expanded' : '') + '" id="row-' + l.id + '" onclick="toggleLog(\\'' + l.id + '\\', ' + isExpandable + ')">' +
-          '<span class="time">' + date + '</span>' +
-          '<span class="level-badge badge-' + l.level + '">' + l.level + '</span>' +
-          '<span class="source-tag">[' + l.source + ']</span>' +
-          '<span class="event-tag tag-' + l.level + '">#' + l.tag + ':</span>' +
-          '<div class="message-body">' +
+        return '<div class="stream-row ' + (isExpanded ? 'expanded' : '') + '" id="row-' + l.id + '" onclick="toggleRow(\\'' + l.id + '\\', ' + isExpandable + ')">' +
+          '<span class="glow-dot dot-' + l.level + '"></span>' +
+          '<span class="time-col">' + date + '</span>' +
+          '<span class="badge-col badge-' + l.level + '">' + l.level + '</span>' +
+          '<span class="source-col">[' + l.source + ']</span>' +
+          '<span class="tag-col tag-' + l.level + '">#' + l.tag + ':</span>' +
+          '<div class="message-col">' +
             (isLongMsg
               ? '<span id="msg-trunc-' + l.id + '" class="' + (isExpanded ? 'hidden' : '') + '">' + escapeHtml(shortMsg) + '</span>' +
                 '<span id="msg-full-' + l.id + '" class="' + (isExpanded ? '' : 'hidden') + '">' + escapeHtml(msg) + '</span>'
               : '<span>' + escapeHtml(msg) + '</span>') +
-            detailsStr +
+            detailsDrawer +
           '</div>' +
-          toggleBtn +
+          '<div class="row-actions">' +
+            (isExpandable ? '<button class="row-btn" id="inspect-btn-' + l.id + '" onclick="event.stopPropagation(); toggleRow(\\'' + l.id + '\\', true)">' + (isExpanded ? 'Close' : 'Inspect') + '</button>' : '') +
+            '<button class="row-btn" onclick="event.stopPropagation(); copySingleRow(\\'' + l.id + '\\')">Copy</button>' +
+          '</div>' +
         '</div>';
       }).join('');
 
+      // Restore scroll positions inside drawers
       scrollMap.forEach((top, id) => {
         const el = document.getElementById(id);
         if (el) el.scrollTop = top;
       });
     }
 
-    function toggleLog(id, isExpandable) {
+    function toggleRow(id, isExpandable) {
       if (!isExpandable) return;
-      const icon = document.getElementById('icon-' + id);
       const row = document.getElementById('row-' + id);
       const details = document.getElementById('details-' + id);
+      const btn = document.getElementById('inspect-btn-' + id);
       const msgTrunc = document.getElementById('msg-trunc-' + id);
       const msgFull = document.getElementById('msg-full-' + id);
 
       if (expandedIds.has(id)) {
         expandedIds.delete(id);
         if (row) row.classList.remove('expanded');
-        if (icon) icon.textContent = '▼';
+        if (btn) btn.textContent = 'Inspect';
         if (details) details.classList.add('hidden');
         if (msgTrunc) msgTrunc.classList.remove('hidden');
         if (msgFull) msgFull.classList.add('hidden');
       } else {
         expandedIds.add(id);
         if (row) row.classList.add('expanded');
-        if (icon) icon.textContent = '▲';
+        if (btn) btn.textContent = 'Close';
         if (details) details.classList.remove('hidden');
         if (msgTrunc) msgTrunc.classList.add('hidden');
         if (msgFull) msgFull.classList.remove('hidden');
@@ -650,20 +843,38 @@ apiRouter.get('/logs-ui', (req: Request, res: Response) => {
       return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }
 
-    async function copyLogs() {
-      const text = currentLogs.map(l =>
+    async function copyPayload(id) {
+      const log = rawLogs.find(l => l.id === id);
+      if (log && log.details) {
+        await navigator.clipboard.writeText(JSON.stringify(log.details, null, 2));
+        showToast('Copied JSON payload to clipboard');
+      }
+    }
+
+    async function copySingleRow(id) {
+      const log = rawLogs.find(l => l.id === id);
+      if (log) {
+        const text = '[' + log.timestamp + '] [' + log.level + '] [' + log.source + '] #' + log.tag + ': ' + log.message + (log.details ? '\\n' + JSON.stringify(log.details, null, 2) : '');
+        await navigator.clipboard.writeText(text);
+        showToast('Copied event to clipboard');
+      }
+    }
+
+    async function copyAllLogs() {
+      const text = rawLogs.map(l =>
         '[' + l.timestamp + '] [' + l.level + '] [' + l.source + '] #' + l.tag + ': ' + l.message + (l.details ? ' ' + JSON.stringify(l.details) : '')
       ).join('\\n');
 
       await navigator.clipboard.writeText(text);
-      showToast('Copied ' + currentLogs.length + ' logs to clipboard');
+      showToast('Copied ' + rawLogs.length + ' logs to clipboard');
     }
 
-    async function clearLogs() {
+    async function clearAllLogs() {
       if (confirm('Clear all activity logs?')) {
         await fetch('/logs', { method: 'DELETE' });
+        rawLogs = [];
         expandedIds.clear();
-        fetchLogs(true);
+        applyFiltersAndRender();
         showToast('Logs cleared');
       }
     }
