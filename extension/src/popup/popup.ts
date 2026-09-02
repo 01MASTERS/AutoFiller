@@ -20,6 +20,54 @@ export function updateBackendStatusUI(status: 'online' | 'offline' | 'checking')
   }
 }
 
+export function formatPopupErrorMessage(rawError?: string): string {
+  if (!rawError) return 'Auto-fill failed. Check Debug Logs.';
+
+  const err = String(rawError).trim();
+
+  if (/quota|429|resource_exhausted|rate.?limit/i.test(err)) {
+    return 'Gemini API quota exceeded (429). See Debug Logs for details.';
+  }
+  if (/api_key_invalid|invalid api key|api key not valid|401|403|unauthorized/i.test(err)) {
+    return 'Gemini API key invalid or unauthorized. Check settings.';
+  }
+  if (/model.*not found|model.*not supported|404/i.test(err)) {
+    return 'Selected AI model not found. Check settings or Debug Logs.';
+  }
+  if (/ollama.*(offline|not reachable|connection refused|11434)/i.test(err)) {
+    return 'Ollama offline. Run "ollama serve" or check OLLAMA_HOST.';
+  }
+  if (/backend.*(offline|connection|cannot connect|failed to fetch|3456)/i.test(err)) {
+    return 'Backend server offline (port 3456). Start with start.bat.';
+  }
+  if (/content script not loaded/i.test(err)) {
+    return 'Page not loaded. Refresh this tab and try again.';
+  }
+  if (/no fillable text fields|scan_no_fields/i.test(err)) {
+    return 'No fillable text fields found on this form.';
+  }
+  if (/zero.*mapping|no matching field mappings/i.test(err)) {
+    return 'No matching profile data found for this form.';
+  }
+
+  // Strip embedded URLs, stack traces, JSON brackets
+  let clean = err
+    .replace(/\[GoogleGenerativeAI Error\]:.*$/i, '')
+    .replace(/\[\s*\{.*$/s, '')
+    .replace(/https?:\/\/\S+/g, '')
+    .replace(/[{}[\]"]/g, '')
+    .trim();
+
+  const firstSentence = clean.split(/[.\n]/)[0]?.trim();
+  clean = firstSentence || clean;
+
+  if (clean.length > 70) {
+    clean = clean.substring(0, 70).trim() + '...';
+  }
+
+  return clean ? `${clean}. (See Debug Logs)` : 'Auto-fill failed. See Debug Logs.';
+}
+
 export function updateStatusBannerUI(
   state: 'idle' | 'analyzing' | 'filling' | 'done' | 'error',
   details?: { filledCount?: number; failedCount?: number; error?: string },
@@ -33,31 +81,25 @@ export function updateStatusBannerUI(
   switch (state) {
     case 'analyzing':
       textEl.textContent = 'Analyzing form & matching fields...';
+      banner.removeAttribute('title');
       break;
     case 'filling':
       textEl.textContent = 'Filling form fields...';
+      banner.removeAttribute('title');
       break;
     case 'done':
       textEl.textContent = `Auto-filled ${details?.filledCount || 0} fields!`;
+      banner.removeAttribute('title');
       break;
     case 'error': {
-      const rawError = details?.error || 'Auto-fill failed';
-      if (rawError.includes('Ollama') || rawError.includes('11434')) {
-        textEl.textContent = 'Ollama service offline. Run "ollama run llama3.2" to start.';
-      } else if (
-        rawError.includes('3456') ||
-        rawError.includes('Failed to fetch') ||
-        rawError.includes('Backend')
-      ) {
-        textEl.textContent = 'Backend server offline. Start server with "npm run dev".';
-      } else {
-        textEl.textContent = rawError;
-      }
+      textEl.textContent = formatPopupErrorMessage(details?.error);
+      banner.title = 'Click to open Debug Log Dashboard';
       break;
     }
     case 'idle':
     default:
       textEl.textContent = 'Ready to auto-fill form fields';
+      banner.removeAttribute('title');
       break;
   }
 }
@@ -277,6 +319,17 @@ export function bindPopupEvents() {
       chrome.tabs.create({ url: 'http://localhost:3456/logs-ui' });
     } else if (typeof window !== 'undefined') {
       window.open('http://localhost:3456/logs-ui', '_blank');
+    }
+  });
+
+  const statusBanner = document.getElementById('status-banner');
+  statusBanner?.addEventListener('click', () => {
+    if (statusBanner.classList.contains('error')) {
+      if (typeof chrome !== 'undefined' && chrome.tabs?.create) {
+        chrome.tabs.create({ url: 'http://localhost:3456/logs-ui' });
+      } else if (typeof window !== 'undefined') {
+        window.open('http://localhost:3456/logs-ui', '_blank');
+      }
     }
   });
 

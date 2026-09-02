@@ -70,7 +70,7 @@ export class GeminiProvider implements LLMProvider {
       } else if (/not found|model.*not supported|404/i.test(rawMsg)) {
         classification = `Gemini Model "${modelName}" Not Found - Try switching to gemini-1.5-flash or gemini-2.0-flash`;
       }
-      throw new LLMProviderError(`${classification}: ${rawMsg}`, err);
+      throw new LLMProviderError(classification, err);
     }
   }
 

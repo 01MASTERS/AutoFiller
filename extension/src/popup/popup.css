@@ -147,6 +147,8 @@ body {
   border: 1px solid var(--card-border);
   text-align: center;
   transition: all 0.3s ease;
+  line-height: 1.4;
+  word-break: break-word;
 }
 
 .status-banner.analyzing {
@@ -171,6 +173,12 @@ body {
   background: rgba(239, 68, 68, 0.15);
   border-color: rgba(239, 68, 68, 0.4);
   color: #fca5a5;
+  cursor: pointer;
+}
+
+.status-banner.error:hover {
+  background: rgba(239, 68, 68, 0.22);
+  border-color: rgba(239, 68, 68, 0.6);
 }
 
 .card {
