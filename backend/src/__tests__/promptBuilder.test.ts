@@ -52,4 +52,23 @@ describe('promptBuilder', () => {
     expect(prompt.userPrompt).toContain('Reason for leaving');
     expect(prompt.systemPrompt).toContain('Disambiguation');
   });
+
+  it('includes instructions for field formatting constraints and phone normalization', () => {
+    const fields: FieldMetadata[] = [
+      { id: 'entry.101', label: 'Mobile Number (without +91 or 0)' },
+    ];
+    const profile: UserProfile = {
+      name: 'Rittik Sharma',
+      email: 'rittik@example.com',
+      phone: '+91 9135517396',
+    };
+
+    const prompt = buildFieldMappingPrompt(fields, profile);
+
+    expect(prompt.systemPrompt).toContain('Field Formatting & Explicit Constraints');
+    expect(prompt.systemPrompt).toContain('10-digit');
+    expect(prompt.systemPrompt).toContain('without +91');
+    expect(prompt.systemPrompt).toContain('9135517396');
+    expect(prompt.userPrompt).toContain('respecting field formatting constraints');
+  });
 });
