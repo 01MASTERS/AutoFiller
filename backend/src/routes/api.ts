@@ -224,16 +224,27 @@ apiRouter.get('/logs-ui', (req: Request, res: Response) => {
   <script>
     let activeLevel = '';
     let currentLogs = [];
-    const expandedIndices = new Set();
+    const expandedIds = new Set();
 
     function setFilter(level) {
       activeLevel = level;
       document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
       event.target.classList.add('active');
-      fetchLogs();
+      fetchLogs(true);
     }
 
-    async function fetchLogs() {
+    function areLogsEqual(prev, next) {
+      if (!prev || !next) return false;
+      if (prev.length !== next.length) return false;
+      for (let i = 0; i < prev.length; i++) {
+        if (prev[i].id !== next[i].id || prev[i].timestamp !== next[i].timestamp) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    async function fetchLogs(forceRender = false) {
       const query = document.getElementById('search-input').value.trim();
       let url = '/logs?limit=500';
       if (activeLevel) url += '&level=' + activeLevel;
@@ -243,7 +254,11 @@ apiRouter.get('/logs-ui', (req: Request, res: Response) => {
         const res = await fetch(url);
         const data = await res.json();
         if (data.status === 'success') {
-          currentLogs = data.logs || [];
+          const newLogs = data.logs || [];
+          if (!forceRender && areLogsEqual(currentLogs, newLogs)) {
+            return;
+          }
+          currentLogs = newLogs;
           renderLogs(currentLogs);
         }
       } catch (err) {
@@ -258,56 +273,70 @@ apiRouter.get('/logs-ui', (req: Request, res: Response) => {
         return;
       }
 
-      container.innerHTML = logs.map((l, index) => {
+      // Preserve scroll positions of open details elements before updating DOM
+      const scrollMap = new Map();
+      document.querySelectorAll('.details').forEach(el => {
+        if (el.id && el.scrollTop > 0) {
+          scrollMap.set(el.id, el.scrollTop);
+        }
+      });
+
+      container.innerHTML = logs.map(l => {
         const date = new Date(l.timestamp).toLocaleTimeString();
         const msg = l.message || '';
         const isLongMsg = msg.length > 140;
         const shortMsg = isLongMsg ? msg.substring(0, 140) + '...' : msg;
         const hasDetails = Boolean(l.details);
         const isExpandable = isLongMsg || hasDetails;
-        const isExpanded = expandedIndices.has(index);
+        const isExpanded = expandedIds.has(l.id);
 
         const toggleBtn = isExpandable
-          ? '<button class="toggle-btn" id="toggle-btn-' + index + '" onclick="toggleLog(' + index + ')" title="' + (isExpanded ? 'Collapse details' : 'Expand details') + '"><span id="icon-' + index + '">' + (isExpanded ? '▲' : '▼') + '</span></button>'
+          ? '<button class="toggle-btn" id="toggle-btn-' + l.id + '" onclick="toggleLog(\\'' + l.id + '\\')" title="' + (isExpanded ? 'Collapse details' : 'Expand details') + '"><span id="icon-' + l.id + '">' + (isExpanded ? '▲' : '▼') + '</span></button>'
           : '';
 
         const detailsStr = hasDetails
-          ? '<div class="details ' + (isExpanded ? '' : 'hidden') + '" id="details-' + index + '">' + escapeHtml(JSON.stringify(l.details, null, 2)) + '</div>'
+          ? '<div class="details ' + (isExpanded ? '' : 'hidden') + '" id="details-' + l.id + '">' + escapeHtml(JSON.stringify(l.details, null, 2)) + '</div>'
           : '';
 
-        return '<div class="log-item" id="log-item-' + index + '">' +
+        return '<div class="log-item" id="log-item-' + l.id + '">' +
           '<div class="log-header">' +
             '<span class="time">[' + date + ']</span> ' +
             '<span class="level level-' + l.level + '">' + l.level + '</span> ' +
             '<span class="source">[' + l.source + ']</span> ' +
             '<span class="tag">#' + l.tag + ':</span> ' +
             (isLongMsg
-              ? '<span class="message ' + (isExpanded ? 'hidden' : '') + '" id="msg-trunc-' + index + '">' + escapeHtml(shortMsg) + '</span>' +
-                '<span class="message ' + (isExpanded ? '' : 'hidden') + '" id="msg-full-' + index + '">' + escapeHtml(msg) + '</span>'
+              ? '<span class="message ' + (isExpanded ? 'hidden' : '') + '" id="msg-trunc-' + l.id + '">' + escapeHtml(shortMsg) + '</span>' +
+                '<span class="message ' + (isExpanded ? '' : 'hidden') + '" id="msg-full-' + l.id + '">' + escapeHtml(msg) + '</span>'
               : '<span class="message">' + escapeHtml(msg) + '</span>') +
             toggleBtn +
           '</div>' +
           detailsStr +
         '</div>';
       }).join('');
+
+      // Restore scroll positions
+      scrollMap.forEach((top, id) => {
+        const el = document.getElementById(id);
+        if (el) el.scrollTop = top;
+      });
     }
 
-    function toggleLog(index) {
-      const btn = document.getElementById('toggle-btn-' + index);
-      const icon = document.getElementById('icon-' + index);
-      const details = document.getElementById('details-' + index);
-      const msgTrunc = document.getElementById('msg-trunc-' + index);
-      const msgFull = document.getElementById('msg-full-' + index);
+    function toggleLog(id) {
+      const btn = document.getElementById('toggle-btn-' + id);
+      const icon = document.getElementById('icon-' + id);
+      const details = document.getElementById('details-' + id);
+      const msgTrunc = document.getElementById('msg-trunc-' + id);
+      const msgFull = document.getElementById('msg-full-' + id);
 
-      if (expandedIndices.has(index)) {
-        expandedIndices.delete(index);
+      if (expandedIds.has(id)) {
+        expandedIds.delete(id);
         if (icon) icon.textContent = '▼';
         if (btn) btn.title = 'Expand details';
         if (details) details.classList.add('hidden');
         if (msgTrunc) msgTrunc.classList.remove('hidden');
         if (msgFull) msgFull.classList.add('hidden');
       } else {
-        expandedIndices.add(index);
+        expandedIds.add(id);
         if (icon) icon.textContent = '▲';
         if (btn) btn.title = 'Collapse details';
         if (details) details.classList.remove('hidden');
@@ -332,8 +361,8 @@ apiRouter.get('/logs-ui', (req: Request, res: Response) => {
     async function clearLogs() {
       if (confirm('Clear all log entries?')) {
         await fetch('/logs', { method: 'DELETE' });
-        expandedIndices.clear();
-        fetchLogs();
+        expandedIds.clear();
+        fetchLogs(true);
       }
     }
 
