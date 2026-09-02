@@ -55,6 +55,7 @@ export interface FillResult {
   failedCount: number;
   filledFields: string[];
   failedFields: string[];
+  failureReasons?: Record<string, string>;
   error?: string;
 }
 

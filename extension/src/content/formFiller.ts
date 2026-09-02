@@ -6,6 +6,7 @@ export function fillFormFields(
 ): FillResult {
   const filledFields: string[] = [];
   const failedFields: string[] = [];
+  const failureReasons: Record<string, string> = {};
 
   const keys = Object.keys(mappings);
   if (keys.length === 0) {
@@ -15,6 +16,7 @@ export function fillFormFields(
       failedCount: 0,
       filledFields: [],
       failedFields: [],
+      failureReasons: {},
       error: 'No mappings provided',
     };
   }
@@ -22,6 +24,7 @@ export function fillFormFields(
   for (const [fieldId, value] of Object.entries(mappings)) {
     if (!value) {
       failedFields.push(fieldId);
+      failureReasons[fieldId] = 'Value mapped for this field was empty or null';
       continue;
     }
 
@@ -52,6 +55,7 @@ export function fillFormFields(
 
     if (!target) {
       failedFields.push(fieldId);
+      failureReasons[fieldId] = 'No matching input or textarea element found in the form DOM';
       continue;
     }
 
@@ -85,8 +89,9 @@ export function fillFormFields(
       }, 2000);
 
       filledFields.push(fieldId);
-    } catch {
+    } catch (err) {
       failedFields.push(fieldId);
+      failureReasons[fieldId] = `DOM input event or value assignment failed: ${err instanceof Error ? err.message : String(err)}`;
     }
   }
 
@@ -106,5 +111,6 @@ export function fillFormFields(
     failedCount,
     filledFields,
     failedFields,
+    failureReasons,
   };
 }

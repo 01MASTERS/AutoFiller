@@ -38,6 +38,7 @@ describe('fillFormFields', () => {
       failedCount: 0,
       filledFields: ['entry.100'],
       failedFields: [],
+      failureReasons: {},
     });
   });
 
@@ -88,6 +89,7 @@ describe('fillFormFields', () => {
     expect(result.failedCount).toBe(1);
     expect(result.filledFields).toEqual(['entry.400']);
     expect(result.failedFields).toEqual(['entry.999']);
+    expect(result.failureReasons?.['entry.999']).toContain('No matching input or textarea element found');
   });
 
   it('returns error status when no fields could be filled', () => {

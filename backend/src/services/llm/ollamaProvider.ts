@@ -36,8 +36,24 @@ export class OllamaProvider implements LLMProvider {
       });
 
       if (!response.ok) {
+        const errorText = await response.text().catch(() => '');
+        let errorDetail = response.statusText;
+        try {
+          const parsed = JSON.parse(errorText);
+          if (parsed && typeof parsed.error === 'string') {
+            errorDetail = parsed.error;
+          }
+        } catch {
+          if (errorText) errorDetail = errorText;
+        }
+
+        let hint = '';
+        if (response.status === 404) {
+          hint = ` (Model "${model}" may not be pulled yet. Run: "ollama pull ${model}" in your terminal)`;
+        }
+
         throw new LLMProviderError(
-          `Ollama API returned HTTP status ${response.status}: ${response.statusText}`,
+          `Ollama API returned HTTP ${response.status}: ${errorDetail}${hint}`,
         );
       }
 
@@ -55,7 +71,7 @@ export class OllamaProvider implements LLMProvider {
         throw new LLMProviderError(`Ollama request timed out after ${timeoutMs}ms`, err);
       }
       throw new LLMProviderError(
-        `Ollama not reachable at ${this.host}. Ensure Ollama is running. (${err instanceof Error ? err.message : String(err)})`,
+        `Ollama not reachable at ${this.host}. Ensure Ollama daemon is running ("ollama serve"). Details: ${err instanceof Error ? err.message : String(err)}`,
         err,
       );
     }

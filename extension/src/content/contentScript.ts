@@ -7,8 +7,35 @@ if (typeof chrome !== 'undefined' && chrome.runtime?.onMessage) {
     if (message?.action === 'SCAN_FIELDS') {
       try {
         const fields = extractFormFields(document);
+        if (fields.length === 0) {
+          ExtensionLogger.log(
+            'WARN',
+            'CONTENT_SCRIPT',
+            'DOM_SCAN_EMPTY',
+            'Scanned page but found 0 supported input or textarea form fields',
+            { url: window.location.href, title: document.title },
+          );
+        } else {
+          ExtensionLogger.log(
+            'INFO',
+            'CONTENT_SCRIPT',
+            'DOM_SCAN_SUCCESS',
+            `Scanned ${fields.length} form field(s) on page`,
+            {
+              count: fields.length,
+              fields: fields.map((f) => ({ id: f.id, label: f.label, type: f.type, required: f.required })),
+            },
+          );
+        }
         sendResponse({ status: 'success', fields });
       } catch (error) {
+        ExtensionLogger.log(
+          'ERROR',
+          'CONTENT_SCRIPT',
+          'DOM_SCAN_ERROR',
+          `Error scanning form fields: ${error instanceof Error ? error.message : String(error)}`,
+          { error: error instanceof Error ? error.stack : String(error) },
+        );
         sendResponse({
           status: 'error',
           fields: [],
@@ -24,20 +51,30 @@ if (typeof chrome !== 'undefined' && chrome.runtime?.onMessage) {
             filledMap[id] = (message.mappings || {})[id] || '(filled)';
           });
         }
+        const level = result.status === 'success' ? 'SUCCESS' : result.status === 'partial' ? 'WARN' : 'ERROR';
+        const tag = result.status === 'success' ? 'DOM_FILL_DONE' : result.status === 'partial' ? 'DOM_FILL_PARTIAL' : 'DOM_FILL_FAILED';
         ExtensionLogger.log(
-          'SUCCESS',
+          level,
           'CONTENT_SCRIPT',
-          'DOM_FILL_DONE',
-          `Content script filled ${result.filledCount} field(s): ${JSON.stringify(filledMap)}`,
+          tag,
+          `Content script filled ${result.filledCount} field(s)${result.failedCount > 0 ? `, ${result.failedCount} failed to fill` : ''}`,
           {
             filledCount: result.filledCount,
             failedCount: result.failedCount,
             filledFields: filledMap,
             failedFields: result.failedFields,
+            failureReasons: result.failureReasons,
           },
         );
         sendResponse({ status: 'success', result });
       } catch (error) {
+        ExtensionLogger.log(
+          'ERROR',
+          'CONTENT_SCRIPT',
+          'DOM_FILL_EXCEPTION',
+          `Content script encountered exception during form filling: ${error instanceof Error ? error.message : String(error)}`,
+          { error: error instanceof Error ? error.stack : String(error) },
+        );
         sendResponse({
           status: 'error',
           error: error instanceof Error ? error.message : String(error),

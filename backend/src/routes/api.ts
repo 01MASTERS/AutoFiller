@@ -162,6 +162,9 @@ apiRouter.get('/logs-ui', (req: Request, res: Response) => {
     .level-WARN { background: rgba(245,158,11,0.2); color: #fde68a; }
     .level-ERROR { background: rgba(239,68,68,0.2); color: #fca5a5; }
     .tag { color: #a78bfa; font-weight: 600; }
+    .tag-ERROR { color: #f87171 !important; font-weight: 700; }
+    .tag-WARN { color: #fbbf24 !important; font-weight: 700; }
+    .tag-SUCCESS { color: #34d399 !important; font-weight: 700; }
     .source { color: var(--muted); }
     .message { color: var(--text); }
     .toggle-btn {
@@ -303,7 +306,7 @@ apiRouter.get('/logs-ui', (req: Request, res: Response) => {
             '<span class="time">[' + date + ']</span> ' +
             '<span class="level level-' + l.level + '">' + l.level + '</span> ' +
             '<span class="source">[' + l.source + ']</span> ' +
-            '<span class="tag">#' + l.tag + ':</span> ' +
+            '<span class="tag tag-' + l.level + '">#' + l.tag + ':</span> ' +
             (isLongMsg
               ? '<span class="message ' + (isExpanded ? 'hidden' : '') + '" id="msg-trunc-' + l.id + '">' + escapeHtml(shortMsg) + '</span>' +
                 '<span class="message ' + (isExpanded ? '' : 'hidden') + '" id="msg-full-' + l.id + '">' + escapeHtml(msg) + '</span>'
@@ -386,9 +389,10 @@ apiRouter.get('/profile', (req: Request, res: Response, next: NextFunction) => {
 });
 
 apiRouter.get('/models', async (req: Request, res: Response, next: NextFunction) => {
+  const providerParam = (req.query.provider as string) || 'ollama';
+  const provider = providerParam === 'gemini' ? 'gemini' : 'ollama';
+
   try {
-    const providerParam = (req.query.provider as string) || 'ollama';
-    const provider = providerParam === 'gemini' ? 'gemini' : 'ollama';
     const apiKey = (req.headers['x-gemini-api-key'] as string) || (req.query.apiKey as string);
 
     const models = await llmGatewayInstance.getAvailableModels(provider, { apiKey });
@@ -399,9 +403,21 @@ apiRouter.get('/models', async (req: Request, res: Response, next: NextFunction)
     });
   } catch (error) {
     if (error instanceof LLMProviderError) {
+      LoggerService.getInstance().addLog({
+        level: 'WARN',
+        source: 'LLM_GATEWAY',
+        tag: 'MODELS_FETCH_ERROR',
+        message: `Failed to fetch models for ${provider}: ${error.message}`,
+        details: {
+          provider,
+          error: error.message,
+          cause: error.cause instanceof Error ? error.cause.message : String(error.cause || ''),
+        },
+      });
+
       res.status(502).json({
         status: 'error',
-        provider: (req.query.provider as string) === 'gemini' ? 'gemini' : 'ollama',
+        provider,
         models: [],
         error: error.message,
       });
@@ -425,18 +441,44 @@ apiRouter.post('/autofill', async (req: Request, res: Response, next: NextFuncti
       model,
     });
 
-    LoggerService.getInstance().addLog({
-      level: 'SUCCESS',
-      source: 'BACKEND_API',
-      tag: 'LLM_RESPONSE',
-      message: `LLM (${provider}/${model || 'default'}) mapped ${Object.keys(mappings).length} field(s): ${JSON.stringify(mappings)}`,
-      details: {
-        provider,
-        model,
-        mappings,
-        fieldsScanned: body.fields.map((f) => ({ id: f.id, label: f.label })),
-      },
-    });
+    const mappedKeys = new Set(Object.keys(mappings));
+    const unmappedFields = body.fields
+      .filter((f) => !mappedKeys.has(f.id))
+      .map((f) => ({ id: f.id, label: f.label, type: f.type }));
+
+    if (mappedKeys.size === 0) {
+      LoggerService.getInstance().addLog({
+        level: 'WARN',
+        source: 'LLM_GATEWAY',
+        tag: 'LLM_ZERO_MAPPINGS',
+        message: `LLM (${provider}/${model || 'default'}) returned 0 field mappings: none of the ${body.fields.length} scanned field(s) matched the user profile`,
+        details: {
+          provider,
+          model,
+          fieldsScannedCount: body.fields.length,
+          fieldsScanned: body.fields.map((f) => ({ id: f.id, label: f.label })),
+          unmappedFields,
+          profileSampleKeys: Object.keys(profile),
+          hint: 'The user profile does not contain matching values for these form field questions.',
+        },
+      });
+    } else {
+      LoggerService.getInstance().addLog({
+        level: 'SUCCESS',
+        source: 'BACKEND_API',
+        tag: 'LLM_RESPONSE',
+        message: `LLM (${provider}/${model || 'default'}) mapped ${mappedKeys.size}/${body.fields.length} field(s): ${JSON.stringify(mappings)}`,
+        details: {
+          provider,
+          model,
+          mappings,
+          mappedCount: mappedKeys.size,
+          unmappedCount: unmappedFields.length,
+          unmappedFields,
+          fieldsScanned: body.fields.map((f) => ({ id: f.id, label: f.label })),
+        },
+      });
+    }
 
     const response: AutofillResponse = {
       status: 'success',
@@ -445,12 +487,58 @@ apiRouter.post('/autofill', async (req: Request, res: Response, next: NextFuncti
 
     res.json(response);
   } catch (error) {
+    const reqFields = Array.isArray(req.body?.fields) ? req.body.fields : [];
+    const reqProvider = req.body?.provider || 'ollama';
+    const reqModel = req.body?.model || 'default';
+
     if (error instanceof ZodError) {
+      const errorMsg = error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ');
+      LoggerService.getInstance().addLog({
+        level: 'ERROR',
+        source: 'BACKEND_API',
+        tag: 'REQUEST_VALIDATION_ERROR',
+        message: `Invalid request payload to /autofill: ${errorMsg}`,
+        details: { issues: error.issues, body: req.body },
+      });
       next(error);
       return;
     }
 
     if (error instanceof LLMProviderError || error instanceof LLMParseError) {
+      const errorMsg = error.message;
+      let errorTag = 'LLM_ERROR';
+      if (/quota|429|rate.?limit/i.test(errorMsg)) {
+        errorTag = 'LLM_QUOTA_EXCEEDED';
+      } else if (/invalid.*key|unauthorized|401|403/i.test(errorMsg)) {
+        errorTag = 'LLM_AUTH_ERROR';
+      } else if (/timeout/i.test(errorMsg)) {
+        errorTag = 'LLM_TIMEOUT';
+      } else if (error instanceof LLMParseError) {
+        errorTag = 'LLM_PARSE_ERROR';
+      } else if (/not reachable|connection refused|daemon/i.test(errorMsg)) {
+        errorTag = 'LLM_CONNECTION_FAILED';
+      }
+
+      LoggerService.getInstance().addLog({
+        level: 'ERROR',
+        source: 'LLM_GATEWAY',
+        tag: errorTag,
+        message: `LLM API Error (${reqProvider}/${reqModel}): ${errorMsg}`,
+        details: {
+          errorTag,
+          errorType: error.name,
+          errorMessage: error.message,
+          provider: reqProvider,
+          model: reqModel,
+          fieldsScannedCount: reqFields.length,
+          fieldsScanned: reqFields.map((f: FieldMetadata) => ({ id: f.id, label: f.label })),
+          cause: error instanceof LLMProviderError && error.cause
+            ? (error.cause instanceof Error ? { message: error.cause.message, stack: error.cause.stack } : String(error.cause))
+            : undefined,
+          rawResponse: error instanceof LLMParseError ? error.rawResponse : undefined,
+        },
+      });
+
       const response: AutofillResponse = {
         status: 'error',
         mappings: {},
@@ -459,6 +547,16 @@ apiRouter.post('/autofill', async (req: Request, res: Response, next: NextFuncti
       res.status(502).json(response);
       return;
     }
+
+    LoggerService.getInstance().addLog({
+      level: 'ERROR',
+      source: 'BACKEND_API',
+      tag: 'INTERNAL_SERVER_ERROR',
+      message: `Unexpected backend error during autofill: ${error instanceof Error ? error.message : String(error)}`,
+      details: {
+        error: error instanceof Error ? { name: error.name, message: error.message, stack: error.stack } : String(error),
+      },
+    });
 
     next(error);
   }

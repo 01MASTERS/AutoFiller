@@ -109,4 +109,43 @@ describe('POST /autofill', () => {
     expect(response.status).toBe(400);
     expect(response.body).toHaveProperty('status', 'error');
   });
+
+  it('records LLM_QUOTA_EXCEEDED error log when quota error is thrown', async () => {
+    mapFieldsMock.mockRejectedValue(
+      new LLMProviderError('Gemini Quota Exceeded (429 Rate Limit) - Google AI Studio quota exhausted'),
+    );
+
+    const payload = {
+      fields: [{ id: 'field-1', label: 'Full Name' }],
+      provider: 'gemini',
+      model: 'gemini-1.5-flash',
+    };
+
+    const response = await request(app).post('/autofill').send(payload);
+
+    expect(response.status).toBe(502);
+
+    const logsRes = await request(app).get('/logs?query=QUOTA');
+    expect(logsRes.body.logs.length).toBeGreaterThanOrEqual(1);
+    expect(logsRes.body.logs[0].tag).toBe('LLM_QUOTA_EXCEEDED');
+    expect(logsRes.body.logs[0].level).toBe('ERROR');
+  });
+
+  it('records LLM_ZERO_MAPPINGS warning when LLM returns no mappings', async () => {
+    mapFieldsMock.mockResolvedValue({});
+
+    const payload = {
+      fields: [{ id: 'field-unknown', label: 'Some completely unrelated question' }],
+      provider: 'ollama',
+    };
+
+    const response = await request(app).post('/autofill').send(payload);
+
+    expect(response.status).toBe(200);
+
+    const logsRes = await request(app).get('/logs?query=ZERO');
+    expect(logsRes.body.logs.length).toBeGreaterThanOrEqual(1);
+    expect(logsRes.body.logs[0].tag).toBe('LLM_ZERO_MAPPINGS');
+    expect(logsRes.body.logs[0].level).toBe('WARN');
+  });
 });

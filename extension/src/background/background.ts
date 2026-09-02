@@ -73,7 +73,12 @@ export async function handleTriggerAutofill(options?: {
     } catch {
       const errorMsg =
         'Content script not loaded on this tab. Please refresh the page tab and try again.';
-      await ExtensionLogger.log('ERROR', 'BACKGROUND', 'SCAN_FIELDS_FAIL', errorMsg);
+      await ExtensionLogger.log('ERROR', 'BACKGROUND', 'SCAN_FIELDS_FAIL', errorMsg, {
+        tabId: activeTab.id,
+        tabUrl: activeTab.url,
+        tabTitle: activeTab.title,
+        hint: 'Content scripts only run on allowed URLs (e.g. Google Forms or regular web pages, not chrome:// internal pages).',
+      });
       await updateStatusState('error', { error: errorMsg });
       return { status: 'error', error: errorMsg };
     }
@@ -85,7 +90,12 @@ export async function handleTriggerAutofill(options?: {
       scanResponse.fields.length === 0
     ) {
       const errorMsg = scanResponse?.error || 'No fillable text fields found on this form';
-      await ExtensionLogger.log('WARN', 'BACKGROUND', 'SCAN_NO_FIELDS', errorMsg);
+      await ExtensionLogger.log('WARN', 'BACKGROUND', 'SCAN_NO_FIELDS', errorMsg, {
+        tabUrl: activeTab.url,
+        tabTitle: activeTab.title,
+        fieldsFound: 0,
+        hint: 'AutoFiller scans for standard text, email, tel, textarea, and Google Form question inputs. Dropdowns and checkboxes are not yet supported.',
+      });
       await updateStatusState('error', { error: errorMsg });
       return { status: 'error', error: errorMsg };
     }
@@ -95,6 +105,10 @@ export async function handleTriggerAutofill(options?: {
       'BACKGROUND',
       'SCAN_FIELDS_SUCCESS',
       `Extracted ${scanResponse.fields.length} form field(s) from active tab`,
+      {
+        fieldCount: scanResponse.fields.length,
+        fields: scanResponse.fields.map((f) => ({ id: f.id, label: f.label, type: f.type, required: f.required })),
+      },
     );
 
     let backendUrl = 'http://localhost:3456/autofill';
@@ -116,22 +130,40 @@ export async function handleTriggerAutofill(options?: {
       headers['x-gemini-api-key'] = options.apiKey;
     }
 
-    const backendRes = await fetch(backendUrl, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({
-        fields: scanResponse.fields,
-        provider: options?.provider || 'ollama',
-        model: options?.model,
-        apiKey: options?.apiKey,
-      }),
-    });
+    let backendRes: Response;
+    try {
+      backendRes = await fetch(backendUrl, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          fields: scanResponse.fields,
+          provider: options?.provider || 'ollama',
+          model: options?.model,
+          apiKey: options?.apiKey,
+        }),
+      });
+    } catch (networkErr) {
+      const errorMsg = `Cannot connect to AutoFiller backend at ${backendUrl}. Ensure the backend server is running (start.bat).`;
+      await ExtensionLogger.log('ERROR', 'BACKGROUND', 'BACKEND_CONNECTION_FAILED', errorMsg, {
+        backendUrl,
+        error: networkErr instanceof Error ? networkErr.message : String(networkErr),
+      });
+      await updateStatusState('error', { error: errorMsg });
+      return { status: 'error', error: errorMsg };
+    }
 
     if (!backendRes.ok) {
       const errData = (await backendRes.json().catch(() => ({}))) as { error?: string };
       const errorMsg =
         errData.error || `Backend HTTP request failed with status ${backendRes.status}`;
-      await ExtensionLogger.log('ERROR', 'BACKGROUND', 'BACKEND_HTTP_ERROR', errorMsg);
+      await ExtensionLogger.log('ERROR', 'BACKGROUND', 'BACKEND_HTTP_ERROR', errorMsg, {
+        httpStatus: backendRes.status,
+        statusText: backendRes.statusText,
+        backendUrl,
+        provider: options?.provider,
+        model: options?.model,
+        fieldsSent: scanResponse.fields.length,
+      });
       await updateStatusState('error', { error: errorMsg });
       return { status: 'error', error: errorMsg };
     }
@@ -142,8 +174,14 @@ export async function handleTriggerAutofill(options?: {
       !autofillData.mappings ||
       Object.keys(autofillData.mappings).length === 0
     ) {
-      const errorMsg = autofillData.error || 'LLM returned no field mappings';
-      await ExtensionLogger.log('ERROR', 'BACKGROUND', 'LLM_MAPPING_EMPTY', errorMsg);
+      const errorMsg = autofillData.error || 'LLM returned no matching field mappings for this form';
+      await ExtensionLogger.log('WARN', 'BACKGROUND', 'LLM_MAPPING_EMPTY', errorMsg, {
+        provider: options?.provider,
+        model: options?.model,
+        scannedFieldsCount: scanResponse.fields.length,
+        scannedFields: scanResponse.fields.map((f) => ({ id: f.id, label: f.label })),
+        hint: 'None of the form fields matched your profile in backend/profile.json.',
+      });
       await updateStatusState('error', { error: errorMsg });
       return { status: 'error', error: errorMsg };
     }
@@ -170,12 +208,15 @@ export async function handleTriggerAutofill(options?: {
 
     if (!fillResponse || fillResponse.status !== 'success' || !fillResponse.result) {
       const errorMsg = fillResponse?.error || 'Form filling failed in content script';
-      await ExtensionLogger.log('ERROR', 'BACKGROUND', 'DOM_FILL_FAIL', errorMsg);
+      await ExtensionLogger.log('ERROR', 'BACKGROUND', 'DOM_FILL_FAIL', errorMsg, {
+        mappings: autofillData.mappings,
+        tabId: activeTab.id,
+      });
       await updateStatusState('error', { error: errorMsg });
       return { status: 'error', error: errorMsg };
     }
 
-    const { filledCount, failedCount, filledFields, failedFields } = fillResponse.result;
+    const { filledCount, failedCount, filledFields, failedFields, failureReasons } = fillResponse.result;
 
     const filledDetails: Record<string, string> = {};
     if (Array.isArray(filledFields)) {
@@ -184,30 +225,43 @@ export async function handleTriggerAutofill(options?: {
       });
     }
 
+    const logStatus = failedCount > 0 ? 'WARN' : 'SUCCESS';
+    const logTag = failedCount > 0 ? 'AUTOFILL_PARTIAL' : 'AUTOFILL_COMPLETE';
+
     await ExtensionLogger.log(
-      'SUCCESS',
+      logStatus,
       'BACKGROUND',
-      'AUTOFILL_COMPLETE',
-      `Form filled successfully: ${filledCount} field(s) populated: ${JSON.stringify(filledDetails)}${failedCount > 0 ? `, ${failedCount} failed: [${failedFields.join(', ')}]` : ''}`,
+      logTag,
+      `Form filled: ${filledCount} field(s) populated${failedCount > 0 ? `, ${failedCount} failed: [${failedFields.join(', ')}]` : ''}`,
       {
         filledCount,
         failedCount,
         filledFields: filledDetails,
         failedFields,
+        failureReasons: failureReasons || {},
         mappings: autofillData.mappings,
       },
     );
 
-    await updateStatusState('done', { filledCount, failedCount });
+    await updateStatusState(failedCount > 0 ? 'error' : 'done', {
+      filledCount,
+      failedCount,
+      error: failedCount > 0 ? `${failedCount} field(s) could not be filled in the form` : undefined,
+    });
 
     return {
-      status: 'success',
+      status: failedCount > 0 ? 'partial' : 'success',
       filledCount,
       failedCount,
     };
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : String(err);
-    await ExtensionLogger.log('ERROR', 'BACKGROUND', 'AUTOFILL_EXCEPTION', errorMsg);
+    await ExtensionLogger.log('ERROR', 'BACKGROUND', 'AUTOFILL_EXCEPTION', errorMsg, {
+      errorName: err instanceof Error ? err.name : undefined,
+      errorMessage: errorMsg,
+      stack: err instanceof Error ? err.stack : undefined,
+      options,
+    });
     await updateStatusState('error', { error: errorMsg });
     return { status: 'error', error: errorMsg };
   }

@@ -42,6 +42,14 @@ export class GeminiProvider implements LLMProvider {
       });
 
       const result = await Promise.race([generatePromise, timeoutPromise]);
+
+      if (result.response.promptFeedback?.blockReason) {
+        throw new LLMProviderError(
+          `Gemini blocked the prompt (Block reason: ${result.response.promptFeedback.blockReason})`,
+          result.response.promptFeedback,
+        );
+      }
+
       const responseText = result.response.text();
 
       if (!responseText) {
@@ -53,10 +61,16 @@ export class GeminiProvider implements LLMProvider {
       if (err instanceof LLMProviderError) {
         throw err;
       }
-      throw new LLMProviderError(
-        `Gemini API request failed: ${err instanceof Error ? err.message : String(err)}`,
-        err,
-      );
+      const rawMsg = err instanceof Error ? err.message : String(err);
+      let classification = 'Gemini API request failed';
+      if (/quota|429|resource_exhausted|rate.?limit/i.test(rawMsg)) {
+        classification = 'Gemini Quota Exceeded (429 Rate Limit) - Google AI Studio quota exhausted. Wait a minute or check your quota limits at aistudio.google.com';
+      } else if (/api_key_invalid|invalid api key|api key not valid|401|403|unauthorized/i.test(rawMsg)) {
+        classification = 'Gemini API Key Invalid or Unauthorized - Check your Gemini API Key in extension settings';
+      } else if (/not found|model.*not supported|404/i.test(rawMsg)) {
+        classification = `Gemini Model "${modelName}" Not Found - Try switching to gemini-1.5-flash or gemini-2.0-flash`;
+      }
+      throw new LLMProviderError(`${classification}: ${rawMsg}`, err);
     }
   }
 
