@@ -51,6 +51,7 @@ export function buildFieldMappingPrompt(
     '    - For discovery/source questions (e.g. "How did you hear about this position?"), match with preferred sources indicated in the profile (such as "LinkedIn", "Indeed", "Company Website", "Career Page") avoiding options excluded by the profile (like "Referral").',
     '15. Company & Experience Dates Disambiguation: For questions asking about joining date, start date, tenure start, or end/relieving date for a company, employer, or previous organization:',
     '    - Extract the dates directly from the "experience" section of the profile (e.g. decomposing "duration" like "5th Jan 2026 - 3rd July 2026" into start/joining date "2026-01-05" and end/relieving date "2026-07-03", or reading explicit "start date" / "joining date" / "end date" properties).',
+    '    - When converting natural language dates (like "5th Jan 2026"), the day is 05 and the month is 01 (January). Always format as "2026-01-05" in ISO format. NEVER invert day and month (do NOT output "2026-05-01").',
     '    - NEVER confuse company/work joining dates with "education" dates (such as college start date) or Date of Birth.',
   ].join('\n');
 

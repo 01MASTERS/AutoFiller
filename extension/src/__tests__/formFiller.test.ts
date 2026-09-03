@@ -701,4 +701,55 @@ describe('fillFormFields', () => {
     const otherInput = document.querySelector<HTMLInputElement>('.Hvn9fb');
     expect(otherInput?.value).toBe('Rust');
   });
+
+  it('Date filling: correctly populates multi-part date from natural language string "5th Jan 2026"', async () => {
+    document.body.innerHTML = `
+      <div role="listitem" class="QrToBd">
+        <div role="heading">Date of Joining</div>
+        <div class="exportDate" data-autofiller-id="joining-date">
+          <input type="text" class="whsOnd" aria-label="Month" maxlength="2" name="entry.200_month" />
+          <input type="text" class="whsOnd" aria-label="Day" maxlength="2" name="entry.200_day" />
+          <input type="text" class="whsOnd" aria-label="Year" maxlength="4" name="entry.200_year" />
+        </div>
+      </div>
+    `;
+
+    const fields: FieldMetadata[] = [makeField({
+      id: 'joining-date',
+      controlType: 'date',
+      selectionMode: 'single',
+    })];
+
+    const result = await fillFormFields({ 'joining-date': '5th Jan 2026' }, fields, document);
+
+    expect(result.status).toBe('success');
+    const monthInput = document.querySelector<HTMLInputElement>('input[name="entry.200_month"]');
+    const dayInput = document.querySelector<HTMLInputElement>('input[name="entry.200_day"]');
+    const yearInput = document.querySelector<HTMLInputElement>('input[name="entry.200_year"]');
+
+    expect(monthInput?.value).toBe('01');
+    expect(dayInput?.value).toBe('05');
+    expect(yearInput?.value).toBe('2026');
+  });
+
+  it('Date filling: formats DD/MM/YYYY text input when placeholder specifies dd/mm/yyyy', async () => {
+    document.body.innerHTML = `
+      <div role="listitem">
+        <label for="join-text">Joining Date</label>
+        <input type="text" id="join-text" placeholder="DD/MM/YYYY" />
+      </div>
+    `;
+
+    const fields: FieldMetadata[] = [makeField({
+      id: 'join-text',
+      controlType: 'date',
+      selectionMode: 'single',
+    })];
+
+    const result = await fillFormFields({ 'join-text': '5th Jan 2026' }, fields, document);
+
+    expect(result.status).toBe('success');
+    const input = document.getElementById('join-text') as HTMLInputElement;
+    expect(input.value).toBe('05/01/2026');
+  });
 });
