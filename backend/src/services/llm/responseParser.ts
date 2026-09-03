@@ -11,16 +11,6 @@ export interface ParseResult {
   diagnostics: ParseDiagnostics;
 }
 
-let lastDiagnostics: ParseDiagnostics = { rejectedOptions: {} };
-
-/**
- * Returns diagnostic information from the most recent parse execution.
- * @deprecated Prefer receiving diagnostics directly from parseLLMResponseWithDiagnostics.
- */
-export function getLastParseDiagnostics(): ParseDiagnostics {
-  return lastDiagnostics;
-}
-
 /**
  * Deterministically matches an input string against allowed options for a form field.
  *
@@ -95,7 +85,6 @@ export function parseLLMResponseWithDiagnostics(
   fields?: FieldMetadata[],
 ): ParseResult {
   const diagnostics: ParseDiagnostics = { rejectedOptions: {} };
-  lastDiagnostics = diagnostics;
 
   if (!rawResponse || typeof rawResponse !== 'string') {
     throw new LLMParseError('Empty or invalid response from LLM', String(rawResponse));
@@ -323,7 +312,6 @@ export function parseLLMJsonResponse(
   fields?: FieldMetadata[],
 ): Record<string, FieldMappingValue> & { diagnostics?: ParseDiagnostics } {
   const { mappings, diagnostics } = parseLLMResponseWithDiagnostics(rawResponse, fields);
-  lastDiagnostics = diagnostics;
   Object.defineProperty(mappings, 'diagnostics', {
     value: diagnostics,
     enumerable: false,

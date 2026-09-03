@@ -587,16 +587,22 @@ describe('fillFormFields', () => {
     expect(indiaOption.getAttribute('aria-selected')).toBe('true');
   });
 
-  it('Radio group: updates underlying hidden input in Google Form question container', async () => {
+  it('Radio group: triggers real click and selects radio option', async () => {
     document.body.innerHTML = `
       <div role="listitem" class="QrToBd">
-        <input type="hidden" name="entry.99999" value="" />
         <div role="radiogroup" data-autofiller-id="gender-rg">
           <div role="radio" data-value="Male">Male</div>
           <div role="radio" data-value="Female">Female</div>
         </div>
       </div>
     `;
+
+    const maleRadio = document.querySelector('[role="radio"][data-value="Male"]') as HTMLElement;
+    const clickSpy = vi.fn();
+    maleRadio.addEventListener('click', () => {
+      clickSpy();
+      maleRadio.setAttribute('aria-checked', 'true');
+    });
 
     const fields: FieldMetadata[] = [makeField({
       id: 'gender-rg',
@@ -606,9 +612,9 @@ describe('fillFormFields', () => {
 
     const result = await fillFormFields({ 'gender-rg': 'Male' }, fields, document);
 
+    expect(clickSpy).toHaveBeenCalled();
     expect(result.status).toBe('success');
-    const hiddenInput = document.querySelector<HTMLInputElement>('input[name="entry.99999"]');
-    expect(hiddenInput?.value).toBe('Male');
+    expect(maleRadio.getAttribute('aria-checked')).toBe('true');
   });
 
   it('radio group: selects Other option and populates companion text input when custom text is provided', async () => {
@@ -641,10 +647,6 @@ describe('fillFormFields', () => {
     // Check companion Other input was filled
     const otherInput = document.querySelector<HTMLInputElement>('.Hvn9fb');
     expect(otherInput?.value).toBe('Patna');
-
-    // Check hidden input was updated
-    const hiddenInput = document.querySelector<HTMLInputElement>('input[name="entry.11111"]');
-    expect(hiddenInput?.value).toBe('Patna');
   });
 
   it('radio group: selects Other option and parses "Other: <text>" prefix correctly', async () => {

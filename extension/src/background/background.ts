@@ -154,7 +154,6 @@ export async function handleTriggerAutofill(options?: {
           fields: scanResponse.fields,
           provider: options?.provider || 'ollama',
           model: options?.model,
-          apiKey: options?.apiKey,
         }),
       });
     } catch (networkErr) {

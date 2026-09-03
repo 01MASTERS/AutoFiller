@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   parseLLMJsonResponse,
   matchFieldOption,
-  getLastParseDiagnostics,
+  parseLLMResponseWithDiagnostics,
 } from '../services/llm/responseParser.js';
 import { LLMParseError } from '../services/llm/types.js';
 import { FieldMetadata } from '@autofiller/shared';
@@ -215,8 +215,7 @@ describe('responseParser', () => {
       const result = parseLLMJsonResponse(raw, fields);
       // Hallucinated option dropped
       expect(result).toEqual({});
-      const diag = getLastParseDiagnostics();
-      expect(diag.rejectedOptions['f_country']).toEqual(['Atlantis']);
+      expect(result.diagnostics?.rejectedOptions['f_country']).toEqual(['Atlantis']);
     });
 
     it('filters mixed valid and invalid multiple-choice options, recording rejected ones', () => {
@@ -237,8 +236,7 @@ describe('responseParser', () => {
       const result = parseLLMJsonResponse(raw, fields);
       // "Rust" is invalid; "C++" resolves to "cpp", "py" resolves to "py"
       expect(result).toEqual({ f_langs: ['cpp', 'py'] });
-      const diag = getLastParseDiagnostics();
-      expect(diag.rejectedOptions['f_langs']).toEqual(['Rust']);
+      expect(result.diagnostics?.rejectedOptions['f_langs']).toEqual(['Rust']);
     });
 
     it('deduplicates duplicate multiple-choice values', () => {

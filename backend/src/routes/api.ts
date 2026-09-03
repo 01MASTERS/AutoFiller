@@ -1027,12 +1027,16 @@ apiRouter.post('/autofill', async (req: Request, res: Response, next: NextFuncti
 
     if (error instanceof ZodError) {
       const errorMsg = error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ');
+      const sanitizedBody = req.body && typeof req.body === 'object' ? { ...req.body } : req.body;
+      if (sanitizedBody && typeof sanitizedBody === 'object' && 'apiKey' in sanitizedBody) {
+        delete (sanitizedBody as Record<string, unknown>).apiKey;
+      }
       LoggerService.getInstance().addLog({
         level: 'ERROR',
         source: 'BACKEND_API',
         tag: 'REQUEST_VALIDATION_ERROR',
         message: `Invalid request payload to /autofill: ${errorMsg}`,
-        details: { issues: error.issues, body: req.body },
+        details: { issues: error.issues, body: sanitizedBody },
       });
       next(error);
       return;

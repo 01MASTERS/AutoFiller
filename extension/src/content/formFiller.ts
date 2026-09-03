@@ -257,20 +257,6 @@ function fillRadioGroup(container: Element, value: string, doc: Document): boole
     }
   }
 
-  // Synchronize the specific Google Forms entry input (entry.XXXXX) if present in question container
-  if (questionContainer) {
-    const entryInputs = Array.from(
-      questionContainer.querySelectorAll<HTMLInputElement>('input[name*="entry."][type="hidden"]'),
-    );
-    const targetVal = isOtherSelection && customText
-      ? customText
-      : (option.getAttribute('data-value') || option.getAttribute('value') || value);
-    for (const hi of entryInputs) {
-      hi.value = targetVal;
-      dispatchFormEvents(hi, ['input', 'change']);
-    }
-  }
-
   dispatchFormEvents(container, ['change']);
   applyVisualFeedback(container as HTMLElement);
   return true;
