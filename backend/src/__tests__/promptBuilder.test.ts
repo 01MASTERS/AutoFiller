@@ -163,4 +163,21 @@ describe('promptBuilder', () => {
     expect(prompt.systemPrompt).toContain('OMIT the field from your JSON output');
     expect(prompt.systemPrompt).toContain('Never guess or select a choice merely because it sounds common or plausible');
   });
+
+  it('includes explicit company and experience dates disambiguation instruction', () => {
+    const fields: FieldMetadata[] = [
+      { id: 'entry.joining', label: 'Date of Joining for previous company', controlType: 'date' },
+    ];
+    const profile: UserProfile = {
+      name: 'Jane Doe',
+      email: 'jane@example.com',
+      phone: '555-0199',
+    };
+
+    const prompt = buildFieldMappingPrompt(fields, profile);
+
+    expect(prompt.systemPrompt).toContain('Company & Experience Dates Disambiguation');
+    expect(prompt.systemPrompt).toContain('Extract the dates directly from the "experience" section');
+    expect(prompt.systemPrompt).toContain('NEVER confuse company/work joining dates with "education" dates');
+  });
 });

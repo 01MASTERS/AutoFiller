@@ -49,6 +49,9 @@ export function buildFieldMappingPrompt(
     '    - Since the user is actively filling out this application form, map such affirmative questions to "Yes" (or the affirmative option like "Yes", "Agree", or true) unless the profile explicitly states otherwise.',
     '    - For standard eligibility, background, and academic screening questions (e.g. "Do you have any backlogs / active backlogs?", "Have you ever been convicted of a crime?", "Are you bound by a non-compete?"), map to "No" (or the appropriate choice based on profile attributes like "Backlogs": "No").',
     '    - For discovery/source questions (e.g. "How did you hear about this position?"), match with preferred sources indicated in the profile (such as "LinkedIn", "Indeed", "Company Website", "Career Page") avoiding options excluded by the profile (like "Referral").',
+    '15. Company & Experience Dates Disambiguation: For questions asking about joining date, start date, tenure start, or end/relieving date for a company, employer, or previous organization:',
+    '    - Extract the dates directly from the "experience" section of the profile (e.g. decomposing "duration" like "5th Jan 2026 - 3rd July 2026" into start/joining date "2026-01-05" and end/relieving date "2026-07-03", or reading explicit "start date" / "joining date" / "end date" properties).',
+    '    - NEVER confuse company/work joining dates with "education" dates (such as college start date) or Date of Birth.',
   ].join('\n');
 
   const userPrompt = [
