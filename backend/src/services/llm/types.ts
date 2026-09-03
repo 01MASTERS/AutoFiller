@@ -1,4 +1,4 @@
-import { FieldMetadata, UserProfile } from '@autofiller/shared';
+import { FieldMetadata, FieldMappingValue, UserProfile } from '@autofiller/shared';
 
 export interface LLMOptions {
   apiKey?: string;
@@ -11,7 +11,7 @@ export interface LLMProvider {
     fields: FieldMetadata[],
     profile: UserProfile,
     options?: LLMOptions,
-  ): Promise<Record<string, string>>;
+  ): Promise<Record<string, FieldMappingValue>>;
   fetchAvailableModels?(options?: LLMOptions): Promise<string[]>;
 }
 

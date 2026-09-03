@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { FieldMetadata, UserProfile } from '@autofiller/shared';
+import { FieldMetadata, FieldMappingValue, UserProfile } from '@autofiller/shared';
 import { LLMOptions, LLMProvider, LLMProviderError } from './types.js';
 import { buildFieldMappingPrompt } from './promptBuilder.js';
 import { parseLLMJsonResponse } from './responseParser.js';
@@ -9,7 +9,7 @@ export class GeminiProvider implements LLMProvider {
     fields: FieldMetadata[],
     profile: UserProfile,
     options?: LLMOptions,
-  ): Promise<Record<string, string>> {
+  ): Promise<Record<string, FieldMappingValue>> {
     const apiKey = options?.apiKey || process.env.GEMINI_API_KEY;
     if (!apiKey) {
       throw new LLMProviderError(
@@ -56,7 +56,7 @@ export class GeminiProvider implements LLMProvider {
         throw new LLMProviderError('Gemini API returned an empty response text');
       }
 
-      return parseLLMJsonResponse(responseText);
+      return parseLLMJsonResponse(responseText, fields);
     } catch (err) {
       if (err instanceof LLMProviderError) {
         throw err;

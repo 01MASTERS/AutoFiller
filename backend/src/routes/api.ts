@@ -4,6 +4,7 @@ import { ProfileStore } from '../services/profileStore.js';
 import { autofillRequestSchema } from '../types/profile.js';
 import { LLMGateway } from '../services/llm/gateway.js';
 import { LLMProviderError, LLMParseError } from '../services/llm/types.js';
+import { getLastParseDiagnostics } from '../services/llm/responseParser.js';
 import { ZodError } from 'zod';
 
 import { LoggerService } from '../services/loggerService.js';
@@ -982,6 +983,7 @@ apiRouter.post('/autofill', async (req: Request, res: Response, next: NextFuncti
           provider,
           model,
           mappings,
+          rejectedOptions: getLastParseDiagnostics().rejectedOptions,
           mappedCount: mappedKeys.size,
           unmappedCount: unmappedFields.length,
           unmappedFields,

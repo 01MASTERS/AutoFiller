@@ -1,7 +1,7 @@
-import { FillResult } from '@autofiller/shared';
+import { FillResult, FieldMappingValue } from '@autofiller/shared';
 
 export function fillFormFields(
-  mappings: Record<string, string>,
+  mappings: Record<string, FieldMappingValue>,
   doc: Document = document,
 ): FillResult {
   const filledFields: string[] = [];
@@ -22,38 +22,40 @@ export function fillFormFields(
   }
 
   for (const [fieldId, value] of Object.entries(mappings)) {
-    if (!value) {
+    if (value === undefined || value === null || value === '') {
       failedFields.push(fieldId);
       failureReasons[fieldId] = 'Value mapped for this field was empty or null';
       continue;
     }
 
-    let target: HTMLInputElement | HTMLTextAreaElement | null = null;
-
+    // In-browser CSS search order:
+    // 1. data-autofiller-id attribute stamped by domReader
+    // 2. Exact name attribute
+    // 3. Exact id attribute
+    let target: HTMLElement | null = null;
     try {
-      target = doc.querySelector<HTMLInputElement | HTMLTextAreaElement>(
+      target = doc.querySelector(
         `[data-autofiller-id="${CSS.escape(fieldId)}"], input[name="${fieldId}"], textarea[name="${fieldId}"], #${CSS.escape(fieldId)}`,
       );
     } catch {
-      // Fallback if querySelector fails on unexpected selector characters
-      target = null;
+      // Fallback if CSS.escape fails on strange characters
+      target = doc.getElementById(fieldId);
     }
 
+    // Fallback: if not found, find by name attribute alone
     if (!target) {
-      target =
-        Array.from(
-          doc.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(
-            'input[type="text"], input[type="email"], input[type="tel"], input:not([type]), textarea',
-          ),
-        ).find(
-          (el) =>
-            el.id === fieldId ||
-            el.getAttribute('name') === fieldId ||
-            el.getAttribute('aria-describedby')?.includes(fieldId),
-        ) || null;
+      target = doc.querySelector(`[name="${fieldId}"]`);
     }
 
+    // Google Forms container fallback: check if ID belongs to an entry container
     if (!target) {
+      const container = doc.querySelector(`[data-params*="${fieldId}"]`);
+      if (container) {
+        target = container.querySelector('input, textarea');
+      }
+    }
+
+    if (!target || !(target instanceof doc.defaultView!.HTMLElement)) {
       failedFields.push(fieldId);
       failureReasons[fieldId] = 'No matching input or textarea element found in the form DOM';
       continue;
@@ -66,11 +68,18 @@ export function fillFormFields(
           ? win.HTMLTextAreaElement.prototype
           : win.HTMLInputElement.prototype;
 
+      const strValue =
+        typeof value === 'string'
+          ? value
+          : Array.isArray(value)
+            ? value.join(', ')
+            : String(value);
+
       const valueSetter = Object.getOwnPropertyDescriptor(prototype, 'value')?.set;
       if (valueSetter) {
-        valueSetter.call(target, value);
+        valueSetter.call(target, strValue);
       } else {
-        target.value = value;
+        (target as HTMLInputElement | HTMLTextAreaElement).value = strValue;
       }
 
       target.dispatchEvent(new Event('input', { bubbles: true }));

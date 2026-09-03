@@ -1,4 +1,4 @@
-import { FieldMetadata, UserProfile } from '@autofiller/shared';
+import { FieldMetadata, FieldMappingValue, UserProfile } from '@autofiller/shared';
 import { LLMOptions, LLMProvider, LLMProviderError } from './types.js';
 import { buildFieldMappingPrompt } from './promptBuilder.js';
 import { parseLLMJsonResponse } from './responseParser.js';
@@ -14,7 +14,7 @@ export class OllamaProvider implements LLMProvider {
     fields: FieldMetadata[],
     profile: UserProfile,
     options?: LLMOptions,
-  ): Promise<Record<string, string>> {
+  ): Promise<Record<string, FieldMappingValue>> {
     const prompt = buildFieldMappingPrompt(fields, profile);
     const model = options?.model || 'llama3.2';
     const timeoutMs = options?.timeoutMs || 30000;
@@ -62,7 +62,7 @@ export class OllamaProvider implements LLMProvider {
         throw new LLMProviderError('Ollama API returned an empty response payload');
       }
 
-      return parseLLMJsonResponse(data.response);
+      return parseLLMJsonResponse(data.response, fields);
     } catch (err) {
       if (err instanceof LLMProviderError) {
         throw err;

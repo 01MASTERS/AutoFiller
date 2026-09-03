@@ -40,9 +40,11 @@ export interface AutofillRequest {
   model?: string;
 }
 
+export type FieldMappingValue = string | string[] | boolean;
+
 export interface AutofillResponse {
   status: 'success' | 'error';
-  mappings: Record<string, string>;
+  mappings: Record<string, FieldMappingValue>;
   error?: string;
 }
 

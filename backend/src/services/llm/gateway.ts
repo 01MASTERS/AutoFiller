@@ -1,4 +1,4 @@
-import { FieldMetadata, UserProfile } from '@autofiller/shared';
+import { FieldMetadata, FieldMappingValue, UserProfile } from '@autofiller/shared';
 import { LLMOptions, LLMParseError, LLMProvider, LLMProviderError } from './types.js';
 import { OllamaProvider } from './ollamaProvider.js';
 import { GeminiProvider } from './geminiProvider.js';
@@ -17,7 +17,7 @@ export class LLMGateway {
     fields: FieldMetadata[],
     profile: UserProfile,
     options?: LLMOptions,
-  ): Promise<Record<string, string>> {
+  ): Promise<Record<string, FieldMappingValue>> {
     const provider = providerName === 'gemini' ? this.geminiProvider : this.ollamaProvider;
     const maxRetries = 2;
     let lastError: unknown;
