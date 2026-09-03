@@ -947,10 +947,12 @@ apiRouter.post('/autofill', async (req: Request, res: Response, next: NextFuncti
     const apiKey = (req.headers['x-gemini-api-key'] as string) || body.apiKey;
     const model = body.model;
 
+    const startTime = Date.now();
     const rawMappings = await llmGatewayInstance.mapFields(provider, body.fields, profile, {
       apiKey,
       model,
     });
+    const llmDurationMs = Date.now() - startTime;
 
     const parseDiagnostics = (rawMappings as { diagnostics?: ParseDiagnostics }).diagnostics;
     const rejectedOptions = parseDiagnostics?.rejectedOptions || {};
@@ -969,10 +971,11 @@ apiRouter.post('/autofill', async (req: Request, res: Response, next: NextFuncti
         level: 'WARN',
         source: 'LLM_GATEWAY',
         tag: 'LLM_ZERO_MAPPINGS',
-        message: `LLM (${provider}/${model || 'default'}) returned 0 field mappings: none of the ${body.fields.length} scanned field(s) matched the user profile`,
+        message: `LLM (${provider}/${model || 'default'}) returned 0 field mappings in ${llmDurationMs}ms: none of the ${body.fields.length} scanned field(s) matched the user profile`,
         details: {
           provider,
           model,
+          durationMs: llmDurationMs,
           rejectedOptions,
           unknownFields,
           fieldsScannedCount: body.fields.length,
@@ -993,10 +996,11 @@ apiRouter.post('/autofill', async (req: Request, res: Response, next: NextFuncti
         level: 'SUCCESS',
         source: 'BACKEND_API',
         tag: 'LLM_RESPONSE',
-        message: `LLM (${provider}/${model || 'default'}) mapped ${mappedKeys.size}/${body.fields.length} field(s): ${JSON.stringify(mappings)}`,
+        message: `LLM (${provider}/${model || 'default'}) mapped ${mappedKeys.size}/${body.fields.length} field(s) in ${llmDurationMs}ms: ${JSON.stringify(mappings)}`,
         details: {
           provider,
           model,
+          durationMs: llmDurationMs,
           mappings,
           rejectedOptions,
           unknownFields,
@@ -1017,6 +1021,7 @@ apiRouter.post('/autofill', async (req: Request, res: Response, next: NextFuncti
     const response: AutofillResponse = {
       status: 'success',
       mappings,
+      durationMs: llmDurationMs,
     };
 
     res.json(response);

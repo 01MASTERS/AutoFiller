@@ -47,6 +47,7 @@ export interface AutofillResponse {
   status: 'success' | 'error';
   mappings: Record<string, FieldMappingValue>;
   error?: string;
+  durationMs?: number;
 }
 
 export interface UserProfile {

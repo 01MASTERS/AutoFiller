@@ -33,13 +33,14 @@ describe('POST /autofill', () => {
     const response = await request(app).post('/autofill').send(payload);
 
     expect(response.status).toBe(200);
-    expect(response.body).toEqual({
+    expect(response.body).toMatchObject({
       status: 'success',
       mappings: {
         'entry.123': 'Jane Doe',
         'entry.456': 'jane@example.com',
       },
     });
+    expect(typeof response.body.durationMs).toBe('number');
     expect(mapFieldsMock).toHaveBeenCalledWith(
       'ollama',
       payload.fields,

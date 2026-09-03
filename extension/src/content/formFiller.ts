@@ -246,16 +246,22 @@ async function fillRadioGroup(
     }
   }
 
-  if (!isTest) {
-    await new Promise((r) => setTimeout(r, delayMs));
-  }
-
   // Post-condition verification: check that target radio reflects selection
-  const isChecked =
+  let isChecked =
     (option as HTMLInputElement).checked ||
     option.getAttribute('aria-checked') === 'true' ||
     option.classList.contains('isChecked') ||
     option.querySelector('input[type="radio"]:checked, [aria-checked="true"]') !== null;
+
+  // Only yield briefly if the framework has not immediately toggled the state
+  if (!isTest && !isChecked) {
+    await new Promise((r) => setTimeout(r, 30));
+    isChecked =
+      (option as HTMLInputElement).checked ||
+      option.getAttribute('aria-checked') === 'true' ||
+      option.classList.contains('isChecked') ||
+      option.querySelector('input[type="radio"]:checked, [aria-checked="true"]') !== null;
+  }
 
   if (!isTest && !isChecked) {
     const anyChecked = Array.from(
@@ -305,12 +311,15 @@ async function fillCheckboxGroup(
     if (isChecked !== values) {
       simulateFullClick(cb as HTMLElement);
     }
-    if (!isTest) {
-      await new Promise((r) => setTimeout(r, delayMs));
-    }
-    const finalChecked =
+    let finalChecked =
       (cb as HTMLInputElement).checked ||
       cb.getAttribute('aria-checked') === 'true';
+    if (!isTest && finalChecked !== values) {
+      await new Promise((r) => setTimeout(r, 30));
+      finalChecked =
+        (cb as HTMLInputElement).checked ||
+        cb.getAttribute('aria-checked') === 'true';
+    }
     if (!isTest && finalChecked !== values) {
       return false;
     }
@@ -367,12 +376,27 @@ async function fillCheckboxGroup(
     }
   }
 
-  if (!isTest) {
-    await new Promise((r) => setTimeout(r, delayMs));
+  // Post-condition verification for multi-select: verify requested checkboxes became checked
+  let allMatched = true;
+  for (const cb of checkboxes) {
+    const optAttr = cb.getAttribute('data-autofiller-option');
+    const val = cb.getAttribute('value') || cb.getAttribute('data-value');
+    const label = (cb.textContent || '').replace(/\s+/g, ' ').trim();
+    const key = optAttr || val || label;
+    if (!key) continue;
+    const normKey = normalize(key);
+    const shouldBeChecked = desiredSet.has(normKey) || (val === '__other_option__' && otherCustomText !== null);
+    const isNowChecked =
+      (cb as HTMLInputElement).checked ||
+      cb.getAttribute('aria-checked') === 'true';
+    if (shouldBeChecked && !isNowChecked) {
+      allMatched = false;
+      break;
+    }
   }
 
-  // Post-condition verification for multi-select: verify requested checkboxes became checked
-  if (!isTest) {
+  if (!isTest && !allMatched) {
+    await new Promise((r) => setTimeout(r, 30));
     for (const cb of checkboxes) {
       const optAttr = cb.getAttribute('data-autofiller-option');
       const val = cb.getAttribute('value') || cb.getAttribute('data-value');
@@ -400,8 +424,8 @@ async function fillCheckboxGroup(
  */
 async function waitForCondition(
   predicate: () => boolean,
-  timeoutMs: number = 300,
-  intervalMs: number = 15,
+  timeoutMs: number = 200,
+  intervalMs: number = 10,
 ): Promise<boolean> {
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
@@ -469,7 +493,7 @@ function fillNativeDropdown(
 async function fillAriaDropdown(container: Element, value: string, doc: Document): Promise<boolean> {
   const win = doc.defaultView || window;
   const isTest = typeof navigator !== 'undefined' && navigator.userAgent?.includes('jsdom');
-  const delayMs = isTest ? 5 : 120;
+  const delayMs = isTest ? 5 : 40;
 
   // 1. Identify listbox element
   const listbox = (

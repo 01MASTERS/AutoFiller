@@ -49,6 +49,7 @@ export async function handleTriggerAutofill(options?: {
   model?: string;
   apiKey?: string;
 }) {
+  const overallStart = Date.now();
   try {
     await updateStatusState('analyzing');
     await ExtensionLogger.log(
@@ -71,6 +72,7 @@ export async function handleTriggerAutofill(options?: {
       throw new Error('No active tab found');
     }
 
+    const scanStart = Date.now();
     let scanResponse: { status: string; fields?: FieldMetadata[]; error?: string } | null = null;
     try {
       scanResponse = (await chrome.tabs.sendMessage(activeTab.id, {
@@ -108,6 +110,7 @@ export async function handleTriggerAutofill(options?: {
         return { status: 'error', error: errorMsg };
       }
     }
+    const scanDurationMs = Date.now() - scanStart;
 
     if (
       !scanResponse ||
@@ -146,6 +149,7 @@ export async function handleTriggerAutofill(options?: {
     }
 
     let backendRes: Response;
+    const llmStart = Date.now();
     try {
       backendRes = await fetch(backendUrl, {
         method: 'POST',
@@ -165,6 +169,7 @@ export async function handleTriggerAutofill(options?: {
       await updateStatusState('error', { error: errorMsg });
       return { status: 'error', error: errorMsg };
     }
+    const llmDurationMs = Date.now() - llmStart;
 
     if (!backendRes.ok) {
       const errData = (await backendRes.json().catch(() => ({}))) as { error?: string };
@@ -192,6 +197,7 @@ export async function handleTriggerAutofill(options?: {
       await ExtensionLogger.log('WARN', 'BACKGROUND', 'LLM_MAPPING_EMPTY', errorMsg, {
         provider: options?.provider,
         model: options?.model,
+        durationMs: autofillData.durationMs || llmDurationMs,
         scannedFieldsCount: scanResponse.fields.length,
         scannedFields: scanResponse.fields.map((f) => ({ id: f.id, label: f.label })),
         hint: 'None of the form fields matched your profile in backend/profile.json.',
@@ -202,11 +208,13 @@ export async function handleTriggerAutofill(options?: {
 
     await updateStatusState('filling');
 
+    const fillStart = Date.now();
     const fillResponse = (await chrome.tabs.sendMessage(activeTab.id, {
       action: 'FILL_FIELDS',
       mappings: autofillData.mappings,
       fields: scanResponse.fields,
     })) as { status: string; result?: FillResult; error?: string };
+    const fillDurationMs = Date.now() - fillStart;
 
     if (!fillResponse || fillResponse.status !== 'success' || !fillResponse.result) {
       const errorMsg = fillResponse?.error || 'Form filling failed in content script';
@@ -223,6 +231,25 @@ export async function handleTriggerAutofill(options?: {
     const totalIssues = failedCount + skippedCount;
     const finalState: AutofillState =
       totalIssues === 0 ? 'done' : filledCount > 0 ? 'partial' : 'error';
+
+    const totalDurationMs = Date.now() - overallStart;
+    const effectiveLlmMs = autofillData.durationMs || llmDurationMs;
+
+    await ExtensionLogger.log(
+      'SUCCESS',
+      'BACKGROUND',
+      'AUTOFILL_COMPLETE',
+      `Autofill completed in ${totalDurationMs}ms (LLM: ${effectiveLlmMs}ms, DOM scan: ${scanDurationMs}ms, DOM fill: ${fillDurationMs}ms) — ${filledCount} field(s) filled`,
+      {
+        totalDurationMs,
+        llmDurationMs: effectiveLlmMs,
+        scanDurationMs,
+        fillDurationMs,
+        filledCount,
+        failedCount,
+        skippedCount,
+      },
+    );
 
     await updateStatusState(finalState, {
       filledCount,

@@ -31,6 +31,10 @@ export class OllamaProvider implements LLMProvider {
           prompt: prompt.combinedPrompt,
           format: 'json',
           stream: false,
+          keep_alive: '30m',
+          options: {
+            temperature: 0.1,
+          },
         }),
         signal: AbortSignal.timeout(timeoutMs),
       });
