@@ -7,9 +7,9 @@
 | Field | Value |
 |---|---|
 | **Milestone** | 2 — Advanced Form Controls & Multi-Profile (v1.1) |
-| **Current Phase** | 12 — Advanced Google Form DOM Extraction & Option Parsing |
-| **Next Phase** | 13 — LLM Gateway Enhancement for Constrained & Choice Fields |
-| **Status** | Phase 12 complete — Generic & Google Forms DOM extraction with structured options shipped. 91/91 tests passing. |
+| **Current Phase** | 13 — LLM Gateway Enhancement for Constrained & Choice Fields |
+| **Next Phase** | 14 — In-Browser DOM & Synthetic Event Simulation |
+| **Status** | Phase 13 complete — LLM Gateway constrained choices, canonical dates, and option validation shipped. 115/115 tests passing. |
 | **Last Updated** | 2026-09-03 |
 
 ## Decision Log

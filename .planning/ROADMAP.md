@@ -20,7 +20,7 @@
 - Unit tests with mock DOM structures for radios, checkboxes, and dropdowns
 
 ### Phase 13: LLM Gateway Enhancement for Constrained & Choice Fields
-**Status**: `planned`  
+**Status**: `completed`  
 **Scope**: Extend prompt builder and response parser to handle discrete choice constraints, array outputs for multi-select checkboxes, and date formatting.  
 **Deliverables**:
 - Extended prompt instructions enforcing valid option selection
