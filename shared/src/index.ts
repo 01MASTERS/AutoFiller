@@ -3,12 +3,34 @@ export interface HealthResponse {
   timestamp: string;
 }
 
+export type FieldControlType =
+  | 'text'
+  | 'textarea'
+  | 'dropdown'
+  | 'combobox'
+  | 'radio'
+  | 'checkbox'
+  | 'date';
+
+export type SelectionMode = 'single' | 'multiple';
+
+export interface FieldOption {
+  label: string;
+  value?: string;
+  selected?: boolean;
+  disabled?: boolean;
+}
+
 export interface FieldMetadata {
   id: string;
   label: string;
+  name?: string;
   placeholder?: string;
   ariaLabel?: string;
   type?: string;
+  controlType?: FieldControlType;
+  options?: FieldOption[];
+  selectionMode?: SelectionMode;
   required?: boolean;
 }
 

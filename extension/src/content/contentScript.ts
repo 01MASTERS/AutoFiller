@@ -16,14 +16,32 @@ if (typeof chrome !== 'undefined' && chrome.runtime?.onMessage) {
             { url: window.location.href, title: document.title },
           );
         } else {
+          const typeCounts = fields.reduce<Record<string, number>>((acc, f) => {
+            const ct = f.controlType || f.type || 'text';
+            acc[ct] = (acc[ct] || 0) + 1;
+            return acc;
+          }, {});
+          const summary = Object.entries(typeCounts)
+            .map(([t, count]) => `${count} ${t}`)
+            .join(', ');
+
           ExtensionLogger.log(
             'INFO',
             'CONTENT_SCRIPT',
             'DOM_SCAN_SUCCESS',
-            `Scanned ${fields.length} form field(s) on page`,
+            `Scanned ${fields.length} form field(s) on page (${summary})`,
             {
               count: fields.length,
-              fields: fields.map((f) => ({ id: f.id, label: f.label, type: f.type, required: f.required })),
+              typeCounts,
+              fields: fields.map((f) => ({
+                id: f.id,
+                label: f.label,
+                type: f.type,
+                controlType: f.controlType,
+                selectionMode: f.selectionMode,
+                optionsCount: f.options?.length,
+                required: f.required,
+              })),
             },
           );
         }

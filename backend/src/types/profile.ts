@@ -32,14 +32,29 @@ export const userProfileSchema = z
   })
   .passthrough();
 
-export const fieldMetadataSchema = z.object({
-  id: z.string(),
+export const fieldOptionSchema = z.object({
   label: z.string(),
-  placeholder: z.string().optional(),
-  ariaLabel: z.string().optional(),
-  type: z.string().optional(),
-  required: z.boolean().optional(),
+  value: z.string().optional(),
+  selected: z.boolean().optional(),
+  disabled: z.boolean().optional(),
 });
+
+export const fieldMetadataSchema = z
+  .object({
+    id: z.string(),
+    label: z.string(),
+    name: z.string().optional(),
+    placeholder: z.string().optional(),
+    ariaLabel: z.string().optional(),
+    type: z.string().optional(),
+    controlType: z
+      .enum(['text', 'textarea', 'dropdown', 'combobox', 'radio', 'checkbox', 'date'])
+      .optional(),
+    options: z.array(fieldOptionSchema).optional(),
+    selectionMode: z.enum(['single', 'multiple']).optional(),
+    required: z.boolean().optional(),
+  })
+  .passthrough();
 
 export const autofillRequestSchema = z.object({
   fields: z.array(fieldMetadataSchema).min(1, 'At least one field must be provided'),
