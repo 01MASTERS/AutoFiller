@@ -1,6 +1,12 @@
 import { FieldMetadata } from '@autofiller/shared';
 import { isElementHidden, cleanLabelText } from '../utils.js';
-import { resolveAccessibleLabel, isRequiredField, generateUniqueFieldId } from '../accessibility.js';
+import {
+  resolveAccessibleLabel,
+  resolveHeadingText,
+  isGenericSublabel,
+  isRequiredField,
+  generateUniqueFieldId,
+} from '../accessibility.js';
 
 /**
  * Scans document for multi-part (.exportDate) and standard single date inputs.
@@ -106,13 +112,28 @@ export function scanDateInputs(
     const fieldId = generateUniqueFieldId(baseId, usedIds);
     el.setAttribute('data-autofiller-id', fieldId);
 
-    const { label, ariaLabel, placeholder } = resolveAccessibleLabel(inputEl, container, doc);
+    const { label: accessibleLabel, ariaLabel, placeholder } = resolveAccessibleLabel(
+      inputEl,
+      container,
+      doc,
+    );
+
+    // In Google Forms, date inputs typically have a sublabel "Date" (e.g. .v3p8nd) or aria-label="Date"
+    // while the true question title (e.g. "Joining Date") sits on the container heading.
+    let label = container ? resolveHeadingText(container) : '';
+    if (!label || isGenericSublabel(label)) {
+      label = accessibleLabel;
+    }
+    if (!label) {
+      label = fieldId;
+    }
+
     const required = isRequiredField(inputEl, container);
 
     fields.push({
       id: fieldId,
       name,
-      label: label || fieldId,
+      label,
       placeholder,
       ariaLabel,
       type: 'date',

@@ -433,6 +433,24 @@ describe('extractFormFields', () => {
       expect(fields).toHaveLength(1);
       expect(fields[0].label).toBe('Preferred Pronouns');
     });
+
+    it('resolves container heading for Google Forms date field having generic "Date" sublabel and aria-label="Date"', () => {
+      document.body.innerHTML = `
+        <div role="listitem" class="QrToBd">
+          <div role="heading" class="M7eMe">Joining Date *</div>
+          <div class="v3p8nd" id="date-sublabel">Date</div>
+          <div class="o3Dpx">
+            <input type="date" aria-labelledby="date-sublabel" aria-label="Date" name="entry.12345" />
+          </div>
+        </div>
+      `;
+
+      const fields = extractFormFields(document);
+
+      expect(fields).toHaveLength(1);
+      expect(fields[0].label).toBe('Joining Date');
+      expect(fields[0].controlType).toBe('date');
+    });
   });
 
   // ==========================================================================
