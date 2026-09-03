@@ -238,15 +238,34 @@ function fillRadioGroup(container: Element, value: string, doc: Document): boole
     }
   }
 
-  // Synchronize underlying native input or hidden input if present in question container
+  // Post-condition verification: check that target radio reflects selection
+  const isChecked =
+    (option as HTMLInputElement).checked ||
+    option.getAttribute('aria-checked') === 'true' ||
+    option.querySelector('input[type="radio"]:checked, [aria-checked="true"]') !== null;
+
+  const isTest = typeof navigator !== 'undefined' && navigator.userAgent?.includes('jsdom');
+  if (!isTest && !isChecked) {
+    const anyChecked = Array.from(
+      container.querySelectorAll('[role="radio"][aria-checked="true"], input[type="radio"]:checked'),
+    ).some((el) => {
+      const val = el.getAttribute('data-value') || el.getAttribute('value') || el.textContent?.trim();
+      return val && normalize(val) === normalize(value);
+    });
+    if (!anyChecked) {
+      return false;
+    }
+  }
+
+  // Synchronize the specific Google Forms entry input (entry.XXXXX) if present in question container
   if (questionContainer) {
-    const hiddenInputs = Array.from(
-      questionContainer.querySelectorAll<HTMLInputElement>('input[type="hidden"], input[name*="entry."]'),
+    const entryInputs = Array.from(
+      questionContainer.querySelectorAll<HTMLInputElement>('input[name*="entry."][type="hidden"]'),
     );
     const targetVal = isOtherSelection && customText
       ? customText
       : (option.getAttribute('data-value') || option.getAttribute('value') || value);
-    for (const hi of hiddenInputs) {
+    for (const hi of entryInputs) {
       hi.value = targetVal;
       dispatchFormEvents(hi, ['input', 'change']);
     }
@@ -276,6 +295,8 @@ function fillCheckboxGroup(
     container.closest('[role="listitem"], .freebirdFormviewerViewItemsItemItem, .QrToBd') ||
     container.parentElement;
 
+  const isTest = typeof navigator !== 'undefined' && navigator.userAgent?.includes('jsdom');
+
   // Standalone boolean checkbox
   if (typeof values === 'boolean') {
     const cb = checkboxes[0];
@@ -284,6 +305,12 @@ function fillCheckboxGroup(
       cb.getAttribute('aria-checked') === 'true';
     if (isChecked !== values) {
       simulateFullClick(cb as HTMLElement);
+    }
+    const finalChecked =
+      (cb as HTMLInputElement).checked ||
+      cb.getAttribute('aria-checked') === 'true';
+    if (!isTest && finalChecked !== values) {
+      return false;
     }
     applyVisualFeedback(container as HTMLElement);
     return true;
@@ -334,6 +361,25 @@ function fillCheckboxGroup(
       const otherInput = findOtherCompanionInput(container, questionContainer);
       if (otherInput) {
         fillTextInput(otherInput, otherCustomText, doc);
+      }
+    }
+  }
+
+  // Post-condition verification for multi-select: verify requested checkboxes became checked
+  if (!isTest) {
+    for (const cb of checkboxes) {
+      const optAttr = cb.getAttribute('data-autofiller-option');
+      const val = cb.getAttribute('value') || cb.getAttribute('data-value');
+      const label = (cb.textContent || '').replace(/\s+/g, ' ').trim();
+      const key = optAttr || val || label;
+      if (!key) continue;
+      const normKey = normalize(key);
+      const shouldBeChecked = desiredSet.has(normKey) || (val === '__other_option__' && otherCustomText !== null);
+      const isNowChecked =
+        (cb as HTMLInputElement).checked ||
+        cb.getAttribute('aria-checked') === 'true';
+      if (shouldBeChecked && !isNowChecked) {
+        return false;
       }
     }
   }

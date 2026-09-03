@@ -223,10 +223,10 @@ export function parseLLMResponseWithDiagnostics(
                 validOptions.push(formatted);
               }
             } else {
-              if (!lastDiagnostics.rejectedOptions[key]) {
-                lastDiagnostics.rejectedOptions[key] = [];
+              if (!diagnostics.rejectedOptions[key]) {
+                diagnostics.rejectedOptions[key] = [];
               }
-              lastDiagnostics.rejectedOptions[key].push(item);
+              diagnostics.rejectedOptions[key].push(item);
             }
           }
         }
@@ -280,10 +280,10 @@ export function parseLLMResponseWithDiagnostics(
             }
           } else {
             // Unrecognized constrained option: reject & record
-            if (!lastDiagnostics.rejectedOptions[key]) {
-              lastDiagnostics.rejectedOptions[key] = [];
+            if (!diagnostics.rejectedOptions[key]) {
+              diagnostics.rejectedOptions[key] = [];
             }
-            lastDiagnostics.rejectedOptions[key].push(inputStr);
+            diagnostics.rejectedOptions[key].push(inputStr);
           }
         }
       } else {
@@ -323,6 +323,7 @@ export function parseLLMJsonResponse(
   fields?: FieldMetadata[],
 ): Record<string, FieldMappingValue> & { diagnostics?: ParseDiagnostics } {
   const { mappings, diagnostics } = parseLLMResponseWithDiagnostics(rawResponse, fields);
+  lastDiagnostics = diagnostics;
   Object.defineProperty(mappings, 'diagnostics', {
     value: diagnostics,
     enumerable: false,
