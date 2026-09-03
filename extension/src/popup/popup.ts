@@ -83,27 +83,9 @@ export function updateStatusBannerUI(
 ) {
   const banner = document.getElementById('status-banner');
   const textEl = document.getElementById('status-text');
-  const latencyEl = document.getElementById('status-latency');
   if (!banner || !textEl) return;
 
   banner.className = `status-banner ${state}`;
-
-  if (latencyEl) {
-    if ((state === 'done' || state === 'partial') && details?.durationMs) {
-      const totalSec = (details.durationMs / 1000).toFixed(2);
-      let breakdown = `⏱️ ${totalSec}s total`;
-      if (details.llmDurationMs) {
-        const llmSec = (details.llmDurationMs / 1000).toFixed(2);
-        const domMs = (details.scanDurationMs || 0) + (details.fillDurationMs || 0);
-        breakdown += ` (LLM: ${llmSec}s · DOM: ${domMs}ms)`;
-      }
-      latencyEl.textContent = breakdown;
-      latencyEl.classList.remove('hidden');
-    } else {
-      latencyEl.textContent = '';
-      latencyEl.classList.add('hidden');
-    }
-  }
 
   switch (state) {
     case 'analyzing':
@@ -118,7 +100,7 @@ export function updateStatusBannerUI(
       const timeStr = details?.durationMs
         ? ` in ${(details.durationMs / 1000).toFixed(1)}s`
         : '';
-      textEl.textContent = `Auto-filled ${details?.filledCount || 0} fields${timeStr}!`;
+      textEl.textContent = `Filled ${details?.filledCount || 0} fields${timeStr}!`;
       banner.removeAttribute('title');
       break;
     }
@@ -126,7 +108,7 @@ export function updateStatusBannerUI(
       const timeStr = details?.durationMs
         ? ` in ${(details.durationMs / 1000).toFixed(1)}s`
         : '';
-      textEl.textContent = `Partially filled: ${details?.filledCount || 0} done, ${details?.failedCount || 0} failed${timeStr}`;
+      textEl.textContent = `Filled ${details?.filledCount || 0} fields${timeStr} (${details?.failedCount || 0} failed)`;
       banner.title = 'Click to open Debug Log Dashboard';
       break;
     }
