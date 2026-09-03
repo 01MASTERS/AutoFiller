@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { HealthResponse, AutofillResponse } from '@autofiller/shared';
+import { HealthResponse, AutofillResponse, FieldMetadata } from '@autofiller/shared';
 import { ProfileStore } from '../services/profileStore.js';
 import { autofillRequestSchema } from '../types/profile.js';
 import { LLMGateway } from '../services/llm/gateway.js';
