@@ -11,7 +11,7 @@
 > Expanding form input coverage to Google Forms dropdowns, radio groups, checkboxes, and date pickers via synthetic DOM simulation, and introducing multi-profile persona management.
 
 ### Phase 12: Advanced Google Form DOM Extraction & Option Parsing
-**Status**: `ready`  
+**Status**: `completed`  
 **Scope**: Enhance DOM reader to scan dropdowns (`role="listbox"` / `<select>`), single-select radio groups (`role="radiogroup"` / `role="radio"`), multi-select checkboxes (`role="checkbox"`), and date pickers (`input[type="date"]`). Extract choices into `FieldMetadata.options`.  
 **Deliverables**:
 - Extended `FieldMetadata` in `@autofiller/shared` with `controlType` and `options?: string[]`

@@ -8,8 +8,8 @@
 |---|---|
 | **Milestone** | 2 — Advanced Form Controls & Multi-Profile (v1.1) |
 | **Current Phase** | 12 — Advanced Google Form DOM Extraction & Option Parsing |
-| **Next Phase** | 12 — Advanced Google Form DOM Extraction & Option Parsing |
-| **Status** | Milestone 2 initialized. Ready to plan Phase 12. 71/71 tests passing. |
+| **Next Phase** | 13 — LLM Gateway Enhancement for Constrained & Choice Fields |
+| **Status** | Phase 12 complete — Generic & Google Forms DOM extraction with structured options shipped. 91/91 tests passing. |
 | **Last Updated** | 2026-09-03 |
 
 ## Decision Log
