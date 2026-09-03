@@ -38,9 +38,10 @@ and resolves labels.      for semantic matching.            against allowed opti
 #### 2. Multi-Part Google Forms Dates (`.exportDate`)
 - **Symptom**: Form has a date question, but Google Forms shows three separate text boxes (Month, Day, Year) instead of a native `<input type="date">`.
 - **Technical Cause**: Google Forms renders three separate text inputs (`aria-label="Month" maxlength="2"`, `aria-label="Day" maxlength="2"`, `aria-label="Year" maxlength="4"`).
-- **Current Behavior**: `domReader.ts` discovers all three inputs individually. The LLM outputs ISO `YYYY-MM-DD` for all three, but typing `1995-08-24` into a 2-character Month box gets truncated.
-- **How to Debug**: Look in `/logs-ui` for `DOM_SCAN_SUCCESS` having three fields with `ariaLabel="Month"`, `ariaLabel="Day"`, `ariaLabel="Year"`.
-- **Future Enhancement**: Group `.exportDate` children into a single synthetic compound date field, decompose the canonical `YYYY-MM-DD` string, and populate each component respectively.
+- **Implemented Fix**:
+  1. `domReader.ts` groups `.exportDate` children into a single logical date field and resolves the question container heading.
+  2. `formFiller.ts` parses the canonical ISO `YYYY-MM-DD` date and fills Month, Day, and Year inputs individually, verifying each component.
+- **Test Reference**: `edgeCases.test.ts` & `formFiller.test.ts`.
 
 #### 3. Rich Text / ContentEditable Editors
 - **Symptom**: Long-form text areas (e.g. Cover Letter or Summary boxes on Lever, Greenhouse, or Workday) are not scanned or filled.

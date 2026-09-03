@@ -353,6 +353,26 @@ describe('fillFormFields', () => {
     expect(result.status).toBe('success');
   });
 
+  it('native select single: fails and reports failure when option does not exist', async () => {
+    document.body.innerHTML = `
+      <select name="tier" data-autofiller-id="tier">
+        <option value="basic">Basic</option>
+        <option value="pro">Pro</option>
+      </select>
+    `;
+
+    const fields: FieldMetadata[] = [makeField({
+      id: 'tier',
+      controlType: 'dropdown',
+      selectionMode: 'single',
+    })];
+
+    const result = await fillFormFields({ tier: 'enterprise' }, fields, document);
+    expect(result.status).toBe('error');
+    expect(result.failedFields).toEqual(['tier']);
+    expect(result.failureReasons['tier']).toContain('No dropdown option matched');
+  });
+
   // =========================================================================
   // Phase 14: ARIA listbox dropdown tests
   // =========================================================================
@@ -533,10 +553,9 @@ describe('fillFormFields', () => {
     expect((document.querySelector('select') as HTMLSelectElement).value).toBe('IN');
   });
 
-  it('ARIA listbox: updates visible label, aria-selected, and hidden input in Google Form question container', async () => {
+  it('ARIA listbox: simulates click and marks selected when component handler responds', async () => {
     document.body.innerHTML = `
       <div role="listitem" class="QrToBd">
-        <input type="hidden" name="entry.12345" value="" />
         <div role="listbox" data-autofiller-id="country-dd" aria-expanded="false">
           <span class="vRMGwf">Choose</span>
         </div>
@@ -547,6 +566,13 @@ describe('fillFormFields', () => {
       </div>
     `;
 
+    const indiaOption = document.querySelector('[role="option"][data-value="India"]') as HTMLElement;
+    const clickSpy = vi.fn();
+    indiaOption.addEventListener('click', () => {
+      clickSpy();
+      indiaOption.setAttribute('aria-selected', 'true');
+    });
+
     const fields: FieldMetadata[] = [makeField({
       id: 'country-dd',
       controlType: 'dropdown',
@@ -555,14 +581,10 @@ describe('fillFormFields', () => {
 
     const result = await fillFormFields({ 'country-dd': 'India' }, fields, document);
 
+    expect(clickSpy).toHaveBeenCalled();
     expect(result.status).toBe('success');
     expect(result.filledFields).toEqual(['country-dd']);
-
-    const hiddenInput = document.querySelector<HTMLInputElement>('input[name="entry.12345"]');
-    expect(hiddenInput?.value).toBe('India');
-
-    const selectedOption = document.querySelector('[role="option"][data-value="India"]');
-    expect(selectedOption?.getAttribute('aria-selected')).toBe('true');
+    expect(indiaOption.getAttribute('aria-selected')).toBe('true');
   });
 
   it('Radio group: updates underlying hidden input in Google Form question container', async () => {

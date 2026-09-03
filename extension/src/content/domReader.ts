@@ -668,11 +668,78 @@ export function extractFormFields(doc: Document = document): FieldMetadata[] {
   });
 
   // --------------------------------------------------------------------------
-  // STAGE 4: Date Inputs
+  // STAGE 4: Date Inputs (Multi-part and standalone date inputs)
   // --------------------------------------------------------------------------
+  // 4a. Multi-part date groups (Google Forms .exportDate or container with Month/Day/Year inputs)
+  const multiPartDateContainers = Array.from(
+    doc.querySelectorAll('.exportDate, .v3p8nd, [role="listitem"]'),
+  ).filter((container) => {
+    const inputs = Array.from(container.querySelectorAll<HTMLInputElement>('input[type="text"], input:not([type])'));
+    if (inputs.length < 2) return false;
+    const labels = inputs.map((i) => (i.getAttribute('aria-label') || '').toLowerCase());
+    const names = inputs.map((i) => (i.name || '').toLowerCase());
+    const isGoogleDate = container.classList.contains('exportDate');
+    const hasMonthDay =
+      (labels.some((l) => l.includes('month')) && labels.some((l) => l.includes('day'))) ||
+      (names.some((n) => n.includes('month')) && names.some((n) => n.includes('day')));
+    return isGoogleDate || hasMonthDay;
+  });
+
+  multiPartDateContainers.forEach((container) => {
+    const inputs = Array.from(container.querySelectorAll<HTMLInputElement>('input[type="text"], input:not([type])'));
+    if (inputs.some((i) => processedElements.has(i))) return;
+
+    inputs.forEach((i) => processedElements.add(i));
+
+    const outerContainer =
+      container.closest('[role="listitem"], .freebirdFormviewerViewItemsItemItem, .QrToBd') ||
+      container;
+
+    const firstName = inputs[0]?.name || '';
+    const basePrefix = firstName.replace(/_(?:month|day|year)$/i, '');
+    const baseId = basePrefix || container.id || `date-group-${fields.length + 1}`;
+    const fieldId = generateUniqueFieldId(baseId, usedIds);
+
+    container.setAttribute('data-autofiller-id', fieldId);
+    if (outerContainer !== container) {
+      outerContainer.setAttribute('data-autofiller-id', fieldId);
+    }
+
+    // Resolve accessible label from question container heading
+    const headingEl = outerContainer.querySelector(
+      '[role="heading"], h1, h2, h3, h4, h5, h6, .freebirdFormviewerViewItemsItemItemTitle, .M7eMe, .exportLabel',
+    );
+    let label = '';
+    if (headingEl) {
+      const clone = headingEl.cloneNode(true) as HTMLElement;
+      clone
+        .querySelectorAll('.freebirdFormviewerViewItemsItemRequiredAsterisk, [aria-label*="Required"], .v3p8nd')
+        .forEach((a) => a.remove());
+      label = cleanLabelText(clone.textContent || '');
+    }
+    if (!label) {
+      const resolved = resolveAccessibleLabel(outerContainer, outerContainer, doc);
+      label = resolved.label;
+    }
+    const ariaLabel = outerContainer.getAttribute('aria-label') || undefined;
+    const required = inputs.some((i) => isRequiredField(i, outerContainer));
+
+    fields.push({
+      id: fieldId,
+      name: basePrefix || undefined,
+      label: label || fieldId,
+      ariaLabel,
+      type: 'date',
+      controlType: 'date',
+      selectionMode: 'single',
+      required: required || undefined,
+    });
+  });
+
+  // 4b. Standalone date inputs
   const dateCandidateEls = Array.from(
     doc.querySelectorAll(
-      'input[type="date"], input[data-type="date"], .exportDate input, .v3p8nd input',
+      'input[type="date"], input[data-type="date"]',
     ),
   );
 
@@ -680,13 +747,6 @@ export function extractFormFields(doc: Document = document): FieldMetadata[] {
     if (processedElements.has(el) || isElementHidden(el)) return;
 
     const inputEl = el as HTMLInputElement;
-    const isDate =
-      inputEl.type === 'date' ||
-      inputEl.getAttribute('data-type') === 'date' ||
-      inputEl.closest('.exportDate') !== null;
-
-    if (!isDate) return;
-
     processedElements.add(el);
     const container =
       el.closest('[role="listitem"], .freebirdFormviewerViewItemsItemItem, .QrToBd') ||

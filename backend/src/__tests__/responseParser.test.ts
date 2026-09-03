@@ -387,5 +387,19 @@ describe('responseParser', () => {
       const result = parseLLMJsonResponse(raw, fields);
       expect(result).toEqual({ f_skills: ['py', 'Other: Rust'] });
     });
+
+    it('rejects and discards unknown field IDs not present in scanned fields', () => {
+      const fields: FieldMetadata[] = [
+        {
+          id: 'valid_field_1',
+          label: 'Name',
+          controlType: 'text',
+        },
+      ];
+      const raw = '{"valid_field_1": "Alice", "hallucinated_field": "Hacker", "unknown_999": "Bogus"}';
+      const result = parseLLMJsonResponse(raw, fields);
+      expect(result).toEqual({ valid_field_1: 'Alice' });
+      expect(result.diagnostics?.unknownFields).toEqual(['hallucinated_field', 'unknown_999']);
+    });
   });
 });

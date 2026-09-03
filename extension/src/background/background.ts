@@ -1,6 +1,6 @@
 import { AutofillResponse, FieldMetadata, FillResult } from '@autofiller/shared';
 
-export type AutofillState = 'idle' | 'analyzing' | 'filling' | 'done' | 'error';
+export type AutofillState = 'idle' | 'analyzing' | 'filling' | 'done' | 'partial' | 'error';
 
 export interface StatusDetails {
   currentState: AutofillState;
@@ -222,7 +222,10 @@ export async function handleTriggerAutofill(options?: {
     const { filledCount, failedCount, skippedCount } = fillResponse.result;
 
     const totalIssues = failedCount + skippedCount;
-    await updateStatusState(totalIssues > 0 ? 'error' : 'done', {
+    const finalState: AutofillState =
+      totalIssues === 0 ? 'done' : filledCount > 0 ? 'partial' : 'error';
+
+    await updateStatusState(finalState, {
       filledCount,
       failedCount,
       skippedCount,

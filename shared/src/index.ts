@@ -19,6 +19,7 @@ export interface FieldOption {
   value?: string;
   selected?: boolean;
   disabled?: boolean;
+  isOther?: boolean;
 }
 
 export interface FieldMetadata {

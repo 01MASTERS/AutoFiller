@@ -3,12 +3,19 @@ import { LLMParseError } from './types.js';
 
 export interface ParseDiagnostics {
   rejectedOptions: Record<string, string[]>;
+  unknownFields?: string[];
+}
+
+export interface ParseResult {
+  mappings: Record<string, FieldMappingValue>;
+  diagnostics: ParseDiagnostics;
 }
 
 let lastDiagnostics: ParseDiagnostics = { rejectedOptions: {} };
 
 /**
- * Returns diagnostic information from the most recent parseLLMJsonResponse execution
+ * Returns diagnostic information from the most recent parse execution.
+ * @deprecated Prefer receiving diagnostics directly from parseLLMResponseWithDiagnostics.
  */
 export function getLastParseDiagnostics(): ParseDiagnostics {
   return lastDiagnostics;
@@ -47,18 +54,17 @@ export function matchFieldOption(
     }
   }
 
-  const normalized = input.trim().toLowerCase();
-
-  // 3. Case and whitespace normalized option.value match
+  // 3. Case/whitespace normalized option.value match
+  const normalizedInput = input.trim().toLowerCase();
   for (const opt of options) {
-    if (opt.value !== undefined && opt.value.trim().toLowerCase() === normalized) {
+    if (opt.value !== undefined && opt.value.trim().toLowerCase() === normalizedInput) {
       return opt;
     }
   }
 
-  // 4. Case and whitespace normalized option.label match
+  // 4. Case/whitespace normalized option.label match
   for (const opt of options) {
-    if (opt.label.trim().toLowerCase() === normalized) {
+    if (opt.label.trim().toLowerCase() === normalizedInput) {
       return opt;
     }
   }
@@ -67,15 +73,14 @@ export function matchFieldOption(
 }
 
 /**
- * Detects if an options array contains an "Other" option (e.g. Google Forms __other_option__).
+ * Helper to identify an "Other" option in field options
  */
-export function findOtherFieldOption(options: FieldOption[]): FieldOption | null {
+function findOtherFieldOption(options: FieldOption[]): FieldOption | null {
   for (const opt of options) {
-    if (
-      opt.value === '__other_option__' ||
-      opt.label.toLowerCase().startsWith('other') ||
-      (opt.value && opt.value.toLowerCase().startsWith('other'))
-    ) {
+    if (opt.isOther) return opt;
+    const val = (opt.value || '').toLowerCase();
+    const lbl = (opt.label || '').toLowerCase();
+    if (val === '__other_option__' || lbl.startsWith('other') || val.startsWith('other')) {
       return opt;
     }
   }
@@ -83,13 +88,14 @@ export function findOtherFieldOption(options: FieldOption[]): FieldOption | null
 }
 
 /**
- * Parses raw JSON string returned by LLM and validates against field metadata.
+ * Parses raw JSON string returned by LLM and returns both validated mappings and request-scoped diagnostics.
  */
-export function parseLLMJsonResponse(
+export function parseLLMResponseWithDiagnostics(
   rawResponse: string,
   fields?: FieldMetadata[],
-): Record<string, FieldMappingValue> {
-  lastDiagnostics = { rejectedOptions: {} };
+): ParseResult {
+  const diagnostics: ParseDiagnostics = { rejectedOptions: {} };
+  lastDiagnostics = diagnostics;
 
   if (!rawResponse || typeof rawResponse !== 'string') {
     throw new LLMParseError('Empty or invalid response from LLM', String(rawResponse));
@@ -159,17 +165,10 @@ export function parseLLMJsonResponse(
 
     const field = fields.find((f) => f.id === key);
 
-    // If key not in fields, omit or accept if primitive
+    // Reject unknown LLM field IDs that were not present in the scanned form
     if (!field) {
-      if (typeof rawVal === 'string') {
-        result[key] = rawVal;
-      } else if (typeof rawVal === 'number') {
-        result[key] = String(rawVal);
-      } else if (typeof rawVal === 'boolean') {
-        result[key] = rawVal;
-      } else if (Array.isArray(rawVal)) {
-        result[key] = rawVal.map(String);
-      }
+      diagnostics.unknownFields = diagnostics.unknownFields || [];
+      diagnostics.unknownFields.push(key);
       continue;
     }
 
@@ -312,5 +311,23 @@ export function parseLLMJsonResponse(
     // Booleans and arrays rejected for text/textarea fields
   }
 
-  return result;
+  return { mappings: result, diagnostics };
+}
+
+/**
+ * Parses raw JSON string returned by LLM and validates against field metadata.
+ * Returns mapped fields with diagnostics attached for backwards compatibility.
+ */
+export function parseLLMJsonResponse(
+  rawResponse: string,
+  fields?: FieldMetadata[],
+): Record<string, FieldMappingValue> & { diagnostics?: ParseDiagnostics } {
+  const { mappings, diagnostics } = parseLLMResponseWithDiagnostics(rawResponse, fields);
+  Object.defineProperty(mappings, 'diagnostics', {
+    value: diagnostics,
+    enumerable: false,
+    writable: true,
+    configurable: true,
+  });
+  return mappings as Record<string, FieldMappingValue> & { diagnostics?: ParseDiagnostics };
 }

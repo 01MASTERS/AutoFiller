@@ -81,11 +81,14 @@ export class GeminiProvider implements LLMProvider {
     }
 
     const timeoutMs = options?.timeoutMs || 10000;
-    const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(apiKey)}`;
+    const url = 'https://generativelanguage.googleapis.com/v1beta/models';
 
     try {
       const response = await fetch(url, {
         method: 'GET',
+        headers: {
+          'x-goog-api-key': apiKey,
+        },
         signal: AbortSignal.timeout(timeoutMs),
       });
 

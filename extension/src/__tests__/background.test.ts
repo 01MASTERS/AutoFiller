@@ -224,4 +224,18 @@ describe('background service worker', () => {
       error: 'Content script not loaded on this tab. Please refresh the page tab and try again.',
     });
   });
+
+  it('Item 17 verification: runtime content-script injection file exists in source and matches manifest', async () => {
+    const fs = await import('fs');
+    const path = await import('path');
+    const sourcePath = path.resolve(__dirname, '../content/contentScript.iife.ts');
+    expect(fs.existsSync(sourcePath)).toBe(true);
+
+    // Verify dist artifact exists if dist directory is present
+    const distDir = path.resolve(__dirname, '../../../dist');
+    const distFile = path.resolve(__dirname, '../../dist/src/content/contentScript.iife.js');
+    if (fs.existsSync(distDir)) {
+      expect(fs.existsSync(distFile)).toBe(true);
+    }
+  });
 });

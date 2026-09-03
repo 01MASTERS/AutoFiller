@@ -1,10 +1,10 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { HealthResponse, AutofillResponse, FieldMetadata } from '@autofiller/shared';
+import { HealthResponse, AutofillResponse, FieldMetadata, FieldMappingValue } from '@autofiller/shared';
 import { ProfileStore } from '../services/profileStore.js';
 import { autofillRequestSchema } from '../types/profile.js';
 import { LLMGateway } from '../services/llm/gateway.js';
 import { LLMProviderError, LLMParseError } from '../services/llm/types.js';
-import { getLastParseDiagnostics } from '../services/llm/responseParser.js';
+import { ParseDiagnostics } from '../services/llm/responseParser.js';
 import { ZodError } from 'zod';
 
 import { LoggerService } from '../services/loggerService.js';
@@ -904,7 +904,7 @@ apiRouter.get('/models', async (req: Request, res: Response, next: NextFunction)
   const provider = providerParam === 'gemini' ? 'gemini' : 'ollama';
 
   try {
-    const apiKey = (req.headers['x-gemini-api-key'] as string) || (req.query.apiKey as string);
+    const apiKey = (req.headers['x-gemini-api-key'] as string) || undefined;
 
     const models = await llmGatewayInstance.getAvailableModels(provider, { apiKey });
     res.json({
@@ -947,10 +947,17 @@ apiRouter.post('/autofill', async (req: Request, res: Response, next: NextFuncti
     const apiKey = (req.headers['x-gemini-api-key'] as string) || body.apiKey;
     const model = body.model;
 
-    const mappings = await llmGatewayInstance.mapFields(provider, body.fields, profile, {
+    const rawMappings = await llmGatewayInstance.mapFields(provider, body.fields, profile, {
       apiKey,
       model,
     });
+
+    const parseDiagnostics = (rawMappings as { diagnostics?: ParseDiagnostics }).diagnostics;
+    const rejectedOptions = parseDiagnostics?.rejectedOptions || {};
+    const unknownFields = parseDiagnostics?.unknownFields || [];
+
+    const mappings: Record<string, FieldMappingValue> = { ...rawMappings };
+    delete (mappings as Record<string, unknown>).diagnostics;
 
     const mappedKeys = new Set(Object.keys(mappings));
     const unmappedFields = body.fields
@@ -966,6 +973,8 @@ apiRouter.post('/autofill', async (req: Request, res: Response, next: NextFuncti
         details: {
           provider,
           model,
+          rejectedOptions,
+          unknownFields,
           fieldsScannedCount: body.fields.length,
           fieldsScanned: body.fields.map((f) => ({
             id: f.id,
@@ -989,7 +998,8 @@ apiRouter.post('/autofill', async (req: Request, res: Response, next: NextFuncti
           provider,
           model,
           mappings,
-          rejectedOptions: getLastParseDiagnostics().rejectedOptions,
+          rejectedOptions,
+          unknownFields,
           mappedCount: mappedKeys.size,
           unmappedCount: unmappedFields.length,
           unmappedFields,

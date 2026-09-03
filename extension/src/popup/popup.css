@@ -169,6 +169,18 @@ body {
   color: #6ee7b7;
 }
 
+.status-banner.partial {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: rgba(245, 158, 11, 0.4);
+  color: #fcd34d;
+  cursor: pointer;
+}
+
+.status-banner.partial:hover {
+  background: rgba(245, 158, 11, 0.22);
+  border-color: rgba(245, 158, 11, 0.6);
+}
+
 .status-banner.error {
   background: rgba(239, 68, 68, 0.15);
   border-color: rgba(239, 68, 68, 0.4);

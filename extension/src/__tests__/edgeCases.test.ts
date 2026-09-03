@@ -59,7 +59,7 @@ describe('AutoFiller Edge Cases & Boundary Audits', () => {
   // --------------------------------------------------------------------------
   // 3. Google Forms Multi-part Date (.exportDate with Day, Month, Year inputs)
   // --------------------------------------------------------------------------
-  it('Edge Case 3: Google Forms .exportDate multi-part date inputs', () => {
+  it('Edge Case 3: Google Forms .exportDate multi-part date inputs', async () => {
     document.body.innerHTML = `
       <div role="listitem" class="QrToBd">
         <div role="heading">Date of Birth</div>
@@ -72,12 +72,20 @@ describe('AutoFiller Edge Cases & Boundary Audits', () => {
     `;
 
     const fields = extractFormFields(document);
-    // Multi-part date currently scans each text input inside .exportDate individually
-    // This highlights an edge case where 3 inputs share the heading 'Date of Birth'
-    expect(fields.length).toBe(3);
-    fields.forEach((f) => {
-      expect(f.controlType).toBe('date');
-    });
+    // Multi-part date is now consolidated into exactly 1 logical date field
+    expect(fields.length).toBe(1);
+    expect(fields[0].controlType).toBe('date');
+    expect(fields[0].label).toBe('Date of Birth');
+
+    // Verify filling populates month, day, and year inputs
+    const fillResult = await fillFormFields({ [fields[0].id]: '1995-08-24' }, fields, document);
+    expect(fillResult.status).toBe('success');
+    const monthInput = document.querySelector<HTMLInputElement>('input[aria-label="Month"]');
+    const dayInput = document.querySelector<HTMLInputElement>('input[aria-label="Day"]');
+    const yearInput = document.querySelector<HTMLInputElement>('input[aria-label="Year"]');
+    expect(monthInput?.value).toBe('08');
+    expect(dayInput?.value).toBe('24');
+    expect(yearInput?.value).toBe('1995');
   });
 
   // --------------------------------------------------------------------------

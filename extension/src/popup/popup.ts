@@ -69,8 +69,8 @@ export function formatPopupErrorMessage(rawError?: string): string {
 }
 
 export function updateStatusBannerUI(
-  state: 'idle' | 'analyzing' | 'filling' | 'done' | 'error',
-  details?: { filledCount?: number; failedCount?: number; error?: string },
+  state: 'idle' | 'analyzing' | 'filling' | 'done' | 'partial' | 'error',
+  details?: { filledCount?: number; failedCount?: number; skippedCount?: number; error?: string },
 ) {
   const banner = document.getElementById('status-banner');
   const textEl = document.getElementById('status-text');
@@ -90,6 +90,10 @@ export function updateStatusBannerUI(
     case 'done':
       textEl.textContent = `Auto-filled ${details?.filledCount || 0} fields!`;
       banner.removeAttribute('title');
+      break;
+    case 'partial':
+      textEl.textContent = `Partially filled: ${details?.filledCount || 0} done, ${details?.failedCount || 0} failed / ${details?.skippedCount || 0} skipped`;
+      banner.title = 'Click to open Debug Log Dashboard';
       break;
     case 'error': {
       textEl.textContent = formatPopupErrorMessage(details?.error);
@@ -206,7 +210,7 @@ export async function fetchProviderModels(
       headers['x-gemini-api-key'] = apiKey;
     }
 
-    const url = `http://localhost:3456/models?provider=${provider}${apiKey ? `&apiKey=${encodeURIComponent(apiKey)}` : ''}`;
+    const url = `http://localhost:3456/models?provider=${provider}`;
     const res = await fetch(url, { headers });
 
     if (!res.ok) {
