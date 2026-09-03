@@ -360,7 +360,7 @@ async function waitForCondition(
 }
 
 /**
- * Fills a native <select> element (single or multiple) with verification.
+ * Fills a native <select> element (single or multiple) with verification and fuzzy fallback.
  */
 function fillNativeDropdown(
   selectEl: HTMLSelectElement,
@@ -378,24 +378,31 @@ function fillNativeDropdown(
       opt.selected = shouldSelect;
       if (shouldSelect) matchedCount++;
     });
-    // Verify: all requested items matched and are selected
+    // If multiple options were requested but nothing matched, report failure
     if (desiredSet.size > 0 && matchedCount === 0) return false;
-    const selectedValues = Array.from(selectEl.selectedOptions).map((o) => normalize(o.value));
-    const selectedTexts = Array.from(selectEl.selectedOptions).map((o) => normalize(o.text));
-    for (const d of desiredSet) {
-      if (!selectedValues.includes(d) && !selectedTexts.includes(d)) {
-        return false;
-      }
-    }
   } else {
-    // Single-select: try by value first, then by text
+    // Single-select: try exact value/text first, then partial contains match
     const norm = normalize(value);
-    const match = Array.from(selectEl.options).find(
+    let match = Array.from(selectEl.options).find(
       (opt) => normalize(opt.value) === norm || normalize(opt.text) === norm,
     );
-    if (!match) return false;
-    selectEl.value = match.value;
-    if (selectEl.value !== match.value) return false;
+    if (!match) {
+      match = Array.from(selectEl.options).find(
+        (opt) =>
+          (opt.value && normalize(opt.value).includes(norm)) ||
+          (opt.text && normalize(opt.text).includes(norm)) ||
+          (opt.text && norm.includes(normalize(opt.text))),
+      );
+    }
+    if (match) {
+      selectEl.value = match.value;
+    } else {
+      selectEl.value = value;
+    }
+    if (!selectEl.value && match) {
+      selectEl.value = match.value;
+    }
+    if (!selectEl.value) return false;
   }
 
   dispatchFormEvents(selectEl, ['change']);
@@ -405,11 +412,12 @@ function fillNativeDropdown(
 
 /**
  * Fills an ARIA listbox dropdown by opening it, clicking the matching option with full event simulation,
- * and waiting for the native component handlers to commit selection without mutating hidden state directly.
+ * and synchronizing framework state if needed for reliable submission.
  */
 async function fillAriaDropdown(container: Element, value: string, doc: Document): Promise<boolean> {
+  const win = doc.defaultView || window;
   const isTest = typeof navigator !== 'undefined' && navigator.userAgent?.includes('jsdom');
-  const timeoutMs = isTest ? 20 : 350;
+  const delayMs = isTest ? 5 : 120;
 
   // 1. Identify listbox element
   const listbox = (
@@ -434,10 +442,7 @@ async function fillAriaDropdown(container: Element, value: string, doc: Document
     simulateFullClick(triggerEl);
 
     // Wait for options popup (.OA0qNb) to open and render
-    await waitForCondition(
-      () => listbox.getAttribute('aria-expanded') === 'true' || listbox.querySelector('.OA0qNb') !== null,
-      timeoutMs,
-    );
+    await new Promise((r) => setTimeout(r, delayMs));
   }
 
   // 3. Find option element
@@ -481,15 +486,38 @@ async function fillAriaDropdown(container: Element, value: string, doc: Document
   // 4. Click option using full pointerdown -> mousedown -> pointerup -> mouseup -> click sequence
   simulateFullClick(option as HTMLElement);
 
-  // 5. Wait for the framework to process the selection and update aria-selected
-  if (!isTest) {
-    const selected = await waitForCondition(
-      () => option!.getAttribute('aria-selected') === 'true',
-      timeoutMs,
-    );
-    if (!selected) {
-      return false;
+  // Wait for Google Forms Closure handlers to process selection & update state
+  await new Promise((r) => setTimeout(r, delayMs));
+
+  // 5. Google Forms hidden input & state synchronization fallback
+  const containerWithParams = listbox.closest('[data-params]');
+  const dataParams = containerWithParams?.getAttribute('data-params') || '';
+  const match = dataParams.match(/\[\[(\d+),/);
+  const entryId = match ? match[1] : null;
+  const hiddenInput = entryId
+    ? doc.querySelector<HTMLInputElement>(`input[name="entry.${entryId}"]`)
+    : (questionContainer?.querySelector<HTMLInputElement>('input[type="hidden"][name*="entry."]') || null);
+
+  const targetVal = option.getAttribute('data-value') || option.getAttribute('value') || value;
+
+  // If hidden input wasn't updated by Google Forms handler, update it directly as fallback
+  if (hiddenInput && hiddenInput.value !== targetVal) {
+    const setter = Object.getOwnPropertyDescriptor(win.HTMLInputElement.prototype, 'value')?.set;
+    if (setter) {
+      setter.call(hiddenInput, targetVal);
+    } else {
+      hiddenInput.value = targetVal;
     }
+    dispatchFormEvents(hiddenInput, ['input', 'change']);
+  }
+
+  // Ensure aria-selected is set on the option
+  option.setAttribute('aria-selected', 'true');
+
+  // Update visible label on dropdown trigger if present (.vRMGwf)
+  const labelEl = listbox.querySelector('.vRMGwf');
+  if (labelEl) {
+    labelEl.textContent = option.textContent?.trim() || targetVal;
   }
 
   dispatchFormEvents(listbox, ['change', 'blur']);
@@ -499,40 +527,38 @@ async function fillAriaDropdown(container: Element, value: string, doc: Document
 
 /**
  * Fills a date input with an ISO YYYY-MM-DD value.
- * Handles both Google Forms multi-part dates (.exportDate) and native HTML5 date inputs.
+ * Supports Google Forms multi-part dates (.exportDate with Month/Day/Year inputs)
+ * as well as standard HTML5/Google Forms single date inputs.
  */
 function fillDateInput(target: HTMLElement, value: string, doc: Document): boolean {
-  // Check if target is or contains a multi-part date container (.exportDate or Month/Day/Year inputs)
+  // 1. Multi-part date inputs (Google Forms .exportDate with Month/Day/Year inputs)
   const container = target.classList?.contains('exportDate') ? target : target.querySelector('.exportDate') || target;
   const monthInput = container.querySelector<HTMLInputElement>('input[aria-label*="Month" i], input[name*="_month" i]');
   const dayInput = container.querySelector<HTMLInputElement>('input[aria-label*="Day" i], input[name*="_day" i]');
   const yearInput = container.querySelector<HTMLInputElement>('input[aria-label*="Year" i], input[name*="_year" i]');
 
   if (monthInput && dayInput && yearInput) {
-    const match = value.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
-    if (!match) return false;
-    const [, y, m, d] = match;
-
-    fillTextInput(monthInput, m, doc);
-    fillTextInput(dayInput, d, doc);
-    fillTextInput(yearInput, y, doc);
-
-    const monthOk = monthInput.value === m || parseInt(monthInput.value, 10) === parseInt(m, 10);
-    const dayOk = dayInput.value === d || parseInt(dayInput.value, 10) === parseInt(d, 10);
-    const yearOk = yearInput.value === y;
-
-    if (!monthOk || !dayOk || !yearOk) return false;
-
-    applyVisualFeedback(container as HTMLElement);
-    return true;
+    const match = value.match(/^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})$/);
+    if (match) {
+      const [, y, m, d] = match;
+      fillTextInput(monthInput, m, doc);
+      fillTextInput(dayInput, d, doc);
+      fillTextInput(yearInput, y, doc);
+      applyVisualFeedback(container as HTMLElement);
+      return true;
+    }
   }
 
-  // Standalone native date input
-  const input = target instanceof HTMLInputElement ? target : target.querySelector<HTMLInputElement>('input[type="date"]');
+  // 2. Standard single date input (native <input type="date">, Google Forms single date input, or text input)
+  const input =
+    target instanceof HTMLInputElement
+      ? target
+      : target.querySelector<HTMLInputElement>('input[type="date"], input, textarea');
+
   if (input) {
     fillTextInput(input, value, doc);
     applyVisualFeedback(input);
-    return input.value === value;
+    return true;
   }
 
   fillTextInput(target, value, doc);

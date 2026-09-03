@@ -736,10 +736,10 @@ export function extractFormFields(doc: Document = document): FieldMetadata[] {
     });
   });
 
-  // 4b. Standalone date inputs
+  // 4b. Single/Standalone date inputs (including Google Forms date inputs inside .exportDate / .v3p8nd)
   const dateCandidateEls = Array.from(
     doc.querySelectorAll(
-      'input[type="date"], input[data-type="date"]',
+      'input[type="date"], input[data-type="date"], .exportDate input, .v3p8nd input',
     ),
   );
 
@@ -747,6 +747,13 @@ export function extractFormFields(doc: Document = document): FieldMetadata[] {
     if (processedElements.has(el) || isElementHidden(el)) return;
 
     const inputEl = el as HTMLInputElement;
+    const isDate =
+      inputEl.type === 'date' ||
+      inputEl.getAttribute('data-type') === 'date' ||
+      inputEl.closest('.exportDate') !== null;
+
+    if (!isDate) return;
+
     processedElements.add(el);
     const container =
       el.closest('[role="listitem"], .freebirdFormviewerViewItemsItemItem, .QrToBd') ||
