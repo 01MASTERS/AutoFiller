@@ -6,10 +6,10 @@
 
 | Field | Value |
 |---|---|
-| **Milestone** | 1 — Production-Ready v1.0 |
-| **Current Phase** | 11 — Systematic Event & Error Logging System (Debug Log Viewer) |
-| **Next Phase** | 11 — Systematic Event & Error Logging System (Debug Log Viewer) |
-| **Status** | Phase 11 complete — Systematic event logging system & debug log dashboard shipped, 71/71 tests passing |
+| **Milestone** | 2 — Advanced Form Controls & Multi-Profile (v1.1) |
+| **Current Phase** | None (Milestone 1 Archived) |
+| **Next Phase** | 12 — Advanced Form Elements (Playwright Integration) |
+| **Status** | Milestone 1 (v1.0) shipped and archived. 71/71 tests passing. Ready for Milestone 2. |
 | **Last Updated** | 2026-09-03 |
 
 ## Decision Log

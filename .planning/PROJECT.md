@@ -11,7 +11,24 @@
 | **Language** | TypeScript (latest stable) |
 | **Repository** | https://github.com/01MASTERS/AutoFiller.git |
 | **Owner** | 01MASTERS |
-| **Status** | New — Pre-Development |
+| **Status** | Milestone 1 (v1.0) Shipped — Production-Ready |
+
+## Current State
+
+AutoFiller v1.0 was completed and shipped on 2026-09-03.
+- **Shipped Version:** v1.0
+- **Milestone 1 Archive:** [v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
+- **Milestone 1 Audit:** [v1.0-MILESTONE-AUDIT.md](v1.0-MILESTONE-AUDIT.md)
+- **Active Test Suite:** 71 tests passing across extension and backend
+- **Core Capabilities:** Google Forms text input autofill with Ollama & Gemini, dynamic model discovery, local JSON profile store, and standalone dark-mode debug log viewer dashboard (`/logs-ui`).
+
+## Next Milestone Goals (Milestone 2 / v1.1)
+
+- **Phase 12:** Advanced form elements (dropdowns, checkboxes, radio buttons, date pickers) with Playwright / synthetic DOM simulation.
+- **Phase 13:** Multi-profile support with popup profile switcher.
+- **Phase 14:** Web-based profile editor UI (`/profile-ui`).
+- **Phase 15:** Multi-provider forms (Typeform, JotForm, Microsoft Forms).
+- **Phase 16:** Chrome Web Store publishing packaging.
 
 ## Problem Statement
 
