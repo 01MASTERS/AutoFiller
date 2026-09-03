@@ -565,6 +565,10 @@ apiRouter.get('/logs-ui', (req: Request, res: Response) => {
           <span class="pulse-dot"></span>
           <span id="connection-status">Live Connected (3s)</span>
         </div>
+        <div id="last-fill-pill" class="system-pill" style="display:none; background:rgba(99, 102, 241, 0.1); border-color:rgba(99, 102, 241, 0.3); color:#c7d2fe;">
+          <span>⏱️ Last Form Fill:</span>
+          <span id="last-fill-time" style="font-weight:600; color:#fff;">--</span>
+        </div>
       </div>
       <div class="header-actions">
         <button class="btn btn-primary" onclick="copyAllLogs()">📋 Copy Stream</button>
@@ -703,6 +707,23 @@ apiRouter.get('/logs-ui', (req: Request, res: Response) => {
       document.getElementById('cnt-warn').textContent = warn;
       document.getElementById('cnt-success').textContent = succ;
       document.getElementById('cnt-info').textContent = info;
+
+      const lastFillLog = logs.find(l => l.tag === 'FORM_FILL_TIME' || l.tag === 'AUTOFILL_COMPLETE');
+      const pill = document.getElementById('last-fill-pill');
+      const pillTime = document.getElementById('last-fill-time');
+      if (lastFillLog && pill && pillTime) {
+        pill.style.display = 'inline-flex';
+        const d = lastFillLog.details;
+        if (d && d.totalDurationSeconds !== undefined) {
+          const domMs = (d.scanDurationMs || 0) + (d.fillDurationMs || 0);
+          const llmSec = (d.llmDurationMs / 1000).toFixed(2);
+          pillTime.textContent = d.totalDurationSeconds + 's (LLM: ' + llmSec + 's | DOM: ' + domMs + 'ms)';
+        } else if (d && d.totalDurationMs !== undefined) {
+          pillTime.textContent = (d.totalDurationMs / 1000).toFixed(2) + 's';
+        } else {
+          pillTime.textContent = lastFillLog.message;
+        }
+      }
     }
 
     function areLogsEqual(prev, next) {

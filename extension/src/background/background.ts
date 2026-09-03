@@ -9,11 +9,24 @@ export interface StatusDetails {
   skippedCount?: number;
   error?: string;
   timestamp?: string;
+  durationMs?: number;
+  llmDurationMs?: number;
+  scanDurationMs?: number;
+  fillDurationMs?: number;
 }
 
 export async function updateStatusState(
   state: AutofillState,
-  details?: { filledCount?: number; failedCount?: number; skippedCount?: number; error?: string },
+  details?: {
+    filledCount?: number;
+    failedCount?: number;
+    skippedCount?: number;
+    error?: string;
+    durationMs?: number;
+    llmDurationMs?: number;
+    scanDurationMs?: number;
+    fillDurationMs?: number;
+  },
 ): Promise<StatusDetails> {
   const statusData: StatusDetails = {
     currentState: state,
@@ -22,6 +35,10 @@ export async function updateStatusState(
     skippedCount: details?.skippedCount,
     error: details?.error,
     timestamp: new Date().toISOString(),
+    durationMs: details?.durationMs,
+    llmDurationMs: details?.llmDurationMs,
+    scanDurationMs: details?.scanDurationMs,
+    fillDurationMs: details?.fillDurationMs,
   };
 
   if (typeof chrome !== 'undefined' && chrome.storage?.local) {
@@ -238,9 +255,12 @@ export async function handleTriggerAutofill(options?: {
     await ExtensionLogger.log(
       'SUCCESS',
       'BACKGROUND',
-      'AUTOFILL_COMPLETE',
-      `Autofill completed in ${totalDurationMs}ms (LLM: ${effectiveLlmMs}ms, DOM scan: ${scanDurationMs}ms, DOM fill: ${fillDurationMs}ms) — ${filledCount} field(s) filled`,
+      'FORM_FILL_TIME',
+      `⏱️ Page Filled in ${(totalDurationMs / 1000).toFixed(2)}s (${totalDurationMs}ms) — LLM: ${(effectiveLlmMs / 1000).toFixed(2)}s | DOM Scan: ${scanDurationMs}ms | DOM Fill: ${fillDurationMs}ms (${filledCount} fields filled)`,
       {
+        pageUrl: activeTab.url,
+        pageTitle: activeTab.title,
+        totalDurationSeconds: Number((totalDurationMs / 1000).toFixed(2)),
         totalDurationMs,
         llmDurationMs: effectiveLlmMs,
         scanDurationMs,
@@ -255,6 +275,10 @@ export async function handleTriggerAutofill(options?: {
       filledCount,
       failedCount,
       skippedCount,
+      durationMs: totalDurationMs,
+      llmDurationMs: effectiveLlmMs,
+      scanDurationMs,
+      fillDurationMs,
       error: totalIssues > 0 ? `${failedCount} field(s) failed, ${skippedCount} skipped` : undefined,
     });
 

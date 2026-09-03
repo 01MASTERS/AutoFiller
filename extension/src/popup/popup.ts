@@ -70,13 +70,40 @@ export function formatPopupErrorMessage(rawError?: string): string {
 
 export function updateStatusBannerUI(
   state: 'idle' | 'analyzing' | 'filling' | 'done' | 'partial' | 'error',
-  details?: { filledCount?: number; failedCount?: number; skippedCount?: number; error?: string },
+  details?: {
+    filledCount?: number;
+    failedCount?: number;
+    skippedCount?: number;
+    error?: string;
+    durationMs?: number;
+    llmDurationMs?: number;
+    scanDurationMs?: number;
+    fillDurationMs?: number;
+  },
 ) {
   const banner = document.getElementById('status-banner');
   const textEl = document.getElementById('status-text');
+  const latencyEl = document.getElementById('status-latency');
   if (!banner || !textEl) return;
 
   banner.className = `status-banner ${state}`;
+
+  if (latencyEl) {
+    if ((state === 'done' || state === 'partial') && details?.durationMs) {
+      const totalSec = (details.durationMs / 1000).toFixed(2);
+      let breakdown = `⏱️ ${totalSec}s total`;
+      if (details.llmDurationMs) {
+        const llmSec = (details.llmDurationMs / 1000).toFixed(2);
+        const domMs = (details.scanDurationMs || 0) + (details.fillDurationMs || 0);
+        breakdown += ` (LLM: ${llmSec}s · DOM: ${domMs}ms)`;
+      }
+      latencyEl.textContent = breakdown;
+      latencyEl.classList.remove('hidden');
+    } else {
+      latencyEl.textContent = '';
+      latencyEl.classList.add('hidden');
+    }
+  }
 
   switch (state) {
     case 'analyzing':
@@ -87,14 +114,22 @@ export function updateStatusBannerUI(
       textEl.textContent = 'Filling form fields...';
       banner.removeAttribute('title');
       break;
-    case 'done':
-      textEl.textContent = `Auto-filled ${details?.filledCount || 0} fields!`;
+    case 'done': {
+      const timeStr = details?.durationMs
+        ? ` in ${(details.durationMs / 1000).toFixed(1)}s`
+        : '';
+      textEl.textContent = `Auto-filled ${details?.filledCount || 0} fields${timeStr}!`;
       banner.removeAttribute('title');
       break;
-    case 'partial':
-      textEl.textContent = `Partially filled: ${details?.filledCount || 0} done, ${details?.failedCount || 0} failed / ${details?.skippedCount || 0} skipped`;
+    }
+    case 'partial': {
+      const timeStr = details?.durationMs
+        ? ` in ${(details.durationMs / 1000).toFixed(1)}s`
+        : '';
+      textEl.textContent = `Partially filled: ${details?.filledCount || 0} done, ${details?.failedCount || 0} failed${timeStr}`;
       banner.title = 'Click to open Debug Log Dashboard';
       break;
+    }
     case 'error': {
       textEl.textContent = formatPopupErrorMessage(details?.error);
       banner.title = 'Click to open Debug Log Dashboard';
@@ -431,7 +466,12 @@ export function bindPopupEvents() {
         updateStatusBannerUI(message.currentState, {
           filledCount: message.filledCount,
           failedCount: message.failedCount,
+          skippedCount: message.skippedCount,
           error: message.error,
+          durationMs: message.durationMs,
+          llmDurationMs: message.llmDurationMs,
+          scanDurationMs: message.scanDurationMs,
+          fillDurationMs: message.fillDurationMs,
         });
       }
     });
@@ -444,6 +484,20 @@ if (typeof document !== 'undefined') {
     const isOnline = await checkBackendHealth();
     fetchProfilePreview();
     bindPopupEvents();
+
+    if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+      try {
+        const stored = await chrome.storage.local.get(['autofillStatus']);
+        if (stored.autofillStatus) {
+          updateStatusBannerUI(
+            stored.autofillStatus.currentState,
+            stored.autofillStatus,
+          );
+        }
+      } catch {
+        // Ignore storage errors on init
+      }
+    }
 
     if (isOnline) {
       if (settings.provider === 'ollama') {
