@@ -7,9 +7,9 @@
 | Field | Value |
 |---|---|
 | **Milestone** | 2 — Advanced Form Controls & Multi-Profile (v1.1) |
-| **Current Phase** | None (Milestone 1 Archived) |
-| **Next Phase** | 12 — Advanced Form Elements (Playwright Integration) |
-| **Status** | Milestone 1 (v1.0) shipped and archived. 71/71 tests passing. Ready for Milestone 2. |
+| **Current Phase** | 12 — Advanced Google Form DOM Extraction & Option Parsing |
+| **Next Phase** | 12 — Advanced Google Form DOM Extraction & Option Parsing |
+| **Status** | Milestone 2 initialized. Ready to plan Phase 12. 71/71 tests passing. |
 | **Last Updated** | 2026-09-03 |
 
 ## Decision Log
@@ -24,6 +24,8 @@
 | ADR-006 | Vite bundler for extension | Fast builds, good Chrome extension plugin support | 2026-08-13 |
 | ADR-007 | Vitest for testing | Fast, Vite-compatible, modern | 2026-08-13 |
 | ADR-008 | Popup UI (not side panel) | Simpler UX, standard Chrome extension pattern | 2026-08-13 |
+| ADR-009 | In-Browser DOM Simulation for Advanced Controls (v1.1) | Zero external processes; fast, native event dispatch in active tab | 2026-09-03 |
+| ADR-010 | Multi-Profile File Store Architecture (v1.1) | Modular persona JSON files with instant REST switching | 2026-09-03 |
 
 ## Patterns
 

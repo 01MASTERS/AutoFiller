@@ -11,7 +11,7 @@
 | **Language** | TypeScript (latest stable) |
 | **Repository** | https://github.com/01MASTERS/AutoFiller.git |
 | **Owner** | 01MASTERS |
-| **Status** | Milestone 1 (v1.0) Shipped — Production-Ready |
+| **Status** | Milestone 2 (v1.1) — In Planning |
 
 ## Current State
 
@@ -22,13 +22,15 @@ AutoFiller v1.0 was completed and shipped on 2026-09-03.
 - **Active Test Suite:** 71 tests passing across extension and backend
 - **Core Capabilities:** Google Forms text input autofill with Ollama & Gemini, dynamic model discovery, local JSON profile store, and standalone dark-mode debug log viewer dashboard (`/logs-ui`).
 
-## Next Milestone Goals (Milestone 2 / v1.1)
+## Milestone 2 Goals: Advanced Form Controls & Multi-Profile (v1.1)
 
-- **Phase 12:** Advanced form elements (dropdowns, checkboxes, radio buttons, date pickers) with Playwright / synthetic DOM simulation.
-- **Phase 13:** Multi-profile support with popup profile switcher.
-- **Phase 14:** Web-based profile editor UI (`/profile-ui`).
-- **Phase 15:** Multi-provider forms (Typeform, JotForm, Microsoft Forms).
-- **Phase 16:** Chrome Web Store publishing packaging.
+- **Goal:** Expand AutoFiller to handle complex Google Forms controls (dropdowns, radio buttons, checkboxes, date pickers) via in-browser DOM simulation, and add multi-profile persona management.
+- **Phase 12:** Advanced Google Form DOM Extraction & Option Parsing
+- **Phase 13:** LLM Gateway Enhancement for Constrained / Option Choice Fields
+- **Phase 14:** Content Script Advanced Form Filler (Synthetic DOM & ARIA Event Injection)
+- **Phase 15:** Multi-Profile Backend Store & Switching API
+- **Phase 16:** Extension Multi-Profile Switcher UI & Storage Sync
+- **Phase 17:** Milestone 2 End-to-End Integration, Validation & Test Suite
 
 ## Problem Statement
 
@@ -131,6 +133,24 @@ A Chrome extension with:
 - V2 is deprecated and will be removed
 - V3 uses service workers (better performance, security)
 - Future-proof
+
+### ADR-009: In-Browser DOM Simulation for Advanced Form Controls (v1.1)
+
+**Decision**: Automate dropdowns, radio groups, checkboxes, and date pickers directly inside the content script using synthetic mouse/keyboard events and ARIA state manipulation, avoiding external headless browser processes (Playwright).
+
+**Rationale**:
+- **Lightweight & Fast**: Zero extra runtime dependencies; no headless Chromium binaries to install or run.
+- **Context Preservation**: Operates directly in the user's active session and tab.
+- **Security & Simplicity**: No external Node child processes or WebSocket automation servers needed.
+
+### ADR-010: Multi-Profile File Store Architecture (v1.1)
+
+**Decision**: Store user profiles in dedicated files (e.g. `profiles/default.json`, `profiles/work.json`) with an `activeProfileId` setting in `ProfileStore`.
+
+**Rationale**:
+- **Modularity**: Users can inspect and edit separate persona JSON files directly.
+- **Reliability**: Profile corruption in one file does not affect others.
+- **Seamless Switching**: Popup can switch active profiles instantly via REST endpoint `POST /profiles/switch`.
 
 ## Tech Stack
 
