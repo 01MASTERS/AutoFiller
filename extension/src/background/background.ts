@@ -60,7 +60,11 @@ export async function handleTriggerAutofill(options?: {
       throw new Error('Chrome tabs API not available');
     }
 
-    const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    let [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!activeTab || !activeTab.id) {
+      const fallbackTabs = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+      activeTab = fallbackTabs[0];
+    }
     if (!activeTab || !activeTab.id) {
       throw new Error('No active tab found');
     }
@@ -70,17 +74,37 @@ export async function handleTriggerAutofill(options?: {
       scanResponse = (await chrome.tabs.sendMessage(activeTab.id, {
         action: 'SCAN_FIELDS',
       })) as { status: string; fields?: FieldMetadata[]; error?: string };
-    } catch {
-      const errorMsg =
-        'Content script not loaded on this tab. Please refresh the page tab and try again.';
-      await ExtensionLogger.log('ERROR', 'BACKGROUND', 'SCAN_FIELDS_FAIL', errorMsg, {
-        tabId: activeTab.id,
-        tabUrl: activeTab.url,
-        tabTitle: activeTab.title,
-        hint: 'Content scripts only run on allowed URLs (e.g. Google Forms or regular web pages, not chrome:// internal pages).',
-      });
-      await updateStatusState('error', { error: errorMsg });
-      return { status: 'error', error: errorMsg };
+    } catch (firstErr) {
+      // Content script may not be loaded yet (e.g. tab opened before extension load/reload).
+      // Attempt dynamic programmatic injection as automatic recovery.
+      try {
+        if (typeof chrome !== 'undefined' && chrome.scripting?.executeScript && activeTab.id) {
+          await chrome.scripting.executeScript({
+            target: { tabId: activeTab.id },
+            files: ['src/content/contentScript.iife.js'],
+          });
+          // Brief yield to allow content script event listeners to register
+          await new Promise((resolve) => setTimeout(resolve, 80));
+          scanResponse = (await chrome.tabs.sendMessage(activeTab.id, {
+            action: 'SCAN_FIELDS',
+          })) as { status: string; fields?: FieldMetadata[]; error?: string };
+        } else {
+          throw firstErr;
+        }
+      } catch (injectErr) {
+        const errorMsg =
+          'Content script not loaded on this tab. Please refresh the page tab and try again.';
+        await ExtensionLogger.log('ERROR', 'BACKGROUND', 'SCAN_FIELDS_FAIL', errorMsg, {
+          tabId: activeTab.id,
+          tabUrl: activeTab.url,
+          tabTitle: activeTab.title,
+          originalError: firstErr instanceof Error ? firstErr.message : String(firstErr),
+          injectionError: injectErr instanceof Error ? injectErr.message : String(injectErr),
+          hint: 'Content scripts only run on allowed URLs (e.g. Google Forms or regular web pages, not chrome:// internal pages).',
+        });
+        await updateStatusState('error', { error: errorMsg });
+        return { status: 'error', error: errorMsg };
+      }
     }
 
     if (
@@ -99,17 +123,6 @@ export async function handleTriggerAutofill(options?: {
       await updateStatusState('error', { error: errorMsg });
       return { status: 'error', error: errorMsg };
     }
-
-    await ExtensionLogger.log(
-      'SUCCESS',
-      'BACKGROUND',
-      'SCAN_FIELDS_SUCCESS',
-      `Extracted ${scanResponse.fields.length} form field(s) from active tab`,
-      {
-        fieldCount: scanResponse.fields.length,
-        fields: scanResponse.fields.map((f) => ({ id: f.id, label: f.label, type: f.type, required: f.required })),
-      },
-    );
 
     let backendUrl = 'http://localhost:3456/autofill';
     if (typeof chrome !== 'undefined' && chrome.storage?.local) {
@@ -186,24 +199,12 @@ export async function handleTriggerAutofill(options?: {
       return { status: 'error', error: errorMsg };
     }
 
-    const mappedCount = Object.keys(autofillData.mappings).length;
-    await ExtensionLogger.log(
-      'SUCCESS',
-      'BACKGROUND',
-      'LLM_MAPPING_SUCCESS',
-      `LLM response received (${mappedCount} field mapping(s)): ${JSON.stringify(autofillData.mappings)}`,
-      {
-        provider: options?.provider,
-        model: options?.model,
-        mappings: autofillData.mappings,
-      },
-    );
-
     await updateStatusState('filling');
 
     const fillResponse = (await chrome.tabs.sendMessage(activeTab.id, {
       action: 'FILL_FIELDS',
       mappings: autofillData.mappings,
+      fields: scanResponse.fields,
     })) as { status: string; result?: FillResult; error?: string };
 
     if (!fillResponse || fillResponse.status !== 'success' || !fillResponse.result) {
@@ -216,43 +217,21 @@ export async function handleTriggerAutofill(options?: {
       return { status: 'error', error: errorMsg };
     }
 
-    const { filledCount, failedCount, filledFields, failedFields, failureReasons } = fillResponse.result;
+    const { filledCount, failedCount, skippedCount } = fillResponse.result;
 
-    const filledDetails: Record<string, string> = {};
-    if (Array.isArray(filledFields)) {
-      filledFields.forEach((fieldId) => {
-        filledDetails[fieldId] = autofillData.mappings[fieldId] || '(filled)';
-      });
-    }
-
-    const logStatus = failedCount > 0 ? 'WARN' : 'SUCCESS';
-    const logTag = failedCount > 0 ? 'AUTOFILL_PARTIAL' : 'AUTOFILL_COMPLETE';
-
-    await ExtensionLogger.log(
-      logStatus,
-      'BACKGROUND',
-      logTag,
-      `Form filled: ${filledCount} field(s) populated${failedCount > 0 ? `, ${failedCount} failed: [${failedFields.join(', ')}]` : ''}`,
-      {
-        filledCount,
-        failedCount,
-        filledFields: filledDetails,
-        failedFields,
-        failureReasons: failureReasons || {},
-        mappings: autofillData.mappings,
-      },
-    );
-
-    await updateStatusState(failedCount > 0 ? 'error' : 'done', {
+    const totalIssues = failedCount + skippedCount;
+    await updateStatusState(totalIssues > 0 ? 'error' : 'done', {
       filledCount,
       failedCount,
-      error: failedCount > 0 ? `${failedCount} field(s) could not be filled in the form` : undefined,
+      skippedCount,
+      error: totalIssues > 0 ? `${failedCount} field(s) failed, ${skippedCount} skipped` : undefined,
     });
 
     return {
-      status: failedCount > 0 ? 'partial' : 'success',
+      status: totalIssues > 0 ? 'partial' : 'success',
       filledCount,
       failedCount,
+      skippedCount,
     };
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : String(err);
@@ -286,6 +265,22 @@ if (typeof chrome !== 'undefined' && chrome.runtime?.onMessage) {
           autofillStatus: { currentState: 'idle' },
         });
       }
+      return true;
+    } else if (message?.action === 'RELAY_LOG' && message.entry) {
+      chrome.storage?.local?.get(['backendUrl']).then((stored) => {
+        const url = stored?.backendUrl || 'http://localhost:3456/logs';
+        fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(message.entry),
+        }).catch(() => {});
+      }).catch(() => {
+        fetch('http://localhost:3456/logs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(message.entry),
+        }).catch(() => {});
+      });
       return true;
     }
   });

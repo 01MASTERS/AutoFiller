@@ -39,7 +39,8 @@ if (typeof chrome !== 'undefined' && chrome.runtime?.onMessage) {
                 type: f.type,
                 controlType: f.controlType,
                 selectionMode: f.selectionMode,
-                optionsCount: f.options?.length,
+                optionsCount: f.options?.length ?? 0,
+                options: f.options?.map((o) => o.label),
                 required: f.required,
               })),
             },
@@ -61,44 +62,49 @@ if (typeof chrome !== 'undefined' && chrome.runtime?.onMessage) {
         });
       }
     } else if (message?.action === 'FILL_FIELDS') {
-      try {
-        const result = fillFormFields(message.mappings || {}, document);
-        const filledMap: Record<string, string> = {};
-        if (Array.isArray(result.filledFields)) {
-          result.filledFields.forEach((id) => {
-            filledMap[id] = (message.mappings || {})[id] || '(filled)';
+      (async () => {
+        try {
+          const result = await fillFormFields(message.mappings || {}, message.fields || [], document);
+          const filledMap: Record<string, string> = {};
+          if (Array.isArray(result.filledFields)) {
+            result.filledFields.forEach((id) => {
+              filledMap[id] = (message.mappings || {})[id] || '(filled)';
+            });
+          }
+          const level = result.status === 'success' ? 'SUCCESS' : result.status === 'partial' ? 'WARN' : 'ERROR';
+          const tag = result.status === 'success' ? 'DOM_FILL_DONE' : result.status === 'partial' ? 'DOM_FILL_PARTIAL' : 'DOM_FILL_FAILED';
+          ExtensionLogger.log(
+            level,
+            'CONTENT_SCRIPT',
+            tag,
+            `Content script filled ${result.filledCount} field(s)${result.failedCount > 0 ? `, ${result.failedCount} failed to fill` : ''}${result.skippedCount > 0 ? `, ${result.skippedCount} skipped` : ''}`,
+            {
+              filledCount: result.filledCount,
+              failedCount: result.failedCount,
+              skippedCount: result.skippedCount,
+              filledFields: filledMap,
+              failedFields: result.failedFields,
+              skippedFields: result.skippedFields,
+              failureReasons: result.failureReasons,
+              skippedReasons: result.skippedReasons,
+            },
+          );
+          sendResponse({ status: 'success', result });
+        } catch (error) {
+          ExtensionLogger.log(
+            'ERROR',
+            'CONTENT_SCRIPT',
+            'DOM_FILL_EXCEPTION',
+            `Content script encountered exception during form filling: ${error instanceof Error ? error.message : String(error)}`,
+            { error: error instanceof Error ? error.stack : String(error) },
+          );
+          sendResponse({
+            status: 'error',
+            error: error instanceof Error ? error.message : String(error),
           });
         }
-        const level = result.status === 'success' ? 'SUCCESS' : result.status === 'partial' ? 'WARN' : 'ERROR';
-        const tag = result.status === 'success' ? 'DOM_FILL_DONE' : result.status === 'partial' ? 'DOM_FILL_PARTIAL' : 'DOM_FILL_FAILED';
-        ExtensionLogger.log(
-          level,
-          'CONTENT_SCRIPT',
-          tag,
-          `Content script filled ${result.filledCount} field(s)${result.failedCount > 0 ? `, ${result.failedCount} failed to fill` : ''}`,
-          {
-            filledCount: result.filledCount,
-            failedCount: result.failedCount,
-            filledFields: filledMap,
-            failedFields: result.failedFields,
-            failureReasons: result.failureReasons,
-          },
-        );
-        sendResponse({ status: 'success', result });
-      } catch (error) {
-        ExtensionLogger.log(
-          'ERROR',
-          'CONTENT_SCRIPT',
-          'DOM_FILL_EXCEPTION',
-          `Content script encountered exception during form filling: ${error instanceof Error ? error.message : String(error)}`,
-          { error: error instanceof Error ? error.stack : String(error) },
-        );
-        sendResponse({
-          status: 'error',
-          error: error instanceof Error ? error.message : String(error),
-        });
-      }
+      })();
+      return true;
     }
-    return true;
   });
 }

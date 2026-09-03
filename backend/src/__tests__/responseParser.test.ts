@@ -331,5 +331,61 @@ describe('responseParser', () => {
       const result = parseLLMJsonResponse(raw, fields);
       expect(result).toEqual({ f_survey: 'opt_adversarial' });
     });
+
+    it('accepts Other: <custom text> when field options include an Other choice', () => {
+      const fields: FieldMetadata[] = [
+        {
+          id: 'f_college_loc',
+          label: 'College Location',
+          controlType: 'radio',
+          selectionMode: 'single',
+          options: [
+            { label: 'Hyderabad', value: 'Hyderabad' },
+            { label: 'Bangalore', value: 'Bangalore' },
+            { label: 'Other:', value: '__other_option__' },
+          ],
+        },
+      ];
+      const raw = '{"f_college_loc": "Other: Patna"}';
+      const result = parseLLMJsonResponse(raw, fields);
+      expect(result).toEqual({ f_college_loc: 'Other: Patna' });
+    });
+
+    it('formats custom text as Other: <text> when field options include an Other choice', () => {
+      const fields: FieldMetadata[] = [
+        {
+          id: 'f_college_loc',
+          label: 'College Location',
+          controlType: 'radio',
+          selectionMode: 'single',
+          options: [
+            { label: 'Hyderabad', value: 'Hyderabad' },
+            { label: 'Bangalore', value: 'Bangalore' },
+            { label: 'Other:', value: '__other_option__' },
+          ],
+        },
+      ];
+      const raw = '{"f_college_loc": "Patna"}';
+      const result = parseLLMJsonResponse(raw, fields);
+      expect(result).toEqual({ f_college_loc: 'Other: Patna' });
+    });
+
+    it('accepts Other: <text> in multiple-choice when field options include an Other choice', () => {
+      const fields: FieldMetadata[] = [
+        {
+          id: 'f_skills',
+          label: 'Skills',
+          controlType: 'checkbox',
+          selectionMode: 'multiple',
+          options: [
+            { label: 'Python', value: 'py' },
+            { label: 'Other:', value: '__other_option__' },
+          ],
+        },
+      ];
+      const raw = '{"f_skills": ["Python", "Rust"]}';
+      const result = parseLLMJsonResponse(raw, fields);
+      expect(result).toEqual({ f_skills: ['py', 'Other: Rust'] });
+    });
   });
 });

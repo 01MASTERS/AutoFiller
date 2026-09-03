@@ -77,9 +77,12 @@ export interface FillResult {
   status: 'success' | 'partial' | 'error';
   filledCount: number;
   failedCount: number;
+  skippedCount: number;
   filledFields: string[];
   failedFields: string[];
+  skippedFields: string[];
   failureReasons?: Record<string, string>;
+  skippedReasons?: Record<string, string>;
   error?: string;
 }
 

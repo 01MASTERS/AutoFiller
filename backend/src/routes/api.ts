@@ -967,7 +967,13 @@ apiRouter.post('/autofill', async (req: Request, res: Response, next: NextFuncti
           provider,
           model,
           fieldsScannedCount: body.fields.length,
-          fieldsScanned: body.fields.map((f) => ({ id: f.id, label: f.label })),
+          fieldsScanned: body.fields.map((f) => ({
+            id: f.id,
+            label: f.label,
+            controlType: f.controlType,
+            optionsCount: f.options?.length ?? 0,
+            options: f.options?.map((o) => o.label),
+          })),
           unmappedFields,
           profileSampleKeys: Object.keys(profile),
           hint: 'The user profile does not contain matching values for these form field questions.',
@@ -987,7 +993,13 @@ apiRouter.post('/autofill', async (req: Request, res: Response, next: NextFuncti
           mappedCount: mappedKeys.size,
           unmappedCount: unmappedFields.length,
           unmappedFields,
-          fieldsScanned: body.fields.map((f) => ({ id: f.id, label: f.label })),
+          fieldsScanned: body.fields.map((f) => ({
+            id: f.id,
+            label: f.label,
+            controlType: f.controlType,
+            optionsCount: f.options?.length ?? 0,
+            options: f.options?.map((o) => o.label),
+          })),
         },
       });
     }

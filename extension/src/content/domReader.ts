@@ -232,8 +232,8 @@ function extractAriaListboxOptions(container: Element): FieldOption[] {
   );
 
   optionEls.forEach((optEl) => {
-    if (isElementHidden(optEl)) return;
-
+    // Note: Do not skip options based on isElementHidden because dropdown option menus
+    // are typically hidden (display: none) when the dropdown is collapsed/closed.
     const label = cleanText(optEl.textContent);
     if (!label) return;
 
@@ -254,6 +254,9 @@ function extractAriaListboxOptions(container: Element): FieldOption[] {
     if (isPlaceholderOption(label, value, disabled, selected)) {
       return;
     }
+
+    // Tag option element for execution targeting
+    optEl.setAttribute('data-autofiller-option', value || label);
 
     options.push({
       label,
@@ -442,6 +445,8 @@ export function extractFormFields(doc: Document = document): FieldMetadata[] {
     ).filter((r) => !isElementHidden(r));
 
     if (radioNodes.length === 0) return;
+    // Skip if all constituent radio nodes were already grouped and processed
+    if (radioNodes.every((r) => processedElements.has(r))) return;
 
     // Mark constituent nodes as processed
     radioNodes.forEach((r) => processedElements.add(r));
@@ -462,8 +467,18 @@ export function extractFormFields(doc: Document = document): FieldMetadata[] {
     const fieldId = generateUniqueFieldId(baseId, usedIds);
     container.setAttribute('data-autofiller-id', fieldId);
 
-    const { label, ariaLabel } = resolveAccessibleLabel(container, container, doc);
-    const required = isRequiredField(container, container) || radioNodes.some((r) => isRequiredField(r));
+    const questionContainer =
+      container.closest('[role="listitem"], .freebirdFormviewerViewItemsItemItem, .QrToBd, fieldset') ||
+      container;
+
+    // Mark companion "Other" text inputs inside this question as processed
+    const otherInputs = questionContainer.querySelectorAll(
+      'input[aria-label*="Other" i], input.Hvn9fb, input[name*="other_option_response"]',
+    );
+    otherInputs.forEach((inp) => processedElements.add(inp));
+
+    const { label, ariaLabel } = resolveAccessibleLabel(container, questionContainer, doc);
+    const required = isRequiredField(container, questionContainer) || radioNodes.some((r) => isRequiredField(r));
     const options = extractRadioOrCheckboxOptions(radioNodes);
 
     fields.push({
@@ -527,6 +542,8 @@ export function extractFormFields(doc: Document = document): FieldMetadata[] {
     ).filter((c) => !isElementHidden(c));
 
     if (checkboxNodes.length === 0) return;
+    // Skip if all constituent checkbox nodes were already grouped and processed
+    if (checkboxNodes.every((c) => processedElements.has(c))) return;
 
     checkboxNodes.forEach((c) => processedElements.add(c));
     processedElements.add(container);
@@ -546,8 +563,18 @@ export function extractFormFields(doc: Document = document): FieldMetadata[] {
     const fieldId = generateUniqueFieldId(baseId, usedIds);
     container.setAttribute('data-autofiller-id', fieldId);
 
-    const { label, ariaLabel } = resolveAccessibleLabel(container, container, doc);
-    const required = isRequiredField(container, container) || checkboxNodes.some((c) => isRequiredField(c));
+    const questionContainer =
+      container.closest('[role="listitem"], .freebirdFormviewerViewItemsItemItem, .QrToBd, fieldset') ||
+      container;
+
+    // Mark companion "Other" text inputs inside this question as processed
+    const otherInputs = questionContainer.querySelectorAll(
+      'input[aria-label*="Other" i], input.Hvn9fb, input[name*="other_option_response"]',
+    );
+    otherInputs.forEach((inp) => processedElements.add(inp));
+
+    const { label, ariaLabel } = resolveAccessibleLabel(container, questionContainer, doc);
+    const required = isRequiredField(container, questionContainer) || checkboxNodes.some((c) => isRequiredField(c));
     const options = extractRadioOrCheckboxOptions(checkboxNodes);
 
     fields.push({
@@ -613,7 +640,11 @@ export function extractFormFields(doc: Document = document): FieldMetadata[] {
       if (isCombobox) {
         el.querySelectorAll('input, select, textarea').forEach((child) => processedElements.add(child));
       }
-      const extracted = extractAriaListboxOptions(optionContainer);
+      let extracted = extractAriaListboxOptions(optionContainer);
+      // Fallback: in Google Forms, the option popup menu is often a sibling inside the question container
+      if (extracted.length === 0 && container) {
+        extracted = extractAriaListboxOptions(container);
+      }
       if (extracted.length > 0) {
         options = extracted;
       } else if (!isCombobox) {
@@ -693,6 +724,19 @@ export function extractFormFields(doc: Document = document): FieldMetadata[] {
 
   textInputEls.forEach((inputEl) => {
     if (processedElements.has(inputEl) || isElementHidden(inputEl)) return;
+
+    // Skip companion text inputs for radio/checkbox "Other" options (e.g. Google Forms aria-label="Other response")
+    const isOtherCompanion =
+      Boolean(inputEl.getAttribute('aria-label')?.toLowerCase().includes('other response')) ||
+      inputEl.classList.contains('Hvn9fb') ||
+      Boolean(inputEl.name?.includes('other_option_response')) ||
+      inputEl.closest('[role="radio"], [role="checkbox"], .docssharedWizToggleLabeledContainer') !== null ||
+      Boolean(inputEl.closest('[role="listitem"], .QrToBd')?.querySelector('[role="radio"], [role="checkbox"]'));
+    if (isOtherCompanion) {
+      processedElements.add(inputEl);
+      return;
+    }
+
     processedElements.add(inputEl);
 
     const container =

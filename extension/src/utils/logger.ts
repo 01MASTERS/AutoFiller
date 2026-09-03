@@ -35,14 +35,24 @@ export class ExtensionLogger {
       }
     }
 
-    // Asynchronously push to backend logs endpoint
-    fetch('http://localhost:3456/logs', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(entry),
-    }).catch(() => {
-      // Offline fallback
-    });
+    // When running inside a content script on an HTTPS page, direct fetch to http://localhost
+    // is blocked by browser mixed-content security. Relay via background worker instead.
+    if (source === 'CONTENT_SCRIPT' && typeof chrome !== 'undefined' && chrome.runtime?.sendMessage) {
+      try {
+        chrome.runtime.sendMessage({ action: 'RELAY_LOG', entry });
+      } catch {
+        // Offline or context invalidated fallback
+      }
+    } else {
+      // Asynchronously push to backend logs endpoint (runs fine from background or extension popup)
+      fetch('http://localhost:3456/logs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(entry),
+      }).catch(() => {
+        // Offline fallback
+      });
+    }
 
     return entry;
   }

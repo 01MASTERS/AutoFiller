@@ -598,4 +598,90 @@ describe('findFieldElement', () => {
 
     expect(result).toBeNull();
   });
+
+  it('extracts options from closed ARIA listbox dropdown even when option menu is hidden (display: none)', () => {
+    document.body.innerHTML = `
+      <div role="listitem" class="QrToBd">
+        <div role="heading">Country of Residence</div>
+        <div role="listbox" aria-expanded="false">
+          <div class="OA0qNb" style="display: none;">
+            <div role="option" data-value="United States">United States</div>
+            <div role="option" data-value="India">India</div>
+            <div role="option" data-value="United Kingdom">United Kingdom</div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const fields = extractFormFields(document);
+    expect(fields).toHaveLength(1);
+    expect(fields[0].controlType).toBe('dropdown');
+    expect(fields[0].options).toHaveLength(3);
+    expect(fields[0].options?.map((o) => o.label)).toEqual([
+      'United States',
+      'India',
+      'United Kingdom',
+    ]);
+  });
+
+  it('extracts dropdown options when menu is a sibling inside the question container', () => {
+    document.body.innerHTML = `
+      <div role="listitem" class="QrToBd">
+        <div role="heading">Degree</div>
+        <div role="listbox" aria-expanded="false">
+          <span class="vRMGwf">Choose</span>
+        </div>
+        <div class="exportSelectPopup" style="display: none;">
+          <div role="option" data-value="Bachelor">Bachelor</div>
+          <div role="option" data-value="Master">Master</div>
+          <div role="option" data-value="PhD">PhD</div>
+        </div>
+      </div>
+    `;
+
+    const fields = extractFormFields(document);
+    expect(fields).toHaveLength(1);
+    expect(fields[0].controlType).toBe('dropdown');
+    expect(fields[0].options).toHaveLength(3);
+    expect(fields[0].options?.map((o) => o.label)).toEqual(['Bachelor', 'Master', 'PhD']);
+  });
+
+  it('does not produce duplicate radio fields for nested radiogroup and question container', () => {
+    document.body.innerHTML = `
+      <div role="listitem" class="QrToBd">
+        <div role="heading">Gender</div>
+        <div role="radiogroup">
+          <div role="radio" data-value="Male">Male</div>
+          <div role="radio" data-value="Female">Female</div>
+        </div>
+      </div>
+    `;
+
+    const fields = extractFormFields(document);
+    const radioFields = fields.filter((f) => f.controlType === 'radio');
+    expect(radioFields).toHaveLength(1);
+    expect(radioFields[0].label).toBe('Gender');
+    expect(radioFields[0].options).toHaveLength(2);
+  });
+
+  it('ignores companion "Other response" text inputs so they do not produce detached standalone fields', () => {
+    document.body.innerHTML = `
+      <div role="listitem" class="QrToBd">
+        <div role="heading">College Location</div>
+        <div role="radiogroup">
+          <div role="radio" data-value="Hyderabad">Hyderabad</div>
+          <div role="radio" data-value="__other_option__">Other:</div>
+        </div>
+        <div class="Xb9hP">
+          <input type="text" class="Hvn9fb" aria-label="Other response" />
+        </div>
+      </div>
+    `;
+
+    const fields = extractFormFields(document);
+    // Should ONLY discover the 1 radio group field, NOT a second "Other response" text field
+    expect(fields).toHaveLength(1);
+    expect(fields[0].controlType).toBe('radio');
+    expect(fields[0].label).toBe('College Location');
+  });
 });

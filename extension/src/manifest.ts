@@ -22,7 +22,7 @@ export default defineManifest({
         'http://127.0.0.1:3456/*',
         '<all_urls>',
       ],
-      js: ['src/content/contentScript.ts'],
+      js: ['src/content/contentScript.iife.ts'],
     },
   ],
 });

@@ -30,15 +30,18 @@
 - Unit tests for single-choice and multi-choice field matching
 
 ### Phase 14: Content Script Advanced Form Filler (Synthetic DOM Interaction)
-**Status**: `planned`  
+**Status**: `completed`  
 **Scope**: Build synthetic interaction handlers in `formFiller.ts` to click radio buttons, toggle checkboxes according to LLM array values, open and select dropdown options, and inject date values.  
 **Deliverables**:
+- Control-type dispatch architecture with 6 handlers (text, radio, checkbox, dropdown, combobox, date)
 - Radio button click and synthetic event dispatcher
 - Checkbox toggle logic comparing `aria-checked` with desired state
-- Dropdown opener, option seeker, and menu close handler
+- Dropdown opener, option seeker, and menu close handler (native + ARIA)
 - Date input setter and change triggers
 - Visual feedback styling for compound container elements
-- Unit tests with mock DOM
+- Type-safety guards with skipped-field tracking (`FillResult.skippedCount`)
+- Backward-compatible fallback for fields without metadata
+- 20 unit tests covering all control types, type mismatches, and mixed-field scenarios
 
 ### Phase 15: Multi-Profile Backend Store & Switching API
 **Status**: `planned`  

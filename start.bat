@@ -82,9 +82,6 @@ echo  • Extension Build:    extension/dist/ (Load in chrome://extensions)
 echo ===================================================
 echo.
 
-:: Launch browser dashboard after 3 seconds in background
-start /b cmd /c "timeout /t 3 >nul && start http://localhost:3456/logs-ui"
-
 :: Run dev server (extension watcher + backend tsx watch)
 call npm run dev
 

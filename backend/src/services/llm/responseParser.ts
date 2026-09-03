@@ -67,6 +67,22 @@ export function matchFieldOption(
 }
 
 /**
+ * Detects if an options array contains an "Other" option (e.g. Google Forms __other_option__).
+ */
+export function findOtherFieldOption(options: FieldOption[]): FieldOption | null {
+  for (const opt of options) {
+    if (
+      opt.value === '__other_option__' ||
+      opt.label.toLowerCase().startsWith('other') ||
+      (opt.value && opt.value.toLowerCase().startsWith('other'))
+    ) {
+      return opt;
+    }
+  }
+  return null;
+}
+
+/**
  * Parses raw JSON string returned by LLM and validates against field metadata.
  */
 export function parseLLMJsonResponse(
@@ -195,10 +211,24 @@ export function parseLLMJsonResponse(
               validOptions.push(canonicalValue);
             }
           } else {
-            if (!lastDiagnostics.rejectedOptions[key]) {
-              lastDiagnostics.rejectedOptions[key] = [];
+            const otherOpt = findOtherFieldOption(field.options);
+            if (otherOpt && item.trim().length > 0) {
+              const trimmed = item.trim();
+              const norm = trimmed.toLowerCase();
+              const formatted =
+                norm.startsWith('other:') || norm.startsWith('__other_option__')
+                  ? trimmed
+                  : `Other: ${trimmed}`;
+              if (!seen.has(formatted)) {
+                seen.add(formatted);
+                validOptions.push(formatted);
+              }
+            } else {
+              if (!lastDiagnostics.rejectedOptions[key]) {
+                lastDiagnostics.rejectedOptions[key] = [];
+              }
+              lastDiagnostics.rejectedOptions[key].push(item);
             }
-            lastDiagnostics.rejectedOptions[key].push(item);
           }
         }
 
@@ -239,11 +269,23 @@ export function parseLLMJsonResponse(
         if (matched) {
           result[key] = matched.value ?? matched.label;
         } else {
-          // Unrecognized constrained option: reject & record
-          if (!lastDiagnostics.rejectedOptions[key]) {
-            lastDiagnostics.rejectedOptions[key] = [];
+          // Check if field has an "Other" option allowing custom text
+          const otherOpt = findOtherFieldOption(field.options);
+          if (otherOpt && inputStr.trim().length > 0) {
+            const trimmed = inputStr.trim();
+            const norm = trimmed.toLowerCase();
+            if (norm.startsWith('other:') || norm.startsWith('__other_option__')) {
+              result[key] = trimmed;
+            } else {
+              result[key] = `Other: ${trimmed}`;
+            }
+          } else {
+            // Unrecognized constrained option: reject & record
+            if (!lastDiagnostics.rejectedOptions[key]) {
+              lastDiagnostics.rejectedOptions[key] = [];
+            }
+            lastDiagnostics.rejectedOptions[key].push(inputStr);
           }
-          lastDiagnostics.rejectedOptions[key].push(inputStr);
         }
       } else {
         // Missing option metadata (e.g. combobox without rendered options)
