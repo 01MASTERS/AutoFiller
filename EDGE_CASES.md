@@ -5,7 +5,7 @@ This document serves as the comprehensive engineering reference for edge cases, 
 Use this guide when diagnosing why a specific field failed to scan, map, or fill, or when planning future feature enhancements.
 
 Automated boundary and edge case tests are implemented in:
-👉 [`extension/src/__tests__/edgeCases.test.ts`](file:///c:/Users/ravis/OneDrive/Desktop/Projectsgpt/AutoFiller/extension/src/__tests__/edgeCases.test.ts)
+👉 [`extension/src/__tests__/edgeCases.test.ts`](./extension/src/__tests__/edgeCases.test.ts)
 
 ---
 

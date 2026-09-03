@@ -168,7 +168,7 @@ npm run build
 
 ## Troubleshooting & Edge Cases
 
-- **Edge Cases & Limitations Guide**: See [EDGE_CASES.md](file:///c:/Users/ravis/OneDrive/Desktop/Projectsgpt/AutoFiller/EDGE_CASES.md) for an in-depth catalog of form quirks, DOM edge cases, and the step-by-step debugging playbook.
+- **Edge Cases & Limitations Guide**: See [EDGE_CASES.md](./EDGE_CASES.md) for an in-depth catalog of form quirks, DOM edge cases, and the step-by-step debugging playbook.
 - **Backend Offline in Popup**: Ensure backend server is running on port 3456 (`npm run dev -w backend` or `start.bat`).
 - **Ollama Error**: Ensure Ollama is installed and running (`ollama run llama3.2`).
 - **Gemini Error**: Verify your Gemini API key in the extension popup settings.

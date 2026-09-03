@@ -26,7 +26,7 @@ if %errorlevel% neq 0 (
 
 :: Install dependencies if node_modules is missing
 if not exist "node_modules" (
-    echo [1/4] Installing project dependencies...
+    echo [1/5] Installing project dependencies...
     call npm install
     if !errorlevel! neq 0 (
         echo [ERROR] Failed to install dependencies!
@@ -34,23 +34,23 @@ if not exist "node_modules" (
         exit /b 1
     )
 ) else (
-    echo [1/4] Dependencies verified - node_modules present.
+    echo [1/5] Dependencies verified - node_modules present.
 )
 
 :: Setup backend env file if missing
 if not exist "backend\.env" (
-    echo [2/4] Creating backend\.env from template...
+    echo [2/5] Creating backend\.env from template...
     copy "backend\.env.example" "backend\.env" >nul
 ) else (
-    echo [2/4] Backend environment file verified - backend\.env present.
+    echo [2/5] Backend environment file verified - backend\.env present.
 )
 
 :: Setup backend profile file if missing
 if not exist "backend\profile.json" (
-    echo [3/4] Creating backend\profile.json from template...
+    echo [3/5] Creating backend\profile.json from template...
     copy "backend\profile.example.json" "backend\profile.json" >nul
 ) else (
-    echo [3/4] User profile verified - backend\profile.json present.
+    echo [3/5] User profile verified - backend\profile.json present.
 )
 
 :: Build shared types package

@@ -6,18 +6,20 @@ export interface StatusDetails {
   currentState: AutofillState;
   filledCount?: number;
   failedCount?: number;
+  skippedCount?: number;
   error?: string;
   timestamp?: string;
 }
 
 export async function updateStatusState(
   state: AutofillState,
-  details?: { filledCount?: number; failedCount?: number; error?: string },
+  details?: { filledCount?: number; failedCount?: number; skippedCount?: number; error?: string },
 ): Promise<StatusDetails> {
   const statusData: StatusDetails = {
     currentState: state,
     filledCount: details?.filledCount,
     failedCount: details?.failedCount,
+    skippedCount: details?.skippedCount,
     error: details?.error,
     timestamp: new Date().toISOString(),
   };
@@ -118,7 +120,7 @@ export async function handleTriggerAutofill(options?: {
         tabUrl: activeTab.url,
         tabTitle: activeTab.title,
         fieldsFound: 0,
-        hint: 'AutoFiller scans for standard text, email, tel, textarea, and Google Form question inputs. Dropdowns and checkboxes are not yet supported.',
+        hint: 'AutoFiller scans for text, email, tel, textarea, date, radio, checkbox, and dropdown form fields. Ensure the form fields are visible and loaded on the page.',
       });
       await updateStatusState('error', { error: errorMsg });
       return { status: 'error', error: errorMsg };

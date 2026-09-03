@@ -47,6 +47,7 @@ describe('background service worker', () => {
       currentState: 'analyzing',
       filledCount: undefined,
       failedCount: undefined,
+      skippedCount: undefined,
       error: undefined,
       timestamp: expect.any(String),
     });

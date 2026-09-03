@@ -65,10 +65,11 @@ if (typeof chrome !== 'undefined' && chrome.runtime?.onMessage) {
       (async () => {
         try {
           const result = await fillFormFields(message.mappings || {}, message.fields || [], document);
-          const filledMap: Record<string, string> = {};
+          const filledMap: Record<string, unknown> = {};
           if (Array.isArray(result.filledFields)) {
             result.filledFields.forEach((id) => {
-              filledMap[id] = (message.mappings || {})[id] || '(filled)';
+              const val = (message.mappings || {})[id];
+              filledMap[id] = val !== undefined ? val : '(filled)';
             });
           }
           const level = result.status === 'success' ? 'SUCCESS' : result.status === 'partial' ? 'WARN' : 'ERROR';
