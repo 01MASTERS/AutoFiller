@@ -1,25 +1,44 @@
 import { AutofillResponse, FieldMetadata, FillResult } from '@autofiller/shared';
 
-export type AutofillState = 'idle' | 'analyzing' | 'filling' | 'done' | 'error';
+export type AutofillState = 'idle' | 'analyzing' | 'filling' | 'done' | 'partial' | 'error';
 
 export interface StatusDetails {
   currentState: AutofillState;
   filledCount?: number;
   failedCount?: number;
+  skippedCount?: number;
   error?: string;
   timestamp?: string;
+  durationMs?: number;
+  llmDurationMs?: number;
+  scanDurationMs?: number;
+  fillDurationMs?: number;
 }
 
 export async function updateStatusState(
   state: AutofillState,
-  details?: { filledCount?: number; failedCount?: number; error?: string }
+  details?: {
+    filledCount?: number;
+    failedCount?: number;
+    skippedCount?: number;
+    error?: string;
+    durationMs?: number;
+    llmDurationMs?: number;
+    scanDurationMs?: number;
+    fillDurationMs?: number;
+  },
 ): Promise<StatusDetails> {
   const statusData: StatusDetails = {
     currentState: state,
     filledCount: details?.filledCount,
     failedCount: details?.failedCount,
+    skippedCount: details?.skippedCount,
     error: details?.error,
     timestamp: new Date().toISOString(),
+    durationMs: details?.durationMs,
+    llmDurationMs: details?.llmDurationMs,
+    scanDurationMs: details?.scanDurationMs,
+    fillDurationMs: details?.fillDurationMs,
   };
 
   if (typeof chrome !== 'undefined' && chrome.storage?.local) {
@@ -47,31 +66,68 @@ export async function handleTriggerAutofill(options?: {
   model?: string;
   apiKey?: string;
 }) {
+  const overallStart = Date.now();
   try {
     await updateStatusState('analyzing');
-    await ExtensionLogger.log('INFO', 'BACKGROUND', 'AUTOFILL_START', `Starting autofill workflow (provider: ${options?.provider || 'ollama'}, model: ${options?.model || 'default'})`);
+    await ExtensionLogger.log(
+      'INFO',
+      'BACKGROUND',
+      'AUTOFILL_START',
+      `Starting autofill workflow (provider: ${options?.provider || 'ollama'}, model: ${options?.model || 'default'})`,
+    );
 
     if (typeof chrome === 'undefined' || !chrome.tabs) {
       throw new Error('Chrome tabs API not available');
     }
 
-    const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    let [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!activeTab || !activeTab.id) {
+      const fallbackTabs = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+      activeTab = fallbackTabs[0];
+    }
     if (!activeTab || !activeTab.id) {
       throw new Error('No active tab found');
     }
 
+    const scanStart = Date.now();
     let scanResponse: { status: string; fields?: FieldMetadata[]; error?: string } | null = null;
     try {
       scanResponse = (await chrome.tabs.sendMessage(activeTab.id, {
         action: 'SCAN_FIELDS',
       })) as { status: string; fields?: FieldMetadata[]; error?: string };
-    } catch {
-      const errorMsg =
-        'Content script not loaded on this tab. Please refresh the page tab and try again.';
-      await ExtensionLogger.log('ERROR', 'BACKGROUND', 'SCAN_FIELDS_FAIL', errorMsg);
-      await updateStatusState('error', { error: errorMsg });
-      return { status: 'error', error: errorMsg };
+    } catch (firstErr) {
+      // Content script may not be loaded yet (e.g. tab opened before extension load/reload).
+      // Attempt dynamic programmatic injection as automatic recovery.
+      try {
+        if (typeof chrome !== 'undefined' && chrome.scripting?.executeScript && activeTab.id) {
+          await chrome.scripting.executeScript({
+            target: { tabId: activeTab.id },
+            files: ['src/content/contentScript.iife.js'],
+          });
+          // Brief yield to allow content script event listeners to register
+          await new Promise((resolve) => setTimeout(resolve, 80));
+          scanResponse = (await chrome.tabs.sendMessage(activeTab.id, {
+            action: 'SCAN_FIELDS',
+          })) as { status: string; fields?: FieldMetadata[]; error?: string };
+        } else {
+          throw firstErr;
+        }
+      } catch (injectErr) {
+        const errorMsg =
+          'Content script not loaded on this tab. Please refresh the page tab and try again.';
+        await ExtensionLogger.log('ERROR', 'BACKGROUND', 'SCAN_FIELDS_FAIL', errorMsg, {
+          tabId: activeTab.id,
+          tabUrl: activeTab.url,
+          tabTitle: activeTab.title,
+          originalError: firstErr instanceof Error ? firstErr.message : String(firstErr),
+          injectionError: injectErr instanceof Error ? injectErr.message : String(injectErr),
+          hint: 'Content scripts only run on allowed URLs (e.g. Google Forms or regular web pages, not chrome:// internal pages).',
+        });
+        await updateStatusState('error', { error: errorMsg });
+        return { status: 'error', error: errorMsg };
+      }
     }
+    const scanDurationMs = Date.now() - scanStart;
 
     if (
       !scanResponse ||
@@ -79,14 +135,16 @@ export async function handleTriggerAutofill(options?: {
       !scanResponse.fields ||
       scanResponse.fields.length === 0
     ) {
-      const errorMsg =
-        scanResponse?.error || 'No fillable text fields found on this form';
-      await ExtensionLogger.log('WARN', 'BACKGROUND', 'SCAN_NO_FIELDS', errorMsg);
+      const errorMsg = scanResponse?.error || 'No fillable text fields found on this form';
+      await ExtensionLogger.log('WARN', 'BACKGROUND', 'SCAN_NO_FIELDS', errorMsg, {
+        tabUrl: activeTab.url,
+        tabTitle: activeTab.title,
+        fieldsFound: 0,
+        hint: 'AutoFiller scans for text, email, tel, textarea, date, radio, checkbox, and dropdown form fields. Ensure the form fields are visible and loaded on the page.',
+      });
       await updateStatusState('error', { error: errorMsg });
       return { status: 'error', error: errorMsg };
     }
-
-    await ExtensionLogger.log('SUCCESS', 'BACKGROUND', 'SCAN_FIELDS_SUCCESS', `Extracted ${scanResponse.fields.length} form field(s) from active tab`);
 
     let backendUrl = 'http://localhost:3456/autofill';
     if (typeof chrome !== 'undefined' && chrome.storage?.local) {
@@ -107,22 +165,41 @@ export async function handleTriggerAutofill(options?: {
       headers['x-gemini-api-key'] = options.apiKey;
     }
 
-    const backendRes = await fetch(backendUrl, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify({
-        fields: scanResponse.fields,
-        provider: options?.provider || 'ollama',
-        model: options?.model,
-        apiKey: options?.apiKey,
-      }),
-    });
+    let backendRes: Response;
+    const llmStart = Date.now();
+    try {
+      backendRes = await fetch(backendUrl, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          fields: scanResponse.fields,
+          provider: options?.provider || 'ollama',
+          model: options?.model,
+        }),
+      });
+    } catch (networkErr) {
+      const errorMsg = `Cannot connect to AutoFiller backend at ${backendUrl}. Ensure the backend server is running (start.bat).`;
+      await ExtensionLogger.log('ERROR', 'BACKGROUND', 'BACKEND_CONNECTION_FAILED', errorMsg, {
+        backendUrl,
+        error: networkErr instanceof Error ? networkErr.message : String(networkErr),
+      });
+      await updateStatusState('error', { error: errorMsg });
+      return { status: 'error', error: errorMsg };
+    }
+    const llmDurationMs = Date.now() - llmStart;
 
     if (!backendRes.ok) {
       const errData = (await backendRes.json().catch(() => ({}))) as { error?: string };
       const errorMsg =
         errData.error || `Backend HTTP request failed with status ${backendRes.status}`;
-      await ExtensionLogger.log('ERROR', 'BACKGROUND', 'BACKEND_HTTP_ERROR', errorMsg);
+      await ExtensionLogger.log('ERROR', 'BACKGROUND', 'BACKEND_HTTP_ERROR', errorMsg, {
+        httpStatus: backendRes.status,
+        statusText: backendRes.statusText,
+        backendUrl,
+        provider: options?.provider,
+        model: options?.model,
+        fieldsSent: scanResponse.fields.length,
+      });
       await updateStatusState('error', { error: errorMsg });
       return { status: 'error', error: errorMsg };
     }
@@ -133,72 +210,92 @@ export async function handleTriggerAutofill(options?: {
       !autofillData.mappings ||
       Object.keys(autofillData.mappings).length === 0
     ) {
-      const errorMsg = autofillData.error || 'LLM returned no field mappings';
-      await ExtensionLogger.log('ERROR', 'BACKGROUND', 'LLM_MAPPING_EMPTY', errorMsg);
+      const errorMsg = autofillData.error || 'LLM returned no matching field mappings for this form';
+      await ExtensionLogger.log('WARN', 'BACKGROUND', 'LLM_MAPPING_EMPTY', errorMsg, {
+        provider: options?.provider,
+        model: options?.model,
+        durationMs: autofillData.durationMs || llmDurationMs,
+        scannedFieldsCount: scanResponse.fields.length,
+        scannedFields: scanResponse.fields.map((f) => ({ id: f.id, label: f.label })),
+        hint: 'None of the form fields matched your profile in backend/profile.json.',
+      });
       await updateStatusState('error', { error: errorMsg });
       return { status: 'error', error: errorMsg };
     }
-
-    const mappedCount = Object.keys(autofillData.mappings).length;
-    await ExtensionLogger.log(
-      'SUCCESS',
-      'BACKGROUND',
-      'LLM_MAPPING_SUCCESS',
-      `LLM response received (${mappedCount} field mapping(s)): ${JSON.stringify(autofillData.mappings)}`,
-      {
-        provider: options?.provider,
-        model: options?.model,
-        mappings: autofillData.mappings,
-      }
-    );
 
     await updateStatusState('filling');
 
+    const fillStart = Date.now();
     const fillResponse = (await chrome.tabs.sendMessage(activeTab.id, {
       action: 'FILL_FIELDS',
       mappings: autofillData.mappings,
+      fields: scanResponse.fields,
     })) as { status: string; result?: FillResult; error?: string };
+    const fillDurationMs = Date.now() - fillStart;
 
     if (!fillResponse || fillResponse.status !== 'success' || !fillResponse.result) {
       const errorMsg = fillResponse?.error || 'Form filling failed in content script';
-      await ExtensionLogger.log('ERROR', 'BACKGROUND', 'DOM_FILL_FAIL', errorMsg);
+      await ExtensionLogger.log('ERROR', 'BACKGROUND', 'DOM_FILL_FAIL', errorMsg, {
+        mappings: autofillData.mappings,
+        tabId: activeTab.id,
+      });
       await updateStatusState('error', { error: errorMsg });
       return { status: 'error', error: errorMsg };
     }
 
-    const { filledCount, failedCount, filledFields, failedFields } = fillResponse.result;
+    const { filledCount, failedCount, skippedCount } = fillResponse.result;
 
-    const filledDetails: Record<string, string> = {};
-    if (Array.isArray(filledFields)) {
-      filledFields.forEach((fieldId) => {
-        filledDetails[fieldId] = autofillData.mappings[fieldId] || '(filled)';
-      });
-    }
+    const totalIssues = failedCount + skippedCount;
+    const finalState: AutofillState =
+      totalIssues === 0 ? 'done' : filledCount > 0 ? 'partial' : 'error';
+
+    const totalDurationMs = Date.now() - overallStart;
+    const effectiveLlmMs = autofillData.durationMs || llmDurationMs;
 
     await ExtensionLogger.log(
       'SUCCESS',
       'BACKGROUND',
-      'AUTOFILL_COMPLETE',
-      `Form filled successfully: ${filledCount} field(s) populated: ${JSON.stringify(filledDetails)}${failedCount > 0 ? `, ${failedCount} failed: [${failedFields.join(', ')}]` : ''}`,
+      'FORM_FILL_TIME',
+      `⏱️ Page Filled in ${(totalDurationMs / 1000).toFixed(2)}s (${totalDurationMs}ms) — LLM: ${(effectiveLlmMs / 1000).toFixed(2)}s | DOM Scan: ${scanDurationMs}ms | DOM Fill: ${fillDurationMs}ms (${filledCount} fields filled)`,
       {
+        pageUrl: activeTab.url,
+        pageTitle: activeTab.title,
+        totalDurationSeconds: Number((totalDurationMs / 1000).toFixed(2)),
+        totalDurationMs,
+        llmDurationMs: effectiveLlmMs,
+        scanDurationMs,
+        fillDurationMs,
         filledCount,
         failedCount,
-        filledFields: filledDetails,
-        failedFields,
-        mappings: autofillData.mappings,
-      }
+        skippedCount,
+      },
     );
 
-    await updateStatusState('done', { filledCount, failedCount });
-
-    return {
-      status: 'success',
+    await updateStatusState(finalState, {
       filledCount,
       failedCount,
+      skippedCount,
+      durationMs: totalDurationMs,
+      llmDurationMs: effectiveLlmMs,
+      scanDurationMs,
+      fillDurationMs,
+      error: totalIssues > 0 ? `${failedCount} field(s) failed, ${skippedCount} skipped` : undefined,
+    });
+
+    return {
+      status: totalIssues > 0 ? 'partial' : 'success',
+      filledCount,
+      failedCount,
+      skippedCount,
     };
   } catch (err) {
     const errorMsg = err instanceof Error ? err.message : String(err);
-    await ExtensionLogger.log('ERROR', 'BACKGROUND', 'AUTOFILL_EXCEPTION', errorMsg);
+    await ExtensionLogger.log('ERROR', 'BACKGROUND', 'AUTOFILL_EXCEPTION', errorMsg, {
+      errorName: err instanceof Error ? err.name : undefined,
+      errorMessage: errorMsg,
+      stack: err instanceof Error ? err.stack : undefined,
+      options,
+    });
     await updateStatusState('error', { error: errorMsg });
     return { status: 'error', error: errorMsg };
   }
@@ -223,6 +320,22 @@ if (typeof chrome !== 'undefined' && chrome.runtime?.onMessage) {
           autofillStatus: { currentState: 'idle' },
         });
       }
+      return true;
+    } else if (message?.action === 'RELAY_LOG' && message.entry) {
+      chrome.storage?.local?.get(['backendUrl']).then((stored) => {
+        const url = stored?.backendUrl || 'http://localhost:3456/logs';
+        fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(message.entry),
+        }).catch(() => {});
+      }).catch(() => {
+        fetch('http://localhost:3456/logs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(message.entry),
+        }).catch(() => {});
+      });
       return true;
     }
   });

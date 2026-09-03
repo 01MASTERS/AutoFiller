@@ -1,4 +1,4 @@
-import { FieldMetadata, UserProfile } from '@autofiller/shared';
+import { FieldMetadata, FieldMappingValue, UserProfile } from '@autofiller/shared';
 import { LLMOptions, LLMProvider, LLMProviderError } from './types.js';
 import { buildFieldMappingPrompt } from './promptBuilder.js';
 import { parseLLMJsonResponse } from './responseParser.js';
@@ -13,8 +13,8 @@ export class OllamaProvider implements LLMProvider {
   async mapFields(
     fields: FieldMetadata[],
     profile: UserProfile,
-    options?: LLMOptions
-  ): Promise<Record<string, string>> {
+    options?: LLMOptions,
+  ): Promise<Record<string, FieldMappingValue>> {
     const prompt = buildFieldMappingPrompt(fields, profile);
     const model = options?.model || 'llama3.2';
     const timeoutMs = options?.timeoutMs || 30000;
@@ -24,20 +24,40 @@ export class OllamaProvider implements LLMProvider {
       const response = await fetch(url, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           model,
           prompt: prompt.combinedPrompt,
           format: 'json',
-          stream: false
+          stream: false,
+          keep_alive: '30m',
+          options: {
+            temperature: 0.1,
+          },
         }),
-        signal: AbortSignal.timeout(timeoutMs)
+        signal: AbortSignal.timeout(timeoutMs),
       });
 
       if (!response.ok) {
+        const errorText = await response.text().catch(() => '');
+        let errorDetail = response.statusText;
+        try {
+          const parsed = JSON.parse(errorText);
+          if (parsed && typeof parsed.error === 'string') {
+            errorDetail = parsed.error;
+          }
+        } catch {
+          if (errorText) errorDetail = errorText;
+        }
+
+        let hint = '';
+        if (response.status === 404) {
+          hint = ` (Model "${model}" may not be pulled yet. Run: "ollama pull ${model}" in your terminal)`;
+        }
+
         throw new LLMProviderError(
-          `Ollama API returned HTTP status ${response.status}: ${response.statusText}`
+          `Ollama API returned HTTP ${response.status}: ${errorDetail}${hint}`,
         );
       }
 
@@ -46,7 +66,7 @@ export class OllamaProvider implements LLMProvider {
         throw new LLMProviderError('Ollama API returned an empty response payload');
       }
 
-      return parseLLMJsonResponse(data.response);
+      return parseLLMJsonResponse(data.response, fields);
     } catch (err) {
       if (err instanceof LLMProviderError) {
         throw err;
@@ -55,8 +75,8 @@ export class OllamaProvider implements LLMProvider {
         throw new LLMProviderError(`Ollama request timed out after ${timeoutMs}ms`, err);
       }
       throw new LLMProviderError(
-        `Ollama not reachable at ${this.host}. Ensure Ollama is running. (${err instanceof Error ? err.message : String(err)})`,
-        err
+        `Ollama not reachable at ${this.host}. Ensure Ollama daemon is running ("ollama serve"). Details: ${err instanceof Error ? err.message : String(err)}`,
+        err,
       );
     }
   }
@@ -72,9 +92,7 @@ export class OllamaProvider implements LLMProvider {
       });
 
       if (!response.ok) {
-        throw new LLMProviderError(
-          `Ollama tags API returned status ${response.status}`
-        );
+        throw new LLMProviderError(`Ollama tags API returned status ${response.status}`);
       }
 
       const data = (await response.json()) as { models?: Array<{ name: string }> };
@@ -86,7 +104,7 @@ export class OllamaProvider implements LLMProvider {
       if (err instanceof LLMProviderError) throw err;
       throw new LLMProviderError(
         `Ollama service not reachable at ${this.host}. Ensure Ollama is running. (${err instanceof Error ? err.message : String(err)})`,
-        err
+        err,
       );
     }
   }

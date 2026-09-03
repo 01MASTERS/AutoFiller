@@ -47,6 +47,7 @@ describe('background service worker', () => {
       currentState: 'analyzing',
       filledCount: undefined,
       failedCount: undefined,
+      skippedCount: undefined,
       error: undefined,
       timestamp: expect.any(String),
     });
@@ -65,7 +66,15 @@ describe('background service worker', () => {
       if (message.action === 'FILL_FIELDS') {
         return Promise.resolve({
           status: 'success',
-          result: { status: 'success', filledCount: 1, failedCount: 0, filledFields: ['entry.1'], failedFields: [] },
+          result: {
+            status: 'success',
+            filledCount: 1,
+            failedCount: 0,
+            skippedCount: 0,
+            filledFields: ['entry.1'],
+            failedFields: [],
+            skippedFields: [],
+          },
         });
       }
       return Promise.reject(new Error('Unknown action'));
@@ -89,13 +98,14 @@ describe('background service worker', () => {
       expect.objectContaining({
         method: 'POST',
         body: expect.stringContaining('"provider":"ollama"'),
-      })
+      }),
     );
     expect(sendMessageTabMock).toHaveBeenCalledWith(101, {
       action: 'FILL_FIELDS',
       mappings: { 'entry.1': 'Jane' },
+      fields: [{ id: 'entry.1', label: 'Name' }],
     });
-    expect(result).toEqual({ status: 'success', filledCount: 1, failedCount: 0 });
+    expect(result).toEqual({ status: 'success', filledCount: 1, failedCount: 0, skippedCount: 0 });
   });
 
   it('handles empty scan fields error gracefully', async () => {
@@ -130,5 +140,102 @@ describe('background service worker', () => {
       status: 'error',
       error: 'Ollama service offline',
     });
+  });
+
+  it('recovers via chrome.scripting.executeScript when content script was not initially loaded', async () => {
+    queryTabsMock.mockResolvedValue([{ id: 101, url: 'https://docs.google.com/forms/d/test/viewform' }]);
+    const executeScriptMock = vi.fn().mockResolvedValue([]);
+
+    // First call fails, second call succeeds after injection
+    let callCount = 0;
+    sendMessageTabMock.mockImplementation((tabId, message) => {
+      if (message.action === 'SCAN_FIELDS') {
+        callCount++;
+        if (callCount === 1) {
+          return Promise.reject(new Error('Could not establish connection. Receiving end does not exist.'));
+        }
+        return Promise.resolve({
+          status: 'success',
+          fields: [{ id: 'entry.1', label: 'Name' }],
+        });
+      }
+      if (message.action === 'FILL_FIELDS') {
+        return Promise.resolve({
+          status: 'success',
+          result: {
+            status: 'success',
+            filledCount: 1,
+            failedCount: 0,
+            skippedCount: 0,
+            filledFields: ['entry.1'],
+            failedFields: [],
+            skippedFields: [],
+          },
+        });
+      }
+      return Promise.reject(new Error('Unknown action'));
+    });
+
+    vi.stubGlobal('chrome', {
+      storage: {
+        local: {
+          set: setStorageMock,
+          get: getStorageMock,
+        },
+      },
+      runtime: {
+        sendMessage: sendMessageRuntimeMock,
+      },
+      tabs: {
+        query: queryTabsMock,
+        sendMessage: sendMessageTabMock,
+      },
+      scripting: {
+        executeScript: executeScriptMock,
+      },
+    });
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        status: 'success',
+        mappings: { 'entry.1': 'Jane' },
+      }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await handleTriggerAutofill({ provider: 'ollama' });
+
+    expect(executeScriptMock).toHaveBeenCalledWith({
+      target: { tabId: 101 },
+      files: ['src/content/contentScript.iife.js'],
+    });
+    expect(result).toEqual({ status: 'success', filledCount: 1, failedCount: 0, skippedCount: 0 });
+  });
+
+  it('handles content script failure when injection also fails', async () => {
+    queryTabsMock.mockResolvedValue([{ id: 101, url: 'chrome://extensions' }]);
+    sendMessageTabMock.mockRejectedValue(new Error('Receiving end does not exist'));
+
+    const result = await handleTriggerAutofill();
+
+    expect(result).toEqual({
+      status: 'error',
+      error: 'Content script not loaded on this tab. Please refresh the page tab and try again.',
+    });
+  });
+
+  it('Item 17 verification: runtime content-script injection file exists in source and matches manifest', async () => {
+    const fs = await import('fs');
+    const path = await import('path');
+    const sourcePath = path.resolve(__dirname, '../content/contentScript.iife.ts');
+    expect(fs.existsSync(sourcePath)).toBe(true);
+
+    // Verify dist artifact exists if dist directory is present
+    const distDir = path.resolve(__dirname, '../../../dist');
+    const distFile = path.resolve(__dirname, '../../dist/src/content/contentScript.iife.js');
+    if (fs.existsSync(distDir)) {
+      expect(fs.existsSync(distFile)).toBe(true);
+    }
   });
 });

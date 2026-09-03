@@ -20,9 +20,66 @@ export function updateBackendStatusUI(status: 'online' | 'offline' | 'checking')
   }
 }
 
+export function formatPopupErrorMessage(rawError?: string): string {
+  if (!rawError) return 'Auto-fill failed. Check Debug Logs.';
+
+  const err = String(rawError).trim();
+
+  if (/quota|429|resource_exhausted|rate.?limit/i.test(err)) {
+    return 'Gemini API quota exceeded (429). See Debug Logs for details.';
+  }
+  if (/api_key_invalid|invalid api key|api key not valid|401|403|unauthorized/i.test(err)) {
+    return 'Gemini API key invalid or unauthorized. Check settings.';
+  }
+  if (/model.*not found|model.*not supported|404/i.test(err)) {
+    return 'Selected AI model not found. Check settings or Debug Logs.';
+  }
+  if (/ollama.*(offline|not reachable|connection refused|11434)/i.test(err)) {
+    return 'Ollama offline. Run "ollama serve" or check OLLAMA_HOST.';
+  }
+  if (/backend.*(offline|connection|cannot connect|failed to fetch|3456)/i.test(err)) {
+    return 'Backend server offline (port 3456). Start with start.bat.';
+  }
+  if (/content script not loaded/i.test(err)) {
+    return 'Page not loaded. Refresh this tab and try again.';
+  }
+  if (/no fillable text fields|scan_no_fields/i.test(err)) {
+    return 'No fillable text fields found on this form.';
+  }
+  if (/zero.*mapping|no matching field mappings/i.test(err)) {
+    return 'No matching profile data found for this form.';
+  }
+
+  // Strip embedded URLs, stack traces, JSON brackets
+  let clean = err
+    .replace(/\[GoogleGenerativeAI Error\]:.*$/i, '')
+    .replace(/\[\s*\{.*$/s, '')
+    .replace(/https?:\/\/\S+/g, '')
+    .replace(/[{}[\]"]/g, '')
+    .trim();
+
+  const firstSentence = clean.split(/[.\n]/)[0]?.trim();
+  clean = firstSentence || clean;
+
+  if (clean.length > 70) {
+    clean = clean.substring(0, 70).trim() + '...';
+  }
+
+  return clean ? `${clean}. (See Debug Logs)` : 'Auto-fill failed. See Debug Logs.';
+}
+
 export function updateStatusBannerUI(
-  state: 'idle' | 'analyzing' | 'filling' | 'done' | 'error',
-  details?: { filledCount?: number; failedCount?: number; error?: string }
+  state: 'idle' | 'analyzing' | 'filling' | 'done' | 'partial' | 'error',
+  details?: {
+    filledCount?: number;
+    failedCount?: number;
+    skippedCount?: number;
+    error?: string;
+    durationMs?: number;
+    llmDurationMs?: number;
+    scanDurationMs?: number;
+    fillDurationMs?: number;
+  },
 ) {
   const banner = document.getElementById('status-banner');
   const textEl = document.getElementById('status-text');
@@ -33,27 +90,37 @@ export function updateStatusBannerUI(
   switch (state) {
     case 'analyzing':
       textEl.textContent = 'Analyzing form & matching fields...';
+      banner.removeAttribute('title');
       break;
     case 'filling':
       textEl.textContent = 'Filling form fields...';
+      banner.removeAttribute('title');
       break;
-    case 'done':
-      textEl.textContent = `Auto-filled ${details?.filledCount || 0} fields!`;
+    case 'done': {
+      const timeStr = details?.durationMs
+        ? ` in ${(details.durationMs / 1000).toFixed(1)}s`
+        : '';
+      textEl.textContent = `Filled ${details?.filledCount || 0} fields${timeStr}!`;
+      banner.removeAttribute('title');
       break;
+    }
+    case 'partial': {
+      const timeStr = details?.durationMs
+        ? ` in ${(details.durationMs / 1000).toFixed(1)}s`
+        : '';
+      textEl.textContent = `Filled ${details?.filledCount || 0} fields${timeStr} (${details?.failedCount || 0} failed)`;
+      banner.title = 'Click to open Debug Log Dashboard';
+      break;
+    }
     case 'error': {
-      const rawError = details?.error || 'Auto-fill failed';
-      if (rawError.includes('Ollama') || rawError.includes('11434')) {
-        textEl.textContent = 'Ollama service offline. Run "ollama run llama3.2" to start.';
-      } else if (rawError.includes('3456') || rawError.includes('Failed to fetch') || rawError.includes('Backend')) {
-        textEl.textContent = 'Backend server offline. Start server with "npm run dev".';
-      } else {
-        textEl.textContent = rawError;
-      }
+      textEl.textContent = formatPopupErrorMessage(details?.error);
+      banner.title = 'Click to open Debug Log Dashboard';
       break;
     }
     case 'idle':
     default:
       textEl.textContent = 'Ready to auto-fill form fields';
+      banner.removeAttribute('title');
       break;
   }
 }
@@ -141,7 +208,7 @@ export function toggleProviderSettingsUI(provider: 'ollama' | 'gemini') {
 export async function fetchProviderModels(
   provider: 'ollama' | 'gemini',
   apiKey?: string,
-  preferredModel?: string
+  preferredModel?: string,
 ): Promise<string[]> {
   const statusMsgEl = document.getElementById(`${provider}-status-msg`);
   const refreshBtn = document.getElementById(`refresh-${provider}-btn`);
@@ -160,7 +227,7 @@ export async function fetchProviderModels(
       headers['x-gemini-api-key'] = apiKey;
     }
 
-    const url = `http://localhost:3456/models?provider=${provider}${apiKey ? `&apiKey=${encodeURIComponent(apiKey)}` : ''}`;
+    const url = `http://localhost:3456/models?provider=${provider}`;
     const res = await fetch(url, { headers });
 
     if (!res.ok) {
@@ -195,7 +262,7 @@ export async function fetchProviderModels(
 export function populateModelDropdown(
   provider: 'ollama' | 'gemini',
   models: string[],
-  preferredModel?: string
+  preferredModel?: string,
 ) {
   const selectEl = document.getElementById(`${provider}-model-select`) as HTMLSelectElement | null;
   if (!selectEl) return;
@@ -263,7 +330,12 @@ export function bindPopupEvents() {
   const openLogsBtn = document.getElementById('open-logs-btn');
 
   openLogsBtn?.addEventListener('click', () => {
-    ExtensionLogger.log('INFO', 'EXTENSION_POPUP', 'LOGS_UI_OPEN', 'User opened Debug Log Dashboard');
+    ExtensionLogger.log(
+      'INFO',
+      'EXTENSION_POPUP',
+      'LOGS_UI_OPEN',
+      'User opened Debug Log Dashboard',
+    );
     if (typeof chrome !== 'undefined' && chrome.tabs?.create) {
       chrome.tabs.create({ url: 'http://localhost:3456/logs-ui' });
     } else if (typeof window !== 'undefined') {
@@ -271,12 +343,31 @@ export function bindPopupEvents() {
     }
   });
 
+  const statusBanner = document.getElementById('status-banner');
+  statusBanner?.addEventListener('click', () => {
+    if (statusBanner.classList.contains('error')) {
+      if (typeof chrome !== 'undefined' && chrome.tabs?.create) {
+        chrome.tabs.create({ url: 'http://localhost:3456/logs-ui' });
+      } else if (typeof window !== 'undefined') {
+        window.open('http://localhost:3456/logs-ui', '_blank');
+      }
+    }
+  });
+
   providerSelect?.addEventListener('change', async () => {
     const settings = await saveSettings();
-    ExtensionLogger.log('INFO', 'EXTENSION_POPUP', 'PROVIDER_SWITCH', `Switched provider to ${settings.provider}`);
+    ExtensionLogger.log(
+      'INFO',
+      'EXTENSION_POPUP',
+      'PROVIDER_SWITCH',
+      `Switched provider to ${settings.provider}`,
+    );
 
-    const selectEl = document.getElementById(`${settings.provider}-model-select`) as HTMLSelectElement | null;
-    const activeModel = settings.provider === 'gemini' ? settings.geminiModel : settings.ollamaModel;
+    const selectEl = document.getElementById(
+      `${settings.provider}-model-select`,
+    ) as HTMLSelectElement | null;
+    const activeModel =
+      settings.provider === 'gemini' ? settings.geminiModel : settings.ollamaModel;
 
     if (!selectEl || selectEl.options.length <= 1) {
       if (settings.provider === 'ollama') {
@@ -289,12 +380,22 @@ export function bindPopupEvents() {
 
   ollamaSelect?.addEventListener('change', async () => {
     const settings = await saveSettings();
-    ExtensionLogger.log('INFO', 'EXTENSION_POPUP', 'MODEL_CHANGE', `Selected Ollama model: ${settings.ollamaModel}`);
+    ExtensionLogger.log(
+      'INFO',
+      'EXTENSION_POPUP',
+      'MODEL_CHANGE',
+      `Selected Ollama model: ${settings.ollamaModel}`,
+    );
   });
 
   geminiSelect?.addEventListener('change', async () => {
     const settings = await saveSettings();
-    ExtensionLogger.log('INFO', 'EXTENSION_POPUP', 'MODEL_CHANGE', `Selected Gemini model: ${settings.geminiModel}`);
+    ExtensionLogger.log(
+      'INFO',
+      'EXTENSION_POPUP',
+      'MODEL_CHANGE',
+      `Selected Gemini model: ${settings.geminiModel}`,
+    );
   });
 
   geminiInput?.addEventListener('blur', async () => {
@@ -319,9 +420,15 @@ export function bindPopupEvents() {
   autofillBtn?.addEventListener('click', async () => {
     updateStatusBannerUI('analyzing');
     const settings = await saveSettings();
-    const activeModel = settings.provider === 'gemini' ? settings.geminiModel : settings.ollamaModel;
+    const activeModel =
+      settings.provider === 'gemini' ? settings.geminiModel : settings.ollamaModel;
 
-    ExtensionLogger.log('INFO', 'EXTENSION_POPUP', 'TRIGGER_AUTOFILL_CLICK', `Auto-fill form clicked with provider: ${settings.provider}, model: ${activeModel}`);
+    ExtensionLogger.log(
+      'INFO',
+      'EXTENSION_POPUP',
+      'TRIGGER_AUTOFILL_CLICK',
+      `Auto-fill form clicked with provider: ${settings.provider}, model: ${activeModel}`,
+    );
 
     if (typeof chrome !== 'undefined' && chrome.runtime?.sendMessage) {
       chrome.runtime.sendMessage({
@@ -341,7 +448,12 @@ export function bindPopupEvents() {
         updateStatusBannerUI(message.currentState, {
           filledCount: message.filledCount,
           failedCount: message.failedCount,
+          skippedCount: message.skippedCount,
           error: message.error,
+          durationMs: message.durationMs,
+          llmDurationMs: message.llmDurationMs,
+          scanDurationMs: message.scanDurationMs,
+          fillDurationMs: message.fillDurationMs,
         });
       }
     });
@@ -354,6 +466,20 @@ if (typeof document !== 'undefined') {
     const isOnline = await checkBackendHealth();
     fetchProfilePreview();
     bindPopupEvents();
+
+    if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+      try {
+        const stored = await chrome.storage.local.get(['autofillStatus']);
+        if (stored.autofillStatus) {
+          updateStatusBannerUI(
+            stored.autofillStatus.currentState,
+            stored.autofillStatus,
+          );
+        }
+      } catch {
+        // Ignore storage errors on init
+      }
+    }
 
     if (isOnline) {
       if (settings.provider === 'ollama') {

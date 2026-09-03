@@ -3,7 +3,7 @@
   "project": "AutoFiller",
   "created": "2026-08-13",
   "workflow": {
-    "auto_commit": true,
+    "auto_commit": false,
     "commit_prefix": "gsd",
     "require_tests": true,
     "require_review": false,

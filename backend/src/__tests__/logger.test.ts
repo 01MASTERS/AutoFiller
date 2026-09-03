@@ -41,14 +41,12 @@ describe('Logger Service & /logs API', () => {
   });
 
   it('POST /logs creates a log entry', async () => {
-    const res = await request(app)
-      .post('/logs')
-      .send({
-        level: 'SUCCESS',
-        source: 'EXTENSION_POPUP',
-        tag: 'SETTINGS_SAVED',
-        message: 'Settings saved successfully',
-      });
+    const res = await request(app).post('/logs').send({
+      level: 'SUCCESS',
+      source: 'EXTENSION_POPUP',
+      tag: 'SETTINGS_SAVED',
+      message: 'Settings saved successfully',
+    });
 
     expect(res.status).toBe(200);
     expect(res.body.status).toBe('success');
@@ -57,7 +55,12 @@ describe('Logger Service & /logs API', () => {
 
   it('GET /logs returns filtered logs', async () => {
     logger.addLog({ level: 'ERROR', source: 'LLM_GATEWAY', tag: 'ERR', message: 'Ollama down' });
-    logger.addLog({ level: 'SUCCESS', source: 'BACKEND_API', tag: 'OK', message: 'Profile loaded' });
+    logger.addLog({
+      level: 'SUCCESS',
+      source: 'BACKEND_API',
+      tag: 'OK',
+      message: 'Profile loaded',
+    });
 
     const res = await request(app).get('/logs?level=ERROR');
     expect(res.status).toBe(200);

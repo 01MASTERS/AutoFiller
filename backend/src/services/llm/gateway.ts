@@ -1,4 +1,4 @@
-import { FieldMetadata, UserProfile } from '@autofiller/shared';
+import { FieldMetadata, FieldMappingValue, UserProfile } from '@autofiller/shared';
 import { LLMOptions, LLMParseError, LLMProvider, LLMProviderError } from './types.js';
 import { OllamaProvider } from './ollamaProvider.js';
 import { GeminiProvider } from './geminiProvider.js';
@@ -16,8 +16,8 @@ export class LLMGateway {
     providerName: 'ollama' | 'gemini',
     fields: FieldMetadata[],
     profile: UserProfile,
-    options?: LLMOptions
-  ): Promise<Record<string, string>> {
+    options?: LLMOptions,
+  ): Promise<Record<string, FieldMappingValue>> {
     const provider = providerName === 'gemini' ? this.geminiProvider : this.ollamaProvider;
     const maxRetries = 2;
     let lastError: unknown;
@@ -41,14 +41,12 @@ export class LLMGateway {
 
   async getAvailableModels(
     providerName: 'ollama' | 'gemini',
-    options?: LLMOptions
+    options?: LLMOptions,
   ): Promise<string[]> {
     const provider = providerName === 'gemini' ? this.geminiProvider : this.ollamaProvider;
     if (provider.fetchAvailableModels) {
       return await provider.fetchAvailableModels(options);
     }
-    return providerName === 'gemini'
-      ? ['gemini-1.5-flash', 'gemini-1.5-pro']
-      : ['llama3.2'];
+    return providerName === 'gemini' ? ['gemini-1.5-flash', 'gemini-1.5-pro'] : ['llama3.2'];
   }
 }

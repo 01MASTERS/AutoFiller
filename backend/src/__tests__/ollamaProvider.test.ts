@@ -18,7 +18,7 @@ describe('OllamaProvider', () => {
   it('successfully calls Ollama REST API and returns mapping', async () => {
     const mockResponse = {
       ok: true,
-      json: async () => ({ response: '{"entry.1": "Alice"}' })
+      json: async () => ({ response: '{"entry.1": "Alice"}' }),
     };
 
     const fetchMock = vi.fn().mockResolvedValue(mockResponse);
@@ -32,8 +32,8 @@ describe('OllamaProvider', () => {
       expect.objectContaining({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: expect.stringContaining('"model":"llama3.2"')
-      })
+        body: expect.stringContaining('"model":"llama3.2"'),
+      }),
     );
     expect(result).toEqual({ 'entry.1': 'Alice' });
   });
@@ -50,7 +50,7 @@ describe('OllamaProvider', () => {
     const mockResponse = {
       ok: false,
       status: 500,
-      statusText: 'Internal Server Error'
+      statusText: 'Internal Server Error',
     };
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(mockResponse));
 

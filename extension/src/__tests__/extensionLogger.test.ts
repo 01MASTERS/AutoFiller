@@ -12,7 +12,7 @@ describe('ExtensionLogger Utility', () => {
       'EXTENSION_POPUP',
       'TEST_TAG',
       'Test log message',
-      { key: 'val' }
+      { key: 'val' },
     );
 
     expect(entry.id).toContain('ext-');
@@ -33,7 +33,7 @@ describe('ExtensionLogger Utility', () => {
       'http://localhost:3456/logs',
       expect.objectContaining({
         method: 'POST',
-      })
+      }),
     );
   });
 });

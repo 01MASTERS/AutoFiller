@@ -26,7 +26,10 @@ describe('GET /models API', () => {
   });
 
   it('returns Gemini models when provider=gemini and API key provided', async () => {
-    vi.spyOn(mockGateway, 'getAvailableModels').mockResolvedValue(['gemini-1.5-flash', 'gemini-1.5-pro']);
+    vi.spyOn(mockGateway, 'getAvailableModels').mockResolvedValue([
+      'gemini-1.5-flash',
+      'gemini-1.5-pro',
+    ]);
 
     const res = await request(app)
       .get('/models?provider=gemini')
@@ -42,7 +45,7 @@ describe('GET /models API', () => {
 
   it('handles LLMProviderError and returns 502 with error message', async () => {
     vi.spyOn(mockGateway, 'getAvailableModels').mockRejectedValue(
-      new LLMProviderError('Ollama service offline')
+      new LLMProviderError('Ollama service offline'),
     );
 
     const res = await request(app).get('/models?provider=ollama');

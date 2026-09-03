@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { FieldMetadata, UserProfile } from '@autofiller/shared';
+import { FieldMetadata, FieldMappingValue, UserProfile } from '@autofiller/shared';
 import { LLMOptions, LLMProvider, LLMProviderError } from './types.js';
 import { buildFieldMappingPrompt } from './promptBuilder.js';
 import { parseLLMJsonResponse } from './responseParser.js';
@@ -8,12 +8,12 @@ export class GeminiProvider implements LLMProvider {
   async mapFields(
     fields: FieldMetadata[],
     profile: UserProfile,
-    options?: LLMOptions
-  ): Promise<Record<string, string>> {
+    options?: LLMOptions,
+  ): Promise<Record<string, FieldMappingValue>> {
     const apiKey = options?.apiKey || process.env.GEMINI_API_KEY;
     if (!apiKey) {
       throw new LLMProviderError(
-        'Gemini API key not provided. Set GEMINI_API_KEY or pass key in settings.'
+        'Gemini API key not provided. Set GEMINI_API_KEY or pass key in settings.',
       );
     }
 
@@ -25,9 +25,9 @@ export class GeminiProvider implements LLMProvider {
     const model = ai.getGenerativeModel({
       model: modelName,
       generationConfig: {
-        responseMimeType: 'application/json'
+        responseMimeType: 'application/json',
       },
-      systemInstruction: prompt.systemPrompt
+      systemInstruction: prompt.systemPrompt,
     });
 
     try {
@@ -42,44 +42,59 @@ export class GeminiProvider implements LLMProvider {
       });
 
       const result = await Promise.race([generatePromise, timeoutPromise]);
+
+      if (result.response.promptFeedback?.blockReason) {
+        throw new LLMProviderError(
+          `Gemini blocked the prompt (Block reason: ${result.response.promptFeedback.blockReason})`,
+          result.response.promptFeedback,
+        );
+      }
+
       const responseText = result.response.text();
 
       if (!responseText) {
         throw new LLMProviderError('Gemini API returned an empty response text');
       }
 
-      return parseLLMJsonResponse(responseText);
+      return parseLLMJsonResponse(responseText, fields);
     } catch (err) {
       if (err instanceof LLMProviderError) {
         throw err;
       }
-      throw new LLMProviderError(
-        `Gemini API request failed: ${err instanceof Error ? err.message : String(err)}`,
-        err
-      );
+      const rawMsg = err instanceof Error ? err.message : String(err);
+      let classification = 'Gemini API request failed';
+      if (/quota|429|resource_exhausted|rate.?limit/i.test(rawMsg)) {
+        classification = 'Gemini Quota Exceeded (429 Rate Limit) - Google AI Studio quota exhausted. Wait a minute or check your quota limits at aistudio.google.com';
+      } else if (/api_key_invalid|invalid api key|api key not valid|401|403|unauthorized/i.test(rawMsg)) {
+        classification = 'Gemini API Key Invalid or Unauthorized - Check your Gemini API Key in extension settings';
+      } else if (/not found|model.*not supported|404/i.test(rawMsg)) {
+        classification = `Gemini Model "${modelName}" Not Found - Try switching to gemini-1.5-flash or gemini-2.0-flash`;
+      }
+      throw new LLMProviderError(classification, err);
     }
   }
 
   async fetchAvailableModels(options?: LLMOptions): Promise<string[]> {
     const apiKey = options?.apiKey || process.env.GEMINI_API_KEY;
     if (!apiKey) {
-      throw new LLMProviderError(
-        'Gemini API key is required to list available models.'
-      );
+      throw new LLMProviderError('Gemini API key is required to list available models.');
     }
 
     const timeoutMs = options?.timeoutMs || 10000;
-    const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(apiKey)}`;
+    const url = 'https://generativelanguage.googleapis.com/v1beta/models';
 
     try {
       const response = await fetch(url, {
         method: 'GET',
+        headers: {
+          'x-goog-api-key': apiKey,
+        },
         signal: AbortSignal.timeout(timeoutMs),
       });
 
       if (!response.ok) {
         throw new LLMProviderError(
-          `Gemini API returned status ${response.status}: Invalid API Key or access denied`
+          `Gemini API returned status ${response.status}: Invalid API Key or access denied`,
         );
       }
 
@@ -89,9 +104,7 @@ export class GeminiProvider implements LLMProvider {
 
       if (Array.isArray(data?.models) && data.models.length > 0) {
         const generationModels = data.models
-          .filter((m) =>
-            m.supportedGenerationMethods?.includes('generateContent')
-          )
+          .filter((m) => m.supportedGenerationMethods?.includes('generateContent'))
           .map((m) => m.name.replace(/^models\//, ''));
 
         if (generationModels.length > 0) {
@@ -104,7 +117,7 @@ export class GeminiProvider implements LLMProvider {
       if (err instanceof LLMProviderError) throw err;
       throw new LLMProviderError(
         `Failed to fetch Gemini models: ${err instanceof Error ? err.message : String(err)}`,
-        err
+        err,
       );
     }
   }

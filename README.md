@@ -112,7 +112,13 @@ The local backend will run at `http://localhost:3456`.
 ollama run llama3.2
 ```
 
-### 5. Load Extension in Chrome
+### 5. Build and Load Extension in Chrome
+
+> If you started AutoFiller using `start.bat`, `extension/dist` is already built for you.
+> If running manually, build the extension first so `extension/dist/manifest.json` is generated:
+> ```bash
+> npm run build -w extension
+> ```
 
 1. Open Chrome and navigate to `chrome://extensions`.
 2. Enable **Developer mode** (toggle switch in the top right).
@@ -160,11 +166,13 @@ npm run build
 
 ---
 
-## Troubleshooting
+## Troubleshooting & Edge Cases
 
-- **Backend Offline in Popup**: Ensure backend server is running on port 3456 (`npm run dev -w backend`).
+- **Edge Cases & Limitations Guide**: See [EDGE_CASES.md](./EDGE_CASES.md) for an in-depth catalog of form quirks, DOM edge cases, and the step-by-step debugging playbook.
+- **Backend Offline in Popup**: Ensure backend server is running on port 3456 (`npm run dev -w backend` or `start.bat`).
 - **Ollama Error**: Ensure Ollama is installed and running (`ollama run llama3.2`).
 - **Gemini Error**: Verify your Gemini API key in the extension popup settings.
+- **Debug Logs**: Open `http://localhost:3456/logs-ui` or click "Open Debug Logs" in the popup to inspect live scan, LLM mapping, and DOM filling logs.
 
 ---
 
