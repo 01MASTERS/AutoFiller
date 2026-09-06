@@ -587,6 +587,121 @@ describe('fillFormFields', () => {
     expect(indiaOption.getAttribute('aria-selected')).toBe('true');
   });
 
+  it('Google Forms dropdown: clicks visible trigger instead of hidden option, hovers and selects option, and clears error banner', async () => {
+    document.body.innerHTML = `
+      <div role="listitem" class="QrToBd N2RpBe hasError" data-params="%.@.[999,&quot;Country&quot;]">
+        <div role="heading" class="M7eMe">Country</div>
+        <div class="quantumWizMenuPaperselectEl" role="listbox" data-autofiller-id="gform-country" aria-expanded="false" tabindex="0">
+          <div class="exportSelectPopup OA0qNb" style="display: none;">
+            <div role="option" class="quantumWizMenuPaperselectOption" data-value="" aria-selected="true" tabindex="0">
+              <span class="quantumWizMenuPaperselectContent">Choose</span>
+            </div>
+            <div role="option" class="quantumWizMenuPaperselectOption" data-value="United States" aria-selected="false" tabindex="-1">
+              <span class="quantumWizMenuPaperselectContent">United States</span>
+            </div>
+            <div role="option" class="quantumWizMenuPaperselectOption" data-value="India" aria-selected="false" tabindex="-1">
+              <span class="quantumWizMenuPaperselectContent">India</span>
+            </div>
+          </div>
+          <div class="quantumWizMenuPaperselectDropDown">
+            <span class="vRMGwf oJeWuf">Choose</span>
+          </div>
+        </div>
+        <input type="hidden" name="entry.999" value="" />
+        <div class="RDeBda" role="alert">This is a required question</div>
+      </div>
+    `;
+
+    const listbox = document.querySelector('[role="listbox"]') as HTMLElement;
+    const popup = document.querySelector('.exportSelectPopup') as HTMLElement;
+    const triggerSpan = document.querySelector('.quantumWizMenuPaperselectDropDown .vRMGwf') as HTMLElement;
+    const placeholderOption = document.querySelector('[role="option"][data-value=""]') as HTMLElement;
+    const indiaOption = document.querySelector('[role="option"][data-value="India"]') as HTMLElement;
+    const hiddenInput = document.querySelector('input[name="entry.999"]') as HTMLInputElement;
+
+    const triggerClickSpy = vi.fn();
+    const placeholderClickSpy = vi.fn();
+    const hoverSpy = vi.fn();
+    const indiaClickSpy = vi.fn();
+
+    // Trigger should open the popup
+    triggerSpan.addEventListener('click', () => {
+      triggerClickSpy();
+      listbox.setAttribute('aria-expanded', 'true');
+      popup.style.display = 'block';
+    });
+
+    // Placeholder option should NOT receive click to open
+    placeholderOption.addEventListener('click', () => {
+      placeholderClickSpy();
+    });
+
+    // India option should receive hover before click
+    indiaOption.addEventListener('pointerenter', () => hoverSpy());
+    indiaOption.addEventListener('mouseenter', () => hoverSpy());
+    indiaOption.addEventListener('click', () => {
+      indiaClickSpy();
+      indiaOption.setAttribute('aria-selected', 'true');
+      listbox.setAttribute('aria-expanded', 'false');
+      popup.style.display = 'none';
+      hiddenInput.value = 'India';
+      triggerSpan.textContent = 'India';
+    });
+
+    const fields: FieldMetadata[] = [makeField({
+      id: 'gform-country',
+      controlType: 'dropdown',
+      selectionMode: 'single',
+    })];
+
+    const result = await fillFormFields({ 'gform-country': 'India' }, fields, document);
+
+    expect(result.status).toBe('success');
+    expect(triggerClickSpy).toHaveBeenCalled();
+    expect(placeholderClickSpy).not.toHaveBeenCalled();
+    expect(hoverSpy).toHaveBeenCalled();
+    expect(indiaClickSpy).toHaveBeenCalled();
+    expect(indiaOption.getAttribute('aria-selected')).toBe('true');
+    expect(placeholderOption.getAttribute('aria-selected')).toBe('false');
+    expect(hiddenInput.value).toBe('India');
+    expect(triggerSpan.textContent).toBe('India');
+    expect(document.querySelector('.RDeBda')).toBeNull();
+    expect(document.querySelector('.QrToBd')?.classList.contains('hasError')).toBe(false);
+  });
+
+  it('simulateFullClick: dispatches pointerdown and mousedown with button 0 and buttons 1', async () => {
+    document.body.innerHTML = `
+      <div role="listbox" data-autofiller-id="test-box">
+        <div role="option" data-value="Option A">Option A</div>
+      </div>
+    `;
+
+    const option = document.querySelector('[role="option"]') as HTMLElement;
+    let downButton = -1;
+    let downButtons = -1;
+    let upButtons = -1;
+
+    option.addEventListener('mousedown', (e) => {
+      downButton = e.button;
+      downButtons = e.buttons;
+    });
+    option.addEventListener('mouseup', (e) => {
+      upButtons = e.buttons;
+    });
+
+    const fields: FieldMetadata[] = [makeField({
+      id: 'test-box',
+      controlType: 'dropdown',
+      selectionMode: 'single',
+    })];
+
+    await fillFormFields({ 'test-box': 'Option A' }, fields, document);
+
+    expect(downButton).toBe(0);
+    expect(downButtons).toBe(1);
+    expect(upButtons).toBe(0);
+  });
+
   it('Radio group: triggers real click and selects radio option', async () => {
     document.body.innerHTML = `
       <div role="listitem" class="QrToBd">

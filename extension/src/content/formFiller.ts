@@ -31,36 +31,72 @@ function dispatchFormEvents(el: Element, events: string[] = ['input', 'change', 
 }
 
 /**
- * Simulates a full realistic pointer and mouse click sequence.
+ * Simulates a full realistic pointer and mouse click sequence with accurate coordinates.
  * Modern UI frameworks (such as Google Closure in Google Forms) rely on pointerdown/mousedown
- * to set internal state before the click event executes.
+ * with valid coordinates and button flags to register active items and distinguish inside vs outside clicks.
  */
-function simulateFullClick(el: HTMLElement): void {
+function simulateFullClick(el: HTMLElement, opts?: { simulateHover?: boolean }): void {
   const win = el.ownerDocument?.defaultView || window;
-  const eventInit: MouseEventInit = {
+
+  try {
+    if (typeof el.scrollIntoView === 'function') {
+      el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    }
+  } catch {}
+
+  const rect =
+    typeof el.getBoundingClientRect === 'function'
+      ? el.getBoundingClientRect()
+      : { left: 0, top: 0, width: 0, height: 0 };
+
+  const clientX = Math.round(rect.left + (rect.width ? rect.width / 2 : 10));
+  const clientY = Math.round(rect.top + (rect.height ? rect.height / 2 : 10));
+
+  const baseInit: PointerEventInit = {
     bubbles: true,
     cancelable: true,
-    view: win,
+    composed: true,
+    clientX,
+    clientY,
+    screenX: clientX,
+    screenY: clientY,
+    isPrimary: true,
+    pointerId: 1,
+    pointerType: 'mouse',
   };
 
+  // Dispatch hover / over sequence if requested (required by Closure MenuItem to activate highlightedItem_)
+  if (opts?.simulateHover) {
+    try {
+      if (typeof PointerEvent !== 'undefined') {
+        el.dispatchEvent(new PointerEvent('pointerover', { ...baseInit, button: 0, buttons: 0 }));
+        el.dispatchEvent(new PointerEvent('pointerenter', { ...baseInit, button: 0, buttons: 0 }));
+      }
+    } catch {}
+    try {
+      el.dispatchEvent(new MouseEvent('mouseover', { ...baseInit, button: 0, buttons: 0 }));
+      el.dispatchEvent(new MouseEvent('mouseenter', { ...baseInit, button: 0, buttons: 0 }));
+    } catch {}
+  }
+
   try {
     if (typeof PointerEvent !== 'undefined') {
-      el.dispatchEvent(new PointerEvent('pointerdown', eventInit));
+      el.dispatchEvent(new PointerEvent('pointerdown', { ...baseInit, button: 0, buttons: 1 }));
     }
   } catch {}
 
   try {
-    el.dispatchEvent(new MouseEvent('mousedown', eventInit));
+    el.dispatchEvent(new MouseEvent('mousedown', { ...baseInit, button: 0, buttons: 1 }));
   } catch {}
 
   try {
     if (typeof PointerEvent !== 'undefined') {
-      el.dispatchEvent(new PointerEvent('pointerup', eventInit));
+      el.dispatchEvent(new PointerEvent('pointerup', { ...baseInit, button: 0, buttons: 0 }));
     }
   } catch {}
 
   try {
-    el.dispatchEvent(new MouseEvent('mouseup', eventInit));
+    el.dispatchEvent(new MouseEvent('mouseup', { ...baseInit, button: 0, buttons: 0 }));
   } catch {}
 
   el.click();
@@ -487,13 +523,50 @@ function fillNativeDropdown(
 }
 
 /**
- * Fills an ARIA listbox dropdown by opening it, clicking the matching option with full event simulation,
- * and synchronizing framework state if needed for reliable submission.
+ * Resolves the trigger element to open a closed dropdown.
+ * Crucially avoids selecting options inside the popup menu itself (e.g. [role="option"]).
+ */
+function findDropdownTrigger(listbox: HTMLElement): HTMLElement {
+  const vRmgwf = listbox.querySelector<HTMLElement>('.vRMGwf');
+  if (vRmgwf && !vRmgwf.closest('[role="option"], .OA0qNb, .exportSelectPopup')) {
+    return vRmgwf;
+  }
+  const candidates = Array.from(
+    listbox.querySelectorAll<HTMLElement>(
+      '.quantumWizMenuPaperselectDropDown, .ry3kXd, [aria-haspopup="listbox"], [aria-haspopup="true"], button, .MocG8c',
+    ),
+  );
+  for (const el of candidates) {
+    if (!el.closest('[role="option"], .OA0qNb, .exportSelectPopup')) {
+      return el;
+    }
+  }
+  return listbox;
+}
+
+/**
+ * Resolves the display label element on the dropdown trigger button (not inside an option).
+ */
+function findDropdownDisplayLabel(listbox: HTMLElement): HTMLElement | null {
+  const candidates = Array.from(
+    listbox.querySelectorAll<HTMLElement>('.vRMGwf, .quantumWizMenuPaperselectContent'),
+  );
+  for (const el of candidates) {
+    if (!el.closest('[role="option"], .OA0qNb, .exportSelectPopup')) {
+      return el;
+    }
+  }
+  return null;
+}
+
+/**
+ * Fills an ARIA listbox dropdown by opening it, hovering and clicking the matching option
+ * with full event simulation (realistic coordinates, button flags), and synchronizing
+ * framework state for reliable validation and submission.
  */
 async function fillAriaDropdown(container: Element, value: string, doc: Document): Promise<boolean> {
   const win = doc.defaultView || window;
   const isTest = typeof navigator !== 'undefined' && navigator.userAgent?.includes('jsdom');
-  const delayMs = isTest ? 5 : 40;
 
   // 1. Identify listbox element
   const listbox = (
@@ -502,26 +575,6 @@ async function fillAriaDropdown(container: Element, value: string, doc: Document
       : container.querySelector('[role="listbox"]')
   ) as HTMLElement || (container as HTMLElement);
 
-  // 2. Open listbox if closed
-  if (listbox.getAttribute('aria-expanded') !== 'true') {
-    listbox.focus();
-    const keyOpts = { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true, cancelable: true };
-    listbox.dispatchEvent(new KeyboardEvent('keydown', keyOpts));
-    listbox.dispatchEvent(new KeyboardEvent('keypress', keyOpts));
-    listbox.dispatchEvent(new KeyboardEvent('keyup', keyOpts));
-
-    const triggerEl = (
-      listbox.querySelector('[tabindex="0"]') ||
-      listbox.querySelector('[aria-selected="true"]') ||
-      listbox
-    ) as HTMLElement;
-    simulateFullClick(triggerEl);
-
-    // Wait for options popup (.OA0qNb) to open and render
-    await new Promise((r) => setTimeout(r, delayMs));
-  }
-
-  // 3. Find option element
   const questionContainer =
     container.closest('[role="listitem"], .freebirdFormviewerViewItemsItemItem, .QrToBd') ||
     container.parentElement;
@@ -533,8 +586,42 @@ async function fillAriaDropdown(container: Element, value: string, doc: Document
     if (ownedEl) optionContainer = ownedEl;
   }
 
-  // Search inside popup (.OA0qNb), questionContainer, or optionContainer
-  const popup = listbox.querySelector('.OA0qNb') || optionContainer;
+  const isCurrentlyOpen = (): boolean => {
+    if (listbox.getAttribute('aria-expanded') === 'true') return true;
+    const popupEl = (listbox.querySelector<HTMLElement>('.OA0qNb, .exportSelectPopup') ||
+      (ownsId ? doc.getElementById(ownsId) : null)) as HTMLElement | null;
+    if (popupEl && popupEl.style.display !== 'none' && !isElementHidden(popupEl)) {
+      return true;
+    }
+    return false;
+  };
+
+  // 2. Open listbox if closed
+  if (!isCurrentlyOpen()) {
+    listbox.focus();
+
+    // Find the real trigger button (NOT the option inside the popup!)
+    const triggerEl = findDropdownTrigger(listbox);
+    simulateFullClick(triggerEl);
+
+    // Also dispatch Enter keyboard sequence on listbox for standard ARIA support
+    const keyOpts = { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true, cancelable: true };
+    listbox.dispatchEvent(new KeyboardEvent('keydown', keyOpts));
+    listbox.dispatchEvent(new KeyboardEvent('keypress', keyOpts));
+    listbox.dispatchEvent(new KeyboardEvent('keyup', keyOpts));
+
+    // Wait for options popup to open and render
+    await waitForCondition(isCurrentlyOpen, isTest ? 20 : 250, 15);
+
+    // If still closed, try clicking listbox element itself
+    if (!isCurrentlyOpen()) {
+      simulateFullClick(listbox);
+      await waitForCondition(isCurrentlyOpen, isTest ? 20 : 150, 15);
+    }
+  }
+
+  // 3. Find option element inside popup (.OA0qNb), questionContainer, or doc.body
+  const popup = listbox.querySelector('.OA0qNb, .exportSelectPopup') || optionContainer;
   let option = findOptionElement(
     popup,
     value,
@@ -559,13 +646,7 @@ async function fillAriaDropdown(container: Element, value: string, doc: Document
 
   if (!option) return false;
 
-  // 4. Click option using full pointerdown -> mousedown -> pointerup -> mouseup -> click sequence
-  simulateFullClick(option as HTMLElement);
-
-  // Wait for Google Forms Closure handlers to process selection & update state
-  await new Promise((r) => setTimeout(r, delayMs));
-
-  // 5. Google Forms hidden input & state synchronization fallback
+  const targetVal = option.getAttribute('data-value') || option.getAttribute('value') || value;
   const containerWithParams = listbox.closest('[data-params]');
   const dataParams = containerWithParams?.getAttribute('data-params') || '';
   const match = dataParams.match(/\[\[(\d+),/);
@@ -574,9 +655,28 @@ async function fillAriaDropdown(container: Element, value: string, doc: Document
     ? doc.querySelector<HTMLInputElement>(`input[name="entry.${entryId}"]`)
     : (questionContainer?.querySelector<HTMLInputElement>('input[type="hidden"][name*="entry."]') || null);
 
-  const targetVal = option.getAttribute('data-value') || option.getAttribute('value') || value;
+  // 4. Click option using hover state + coordinate pointerdown -> mousedown -> pointerup -> mouseup -> click
+  // Google Forms Closure Menu requires hovering over the option first to activate highlightedItem_
+  const optionTextChild = option.querySelector<HTMLElement>(
+    '.quantumWizMenuPaperselectContent, .vRMGwf, span',
+  );
+  if (optionTextChild) {
+    simulateFullClick(optionTextChild, { simulateHover: true });
+  }
+  simulateFullClick(option as HTMLElement, { simulateHover: true });
 
-  // If hidden input wasn't updated by Google Forms handler, update it directly as fallback
+  // 5. Wait for Google Forms Closure handlers or framework to process selection & update state
+  const isSelectionCommitted = (): boolean => {
+    if (option?.getAttribute('aria-selected') === 'true') return true;
+    if (hiddenInput && hiddenInput.value === targetVal) return true;
+    const curLabel = findDropdownDisplayLabel(listbox);
+    if (curLabel && curLabel.textContent?.trim() === (option?.textContent?.trim() || targetVal)) return true;
+    return false;
+  };
+
+  await waitForCondition(isSelectionCommitted, isTest ? 20 : 300, 20);
+
+  // 6. Google Forms hidden input & state synchronization fallback
   if (hiddenInput && hiddenInput.value !== targetVal) {
     const setter = Object.getOwnPropertyDescriptor(win.HTMLInputElement.prototype, 'value')?.set;
     if (setter) {
@@ -587,13 +687,45 @@ async function fillAriaDropdown(container: Element, value: string, doc: Document
     dispatchFormEvents(hiddenInput, ['input', 'change']);
   }
 
-  // Ensure aria-selected is set on the option
-  option.setAttribute('aria-selected', 'true');
+  // Ensure aria-selected is set on the target option and unset on sibling options
+  const allSiblingOptions = Array.from(
+    (popup || listbox).querySelectorAll('[role="option"], .quantumWizMenuPaperselectOption'),
+  );
+  for (const sib of allSiblingOptions) {
+    if (sib === option) {
+      sib.setAttribute('aria-selected', 'true');
+      sib.classList.add('isSelected');
+    } else {
+      sib.setAttribute('aria-selected', 'false');
+      sib.classList.remove('isSelected');
+    }
+  }
 
-  // Update visible label on dropdown trigger if present (.vRMGwf)
-  const labelEl = listbox.querySelector('.vRMGwf');
+  // Update visible label on dropdown trigger if not already set by component
+  const labelEl = findDropdownDisplayLabel(listbox);
   if (labelEl) {
-    labelEl.textContent = option.textContent?.trim() || targetVal;
+    const chosenText = option.textContent?.trim() || targetVal;
+    if (labelEl.textContent?.trim() !== chosenText) {
+      labelEl.textContent = chosenText;
+    }
+    labelEl.classList.remove('oJeWuf');
+    labelEl.classList.add('isSelected');
+  }
+
+  // Clear Google Forms validation error banner if present
+  if (questionContainer) {
+    const errorBanner = questionContainer.querySelector('.RDeBda, [role="alert"]');
+    if (errorBanner) {
+      errorBanner.remove();
+    }
+    questionContainer.classList.remove('N2RpBe', 'hasError');
+  }
+
+  // Close listbox if still open
+  if (listbox.getAttribute('aria-expanded') === 'true') {
+    listbox.setAttribute('aria-expanded', 'false');
+    const popupEl = listbox.querySelector<HTMLElement>('.OA0qNb, .exportSelectPopup');
+    if (popupEl) popupEl.style.display = 'none';
   }
 
   dispatchFormEvents(listbox, ['change', 'blur']);

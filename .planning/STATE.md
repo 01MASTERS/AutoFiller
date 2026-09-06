@@ -51,6 +51,7 @@
 | `popup-error-brevity` | Format and truncate UI popup errors into brief summaries and preserve verbose stack traces in logs page only | 2026-09-02 | complete ✓ |
 | `content-script-csp-iife-fix` | Fix content script blocked by Google Forms CSP by compiling to standalone IIFE (`.iife.ts`) and adding dynamic injection fallback in background worker | 2026-09-03 | complete ✓ |
 | `dropdown-options-and-selection-fix` | Extract options from closed Google Forms dropdowns, show options in logs, relay content script logs, and simulate full pointerdown/mousedown/mouseup/click sequence for reliable selection | 2026-09-03 | complete ✓ |
+| `dropdown-options-selection-fix` | Fix dropdown genuine selection via trigger resolution, coordinate-aware clicks, hover simulation, and reactive settlement; eliminate fake forced insertion | 2026-09-06 | complete ✓ |
 
 ## Open Questions
 
