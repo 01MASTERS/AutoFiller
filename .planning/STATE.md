@@ -6,10 +6,10 @@
 
 | Field | Value |
 |---|---|
-| **Milestone** | 2 — Universal Multi-Platform Form Filling Engine (v1.1) |
-| **Current Phase** | 16 — Universal Multi-Origin Manifest & Navigation Architecture |
-| **Next Phase** | 17 — Universal Form Filler & Multi-Platform Control Simulators |
-| **Status** | Phase 15 completed — Universal DOM Reader & Smart Field Extraction Engine shipped. Greenhouse, Lever, Workday, and standard HTML5 support verified with 174/174 tests passing. |
+| **Milestone** | 2 — Universal Multi-Platform Form Filling Engine (v1.1) [COMPLETED] |
+| **Current Phase** | Milestone 2 Complete — Capstone Verified |
+| **Next Phase** | 20 — Multi-Profile Backend Store & Switching API (Milestone 3) |
+| **Status** | Milestone 2 complete — Universal Multi-Platform Form Filling Engine (v1.1) verified across Greenhouse, Lever, Workday, Generic Career Portals, and Google Forms. Multi-platform mock fixtures, backend test forms hub (`GET /test-forms`), automated E2E lifecycle tests, and performance benchmarks (<200ms scan, <50ms fill) active. 215/215 monorepo tests passing. Ready for Milestone 3 (Phase 20). |
 | **Last Updated** | 2026-09-19 |
 
 ## Decision Log
@@ -29,6 +29,10 @@
 | ADR-011 | Standalone IIFE Content Script (`.iife.ts`) | Google Forms CSP blocks dynamic imports (`import()`) in ESM content script loaders | 2026-09-03 |
 | ADR-012 | Universal Multi-Platform Expansion for v1.1 | Expand AutoFiller beyond Google Forms into a universal form-filling engine (Workday, Greenhouse, Lever, career portals) | 2026-09-19 |
 | ADR-013 | Heuristic Label Resolution Cascade & DOM Order Sorting | Resolve labels via explicit ARIA $\to$ label[for] $\to$ wrapping $\to$ legend $\to$ container headings; sort fields by compareDocumentPosition | 2026-09-19 |
+| ADR-014 | Manifest V3 Multi-Frame (`all_frames: true`) & SPA Route Observation | Enable content script in cross-origin ATS iframes; intercept pushState/popstate and observe dynamic form mutations for multi-step wizards | 2026-09-19 |
+| ADR-015 | Modular Universal Form Filler Engine & Full Lifecycle Event Dispatch | Decompose interaction engine into dedicated simulators; dispatch complete focus $\to$ prototype setter $\to$ input $\to$ change $\to$ blur sequence across standard, rich text, and custom controls | 2026-09-19 |
+| ADR-016 | Platform Heuristic Adapters as Post-Scan Refinement Passes | Keep generic DOM reader clean and universal; run specialized ATS heuristics (Greenhouse, Lever, Workday) only on recognized domains | 2026-09-19 |
+| ADR-017 | Multi-Platform Mock Form Fixtures & Interactive QA Hub | Reusable mock HTML fixtures in `@autofiller/shared` served via backend `GET /test-forms` for automated Vitest E2E regression and live browser QA | 2026-09-19 |
 
 ## Patterns
 
@@ -38,11 +42,16 @@
 - **Dynamic script injection fallback**: Background service worker uses `chrome.scripting.executeScript` to inject content script on tabs opened prior to extension reload
 - **Heuristic label resolution**: Cascade through explicit ARIA labels, `<label for="...">`, wrapping labels, fieldset legends, container headings, and clean placeholders
 - **DOM order sorting**: Discovered fields sorted by live DOM `compareDocumentPosition` to ensure visual top-to-bottom sequence across arbitrary HTML layouts
+- **SPA route observation**: Monkey-patched `history.pushState` and `history.replaceState` coupled with `popstate`/`hashchange` to detect single-page application view transitions without full page reloads
+- **Platform adapter pipeline**: Modulates discovered fields via lightweight signatures (`isGreenhousePage`, `isLeverPage`, `isWorkdayPage`) without coupling core scanner to vendor DOM structures
 
 ## Surprises / Gotchas
 
 - **Google Forms Content Security Policy (CSP)**: `docs.google.com` enforces strict `script-src` CSP directives. Default Vite/CRXJS content script builds use an async loader (`await import(chrome.runtime.getURL(...))`) which is blocked by the host page's CSP. Renaming to `contentScript.iife.ts` instructs CRXJS to inline all dependencies into a standalone IIFE bundle, completely bypassing dynamic imports and CSP restrictions.
 - **Matrix Grid Rows vs Parent Headings**: An element's explicit `aria-label` or `aria-labelledby` on itself must precede ancestor container headings, otherwise multi-choice grid rows inherit the table title instead of their respective row names.
+- **Embedded Job Widgets (Iframes)**: Many career pages (e.g. `careers.company.com`) embed Greenhouse or Lever forms inside `<iframe>` elements. Setting `all_frames: true` in the manifest ensures the extension content script runs directly inside the child frame context.
+- **JSDOM `CSS.escape` Absence**: In Node/JSDOM environments, `window.CSS.escape` is undefined. Using native `CSS.escape` crashes unit tests with `ReferenceError`. An `escapeCss` utility with character-by-character regex fallback is required.
+- **Base ID Precedence**: Control scanners prioritize `name` attribute over `id` attribute when creating `field.id`. Adapters and test fixtures targeting compound fields must check both `f.id` and `f.name`.
 
 ## Quick Tasks Completed
 

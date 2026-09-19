@@ -20,6 +20,7 @@ export function scanRadioGroups(
   // Also discover question containers or fieldsets containing radio buttons
   questionContainers.forEach((container) => {
     if (container.getAttribute('role') === 'radiogroup') return;
+    if (container.querySelector('.form-group, .form-row, .field, [role="radiogroup"], [role="listitem"]')) return;
     const radios = container.querySelectorAll('[role="radio"], input[type="radio"]');
     if (radios.length > 0) {
       radioGroupsFound.add(container);

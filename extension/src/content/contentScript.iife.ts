@@ -1,21 +1,56 @@
 import { extractFormFields } from './domReader.js';
 import { fillFormFields } from './formFiller.js';
 import { ExtensionLogger } from '../utils/logger.js';
+import { getFrameMetadata, scanAccessibleChildIframes } from './iframeDiscovery.js';
+import { initNavigationObserver } from './navigationObserver.js';
+
+// Initialize SPA route and dynamic form step observation
+initNavigationObserver({
+  onRouteChange: (url, method) => {
+    ExtensionLogger.log(
+      'INFO',
+      'CONTENT_SCRIPT',
+      'SPA_ROUTE_CHANGED',
+      `SPA navigation detected (${method}): ${url}`,
+      { url, method },
+    );
+  },
+  onFormMutated: (mutatedNodes) => {
+    ExtensionLogger.log(
+      'INFO',
+      'CONTENT_SCRIPT',
+      'SPA_FORM_MUTATION',
+      `Dynamic form DOM mutation detected (${mutatedNodes.length} node(s) added)`,
+      { count: mutatedNodes.length },
+    );
+  },
+});
 
 if (typeof chrome !== 'undefined' && chrome.runtime?.onMessage) {
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (message?.action === 'SCAN_FIELDS') {
       try {
-        const fields = extractFormFields(document);
+        const frameMeta = getFrameMetadata();
+        let fields = extractFormFields(document);
+
+        // If top-frame, also inspect any accessible same-origin child iframes
+        if (!frameMeta.isIframe) {
+          const iframeFields = scanAccessibleChildIframes(document);
+          if (iframeFields.length > 0) {
+            fields = [...fields, ...iframeFields];
+          }
+        }
+
         if (fields.length === 0) {
           ExtensionLogger.log(
             'WARN',
             'CONTENT_SCRIPT',
             'DOM_SCAN_EMPTY',
-            'Scanned page but found 0 supported input or textarea form fields',
-            { url: window.location.href, title: document.title },
+            'Scanned page but found 0 supported form fields',
+            { url: window.location.href, title: document.title, ...frameMeta },
           );
         } else {
+          const detectedPlatform = fields[0]?.platform || 'generic';
           const typeCounts = fields.reduce<Record<string, number>>((acc, f) => {
             const ct = f.controlType || f.type || 'text';
             acc[ct] = (acc[ct] || 0) + 1;
@@ -29,9 +64,11 @@ if (typeof chrome !== 'undefined' && chrome.runtime?.onMessage) {
             'INFO',
             'CONTENT_SCRIPT',
             'DOM_SCAN_SUCCESS',
-            `Scanned ${fields.length} form field(s) on page (${summary})`,
+            `Scanned ${fields.length} form field(s) on ${detectedPlatform} (${summary})`,
             {
               count: fields.length,
+              platform: detectedPlatform,
+              ...frameMeta,
               typeCounts,
               fields: fields.map((f) => ({
                 id: f.id,
@@ -42,11 +79,12 @@ if (typeof chrome !== 'undefined' && chrome.runtime?.onMessage) {
                 optionsCount: f.options?.length ?? 0,
                 options: f.options?.map((o) => o.label),
                 required: f.required,
+                platform: f.platform,
               })),
             },
           );
         }
-        sendResponse({ status: 'success', fields });
+        sendResponse({ status: 'success', fields, frameMeta });
       } catch (error) {
         ExtensionLogger.log(
           'ERROR',

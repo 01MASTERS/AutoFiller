@@ -15,6 +15,8 @@ export function scanCheckboxGroups(
 ): void {
   const checkboxGroupsFound = new Set<Element>();
   questionContainers.forEach((container) => {
+    // If container contains nested child question containers, let the leaf containers be the unit
+    if (container.querySelector('.form-group, .form-row, .field, [role="group"], [role="listitem"]')) return;
     // Tightened role="group": Only consider as checkbox group if it contains checkbox semantics
     const checkboxes = container.querySelectorAll('[role="checkbox"], input[type="checkbox"]');
     if (checkboxes.length > 0) {

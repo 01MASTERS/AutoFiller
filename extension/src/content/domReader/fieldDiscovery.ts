@@ -8,6 +8,7 @@ import { scanDropdowns } from './controls/dropdown.js';
 import { scanDateInputs } from './controls/date.js';
 import { scanFileInputs } from './controls/file.js';
 import { scanTextInputs } from './controls/text.js';
+import { applyPlatformAdapters } from './adapters/index.js';
 
 export interface ExtractFormFieldsOptions {
   /**
@@ -61,6 +62,9 @@ export function extractFormFields(
   fields.forEach((f) => {
     f.platform = platform;
   });
+
+  // Apply platform-specific heuristics and adaptations
+  applyPlatformAdapters(fields, doc, platform);
 
   // Sort extracted fields according to their live DOM document position
   const elementMap = new Map<string, Element>();

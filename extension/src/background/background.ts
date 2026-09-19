@@ -146,6 +146,19 @@ export async function handleTriggerAutofill(options?: {
       return { status: 'error', error: errorMsg };
     }
 
+    const detectedPlatform = scanResponse.fields[0]?.platform || 'generic';
+    await ExtensionLogger.log(
+      'INFO',
+      'BACKGROUND',
+      'PLATFORM_DETECTED',
+      `Detected form platform: ${detectedPlatform.toUpperCase()} (${scanResponse.fields.length} fields found)`,
+      {
+        platform: detectedPlatform,
+        fieldsFound: scanResponse.fields.length,
+        tabUrl: activeTab.url,
+      },
+    );
+
     let backendUrl = 'http://localhost:3456/autofill';
     if (typeof chrome !== 'undefined' && chrome.storage?.local) {
       try {

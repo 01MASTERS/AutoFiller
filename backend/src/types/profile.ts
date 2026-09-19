@@ -56,6 +56,10 @@ export const fieldMetadataSchema = z
     platform: z
       .enum(['google-forms', 'greenhouse', 'lever', 'workday', 'generic'])
       .optional(),
+    platformFieldType: z
+      .enum(['personal', 'experience', 'custom_question', 'demographic', 'resume_upload', 'social_link', 'other'])
+      .optional(),
+    section: z.string().optional(),
   })
   .passthrough();
 

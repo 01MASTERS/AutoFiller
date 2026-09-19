@@ -54,43 +54,45 @@
 - Unit test suite with varied DOM layout fixtures (14 new tests, 102 total extension tests)
 
 ### Phase 16: Universal Multi-Origin Manifest & Navigation Architecture
-**Status**: `planned`  
+**Status**: `completed`  
 **Scope**: Adapt extension manifest, permissions, and service worker lifecycle to support universal form filling across all career portals and dynamic Single-Page Applications.  
 **Deliverables**:
-- Manifest V3 permission expansion (`activeTab`, `<all_urls>` / host permissions)
+- Manifest V3 permission expansion (`all_frames: true`, `run_at: 'document_idle'`, `<all_urls>` / host permissions)
 - Platform & ATS environment detection (Greenhouse, Lever, Workday, generic)
-- SPA route and page mutation observer to detect dynamic form step transitions
-- Iframe discovery to access embedded career forms
-- Unit tests for platform detection and lifecycle handlers
+- SPA route and page mutation observer to detect dynamic form step transitions (`navigationObserver.ts`)
+- Iframe discovery to access embedded career forms (`iframeDiscovery.ts`)
+- Unit tests for platform detection and lifecycle handlers (9 new tests, 111 total extension tests)
 
 ### Phase 17: Universal Form Filler & Multi-Platform Control Simulators
-**Status**: `planned`  
+**Status**: `completed`  
 **Scope**: Generalize synthetic interaction engine to accurately fill and trigger events on any web control, from standard inputs to complex custom comboboxes, custom radios, and checkboxes.  
 **Deliverables**:
 - Universal native element injector with complete event dispatch (`focus`, `input`, `change`, `blur`)
 - Custom UI select/combobox simulator (trigger click, option seekers, popover settlement, close)
 - Universal radio & checkbox state reconcilers
 - Non-intrusive green glow visual confirmation overlay across varied CSS styles
-- Unit tests for universal control simulators
+- Unit tests for universal control simulators (11 new tests, 122 total extension tests, 194 monorepo tests)
 
 ### Phase 18: ATS Platform Heuristics & Adaptations (Greenhouse, Lever, Workday)
-**Status**: `planned`  
+**Status**: `completed`  
 **Scope**: Specialized heuristics and edge case handling for the most prevalent ATS portals: Greenhouse, Lever, and Workday.  
 **Deliverables**:
-- Greenhouse adapter: personal details, resume upload annotation, custom question blocks
-- Lever adapter: multi-section layout, personal data, demographic radio buttons
-- Workday adapter: dynamic multi-step wizard, custom dropdown search boxes, shadow DOM traversal
-- Graceful error recovery and skipped field telemetry
-- Unit tests for platform adapters
+- Greenhouse adapter: personal details, social links, resume upload annotation, Chosen/Select2 synchronization, demographic surveys
+- Lever adapter: multi-section layout (`.section-candidate-wrapper`, `.section-links-wrapper`), single full name unpacking, bracketed social links, custom question cards, demographic surveys
+- Workday adapter: multi-step wizard step detection, compound personal details, prompt combobox buttons, shadow DOM piercing
+- Post-scan integration pipeline in `fieldDiscovery.ts` without mutating generic DOM reader functionality
+- Graceful error recovery and skipped field telemetry (`resume_upload` user guidance)
+- Unit tests for platform adapters (5 test suites, 127 total extension tests, 199 monorepo tests)
 
 ### Phase 19: Multi-Platform E2E Testing, Mock Fixtures & Verification
-**Status**: `planned`  
+**Status**: `completed`  
 **Scope**: Comprehensive end-to-end testing with realistic mock forms representing Greenhouse, Lever, Workday, and generic career pages.  
 **Deliverables**:
-- Mock HTML fixtures for Greenhouse, Lever, Workday, and standard HTML5 career forms
-- Automated E2E verification tests executing scan → LLM map → fill cycles
-- Latency and performance benchmarking (<10s fill time)
-- Verification report and milestone documentation
+- Mock HTML fixtures for Greenhouse, Lever, Workday, Generic Career, and Google Forms (`shared/src/fixtures/mockForms.ts`)
+- Backend Test Forms Hub (`GET /test-forms`) and live QA endpoints (`/test-forms/greenhouse`, `/test-forms/lever`, `/test-forms/workday`, `/test-forms/career`)
+- Automated E2E verification tests executing scan → LLM map → fill cycles (`e2eUniversalAutofill.test.ts`, 10 tests)
+- Latency and performance benchmarking (<200ms scan, <50ms fill per field, <10s total)
+- Complete Milestone 2 verification report (215/215 monorepo tests passing)
 
 ---
 

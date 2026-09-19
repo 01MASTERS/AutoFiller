@@ -25,6 +25,15 @@ export interface FieldOption {
   isOther?: boolean;
 }
 
+export type PlatformFieldType =
+  | 'personal'
+  | 'experience'
+  | 'custom_question'
+  | 'demographic'
+  | 'resume_upload'
+  | 'social_link'
+  | 'other';
+
 export interface FieldMetadata {
   id: string;
   label: string;
@@ -37,6 +46,8 @@ export interface FieldMetadata {
   selectionMode?: SelectionMode;
   required?: boolean;
   platform?: FormPlatform;
+  platformFieldType?: PlatformFieldType;
+  section?: string;
 }
 
 export interface AutofillRequest {
@@ -119,3 +130,5 @@ export interface LogsResponse {
   total: number;
   error?: string;
 }
+
+export * from './fixtures/mockForms.js';
