@@ -6,11 +6,11 @@
 
 | Field | Value |
 |---|---|
-| **Milestone** | 2 — Advanced Form Controls & Multi-Profile (v1.1) |
-| **Current Phase** | 14 — In-Browser DOM & Synthetic Event Simulation |
-| **Next Phase** | 15 — Multi-Profile Backend Store & Switching API |
-| **Status** | Phase 14 complete — Control-type dispatch architecture and synthetic DOM simulation shipped. Content script CSP IIFE fix deployed. 132/132 tests passing. |
-| **Last Updated** | 2026-09-03 |
+| **Milestone** | 2 — Advanced Form Controls (v1.1) |
+| **Current Phase** | Milestone 2 Completion Prep (Phases 12, 13, 14 Complete) |
+| **Next Phase** | Milestone 2 Audit & Ship / Milestone 3 (v1.2) Planning |
+| **Status** | Milestone 2 phases complete (Phases 12–14). Multi-profile planned phases (15–17) moved to future milestones. 160/160 tests passing. Ready for milestone audit and v1.1 release prep. |
+| **Last Updated** | 2026-09-19 |
 
 ## Decision Log
 
@@ -25,8 +25,9 @@
 | ADR-007 | Vitest for testing | Fast, Vite-compatible, modern | 2026-08-13 |
 | ADR-008 | Popup UI (not side panel) | Simpler UX, standard Chrome extension pattern | 2026-08-13 |
 | ADR-009 | In-Browser DOM Simulation for Advanced Controls (v1.1) | Zero external processes; fast, native event dispatch in active tab | 2026-09-03 |
-| ADR-010 | Multi-Profile File Store Architecture (v1.1) | Modular persona JSON files with instant REST switching | 2026-09-03 |
+| ADR-010 | Multi-Profile File Store Architecture (v1.2) | Modular persona JSON files with instant REST switching (deferred to Milestone 3) | 2026-09-03 |
 | ADR-011 | Standalone IIFE Content Script (`.iife.ts`) | Google Forms CSP blocks dynamic imports (`import()`) in ESM content script loaders | 2026-09-03 |
+| ADR-012 | Scope Milestone 2 (v1.1) to Advanced Form Controls | Ship dropdown, radio, checkbox, and date filling early; move multi-profile to v1.2 | 2026-09-19 |
 
 ## Patterns
 

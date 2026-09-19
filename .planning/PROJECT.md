@@ -11,26 +11,24 @@
 | **Language** | TypeScript (latest stable) |
 | **Repository** | https://github.com/01MASTERS/AutoFiller.git |
 | **Owner** | 01MASTERS |
-| **Status** | Milestone 2 (v1.1) — In Planning |
+| **Status** | Milestone 2 (v1.1) — Advanced Form Controls (Prep for Milestone Completion) |
 
 ## Current State
 
-AutoFiller v1.0 was completed and shipped on 2026-09-03.
-- **Shipped Version:** v1.0
+AutoFiller v1.0 was completed and shipped on 2026-09-03. Milestone 2 (v1.1) phases (Phases 12–14) are complete and passing all 160 unit tests.
+- **Shipped Version:** v1.0 (v1.1 release prep active)
 - **Milestone 1 Archive:** [v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 - **Milestone 1 Audit:** [v1.0-MILESTONE-AUDIT.md](v1.0-MILESTONE-AUDIT.md)
-- **Active Test Suite:** 71 tests passing across extension and backend
-- **Core Capabilities:** Google Forms text input autofill with Ollama & Gemini, dynamic model discovery, local JSON profile store, and standalone dark-mode debug log viewer dashboard (`/logs-ui`).
+- **Active Test Suite:** 160 tests passing across extension (88) and backend (72)
+- **Core Capabilities:** Google Forms text, dropdowns, radio groups, checkboxes, and date inputs autofill with Ollama & Gemini, dynamic model discovery, standalone IIFE content script, and dark-mode debug log viewer (`/logs-ui`).
 
-## Milestone 2 Goals: Advanced Form Controls & Multi-Profile (v1.1)
+## Milestone 2 Goals: Advanced Form Controls (v1.1)
 
-- **Goal:** Expand AutoFiller to handle complex Google Forms controls (dropdowns, radio buttons, checkboxes, date pickers) via in-browser DOM simulation, and add multi-profile persona management.
-- **Phase 12:** Advanced Google Form DOM Extraction & Option Parsing
-- **Phase 13:** LLM Gateway Enhancement for Constrained / Option Choice Fields
-- **Phase 14:** Content Script Advanced Form Filler (Synthetic DOM & ARIA Event Injection)
-- **Phase 15:** Multi-Profile Backend Store & Switching API
-- **Phase 16:** Extension Multi-Profile Switcher UI & Storage Sync
-- **Phase 17:** Milestone 2 End-to-End Integration, Validation & Test Suite
+- **Goal:** Expand AutoFiller to handle complex Google Forms controls (dropdowns, radio buttons, checkboxes, date pickers) via in-browser DOM simulation.
+- **Phase 12:** Advanced Google Form DOM Extraction & Option Parsing (Completed)
+- **Phase 13:** LLM Gateway Enhancement for Constrained / Option Choice Fields (Completed)
+- **Phase 14:** Content Script Advanced Form Filler (Synthetic DOM & ARIA Event Injection) (Completed)
+- **Milestone 3 (Future):** Multi-Profile Backend Store, Switching API & Popup Switcher UI (Phases 15–17)
 
 ## Problem Statement
 

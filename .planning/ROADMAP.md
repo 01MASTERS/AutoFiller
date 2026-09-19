@@ -6,9 +6,9 @@
 
 ---
 
-## Milestone 2: Advanced Form Controls & Multi-Profile (v1.1)
+## Milestone 2: Advanced Form Controls (v1.1)
 
-> Expanding form input coverage to Google Forms dropdowns, radio groups, checkboxes, and date pickers via synthetic DOM simulation, and introducing multi-profile persona management.
+> Expanding form input coverage to Google Forms dropdowns, radio groups, checkboxes, and date pickers via synthetic DOM simulation.
 
 ### Phase 12: Advanced Google Form DOM Extraction & Option Parsing
 **Status**: `completed`  
@@ -43,8 +43,12 @@
 - Backward-compatible fallback for fields without metadata
 - 20 unit tests covering all control types, type mismatches, and mixed-field scenarios
 
+---
+
+## Future Milestones (Post v1.1)
+
 ### Phase 15: Multi-Profile Backend Store & Switching API
-**Status**: `planned`  
+**Status**: `future`  
 **Scope**: Enable multiple persona profile JSON files in `backend/profiles/` with switching REST endpoints.  
 **Deliverables**:
 - `ProfileStore` refactored to support multiple profiles directory
@@ -55,7 +59,7 @@
 - Unit tests for profile listing, switching, and error cases
 
 ### Phase 16: Extension Multi-Profile Switcher UI & Storage Sync
-**Status**: `planned`  
+**Status**: `future`  
 **Scope**: Add profile switcher dropdown to extension popup UI, persist selection, and synchronize active profile with backend.  
 **Deliverables**:
 - "Profile" dropdown selector in extension popup
@@ -64,18 +68,14 @@
 - Profile change event logging in Debug Log Viewer
 - Unit tests for popup profile switching logic
 
-### Phase 17: Milestone 2 End-to-End Integration, Testing & Verification
-**Status**: `planned`  
-**Scope**: Full integration testing with mock complex Google Forms (text + radio + checkbox + dropdown + date), error handling, and performance validation.  
+### Phase 17: Multi-Profile & Advanced Controls E2E Integration
+**Status**: `future`  
+**Scope**: Full integration testing with mock complex Google Forms (text + radio + checkbox + dropdown + date) across multiple persona profiles, error handling, and performance validation.  
 **Deliverables**:
 - Comprehensive integration tests in extension and backend
 - Mock complex Google Form fixture verifying end-to-end fill
 - Performance timing assertions (<10s fill)
 - Documentation and README updates
-
----
-
-## Future Milestones (Post v1.1)
 
 ### Phase 18: Profile Editor UI (Web Dashboard)
 **Status**: `future`  

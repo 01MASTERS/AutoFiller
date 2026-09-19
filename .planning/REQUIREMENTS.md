@@ -1,40 +1,44 @@
 # AutoFiller — Milestone 2 (v1.1) Requirements
 
-> **Milestone:** 2 — Advanced Form Controls & Multi-Profile (v1.1)  
-> **Target:** Expand form input coverage to Google Forms dropdowns, radio groups, checkboxes, and dates via synthetic DOM simulation, and introduce multi-profile persona management.
+> **Milestone:** 2 — Advanced Form Controls (v1.1)  
+> **Target:** Expand form input coverage to Google Forms dropdowns, radio groups, checkboxes, and dates via synthetic DOM simulation.
 
 ---
 
 ## Functional Requirements
 
-### FR-7: Advanced Google Form DOM Extraction & Option Parsing
+### FR-7: Advanced Google Form DOM Extraction & Option Parsing (Completed)
 - **FR-7.1**: Detect dropdown fields (`role="listbox"`, Google Forms menu selectors, or `<select>`) and extract label, required status, and listed options.
 - **FR-7.2**: Detect single-select radio button groups (`role="radiogroup"` or `role="radio"`) and extract group label, required status, and choice options.
 - **FR-7.3**: Detect multi-select checkbox groups (`role="group"` / `role="checkbox"`) and extract group label and individual checkbox choice texts.
 - **FR-7.4**: Detect date input controls (`input[type="date"]` or Google Forms date component wrappers) and extract format constraints.
 - **FR-7.5**: Extend `FieldMetadata` schema in `@autofiller/shared` to include `controlType: 'text' | 'dropdown' | 'radio' | 'checkbox' | 'date'` and `options?: string[]`.
 
-### FR-8: LLM Gateway Support for Option & Constrained Fields
+### FR-8: LLM Gateway Support for Option & Constrained Fields (Completed)
 - **FR-8.1**: Update `promptBuilder.ts` with explicit instructions directing the LLM to choose strictly from the provided `options` list for radio and dropdown fields.
 - **FR-8.2**: Support array-valued responses for multi-select checkbox groups (e.g. `fieldId: ["Option A", "Option C"]`).
 - **FR-8.3**: Support date generation and formatting matching the form's expected pattern (YYYY-MM-DD or DD/MM/YYYY).
 - **FR-8.4**: Validate LLM selections in `responseParser.ts` to ensure selected values exist within the field's allowed options.
 
-### FR-9: Advanced Form Filler (Synthetic DOM & ARIA Interaction)
+### FR-9: Advanced Form Filler (Synthetic DOM & ARIA Interaction) (Completed)
 - **FR-9.1**: Locate matching radio option element and dispatch native `click`, `mousedown`, `mouseup`, and `change` events.
 - **FR-9.2**: Locate matching checkboxes, compare with current `aria-checked` status, and dispatch click events to reach desired checked state.
 - **FR-9.3**: Open Google Forms dropdown menus, locate option element matching LLM selection, trigger selection click, and close menu.
 - **FR-9.4**: Populate date picker inputs and dispatch input/change events.
 - **FR-9.5**: Apply visual green highlight animation to filled container blocks (radiogroups, checkbox groups, dropdown wrappers).
 
-### FR-10: Multi-Profile Backend Store & Switching API
+---
+
+## Deferred Requirements (Future Milestone / v1.2)
+
+### FR-10: Multi-Profile Backend Store & Switching API [Deferred]
 - **FR-10.1**: Directory-based profile storage (`backend/profiles/*.json`) with default profile fallback (`default.json`).
 - **FR-10.2**: Endpoint `GET /profiles` to list available profiles with metadata (ID, name, description).
 - **FR-10.3**: Endpoint `POST /profiles/switch` (`{ profileId: string }`) to set the active profile.
 - **FR-10.4**: `GET /profile` returns the currently active profile data.
 - **FR-10.5**: Input validation and graceful fallback if a requested profile file is missing or invalid.
 
-### FR-11: Extension Multi-Profile Switcher UI
+### FR-11: Extension Multi-Profile Switcher UI [Deferred]
 - **FR-11.1**: Add "Active Profile" selector dropdown to the extension popup header.
 - **FR-11.2**: Auto-fetch profiles from `GET /profiles` on popup mount.
 - **FR-11.3**: Persist active profile selection in Chrome local storage and sync with backend on change.
