@@ -6,10 +6,10 @@
 
 | Field | Value |
 |---|---|
-| **Milestone** | 2 — Advanced Form Controls (v1.1) |
-| **Current Phase** | Milestone 2 Completion Prep (Phases 12, 13, 14 Complete) |
-| **Next Phase** | Milestone 2 Audit & Ship / Milestone 3 (v1.2) Planning |
-| **Status** | Milestone 2 phases complete (Phases 12–14). Multi-profile planned phases (15–17) moved to future milestones. 160/160 tests passing. Ready for milestone audit and v1.1 release prep. |
+| **Milestone** | 2 — Universal Multi-Platform Form Filling Engine (v1.1) |
+| **Current Phase** | 15 — Universal DOM Reader & Smart Field Extraction Engine |
+| **Next Phase** | 16 — Universal Multi-Origin Manifest & Navigation Architecture |
+| **Status** | Milestone 2 (v1.1) cycle initialized. Phases 12–14 completed (Google Forms advanced controls foundation). 160/160 tests passing. Ready to plan Phase 15 (Universal DOM Reader). |
 | **Last Updated** | 2026-09-19 |
 
 ## Decision Log
@@ -27,7 +27,7 @@
 | ADR-009 | In-Browser DOM Simulation for Advanced Controls (v1.1) | Zero external processes; fast, native event dispatch in active tab | 2026-09-03 |
 | ADR-010 | Multi-Profile File Store Architecture (v1.2) | Modular persona JSON files with instant REST switching (deferred to Milestone 3) | 2026-09-03 |
 | ADR-011 | Standalone IIFE Content Script (`.iife.ts`) | Google Forms CSP blocks dynamic imports (`import()`) in ESM content script loaders | 2026-09-03 |
-| ADR-012 | Scope Milestone 2 (v1.1) to Advanced Form Controls | Ship dropdown, radio, checkbox, and date filling early; move multi-profile to v1.2 | 2026-09-19 |
+| ADR-012 | Universal Multi-Platform Expansion for v1.1 | Expand AutoFiller beyond Google Forms into a universal form-filling engine (Workday, Greenhouse, Lever, career portals) | 2026-09-19 |
 
 ## Patterns
 
@@ -35,6 +35,7 @@
 - **HTTP gateway**: Background worker → backend server via `fetch()`
 - **Provider pattern**: `LLMGateway` interface with `OllamaProvider` and `GeminiProvider` implementations
 - **Dynamic script injection fallback**: Background service worker uses `chrome.scripting.executeScript` to inject content script on tabs opened prior to extension reload
+- **Heuristic label resolution**: Cascade through `<label for="...">`, wrapping labels, preceding headings/legends, ARIA labels, and placeholders
 
 ## Surprises / Gotchas
 
@@ -56,5 +57,4 @@
 
 ## Open Questions
 
-_(None — all initial questions resolved during project setup)_
-
+_(None — all initial questions resolved during milestone setup)_

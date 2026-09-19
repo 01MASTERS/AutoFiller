@@ -6,9 +6,9 @@
 
 ---
 
-## Milestone 2: Advanced Form Controls (v1.1)
+## Milestone 2: Universal Multi-Platform Form Filling Engine (v1.1)
 
-> Expanding form input coverage to Google Forms dropdowns, radio groups, checkboxes, and date pickers via synthetic DOM simulation.
+> Expanding AutoFiller beyond Google Forms into a universal form-filling engine supporting diverse job applications and ATS platforms (including Workday, Greenhouse, Lever, company career portals, and generic web forms) with smart field detection and synthetic DOM simulation.
 
 ### Phase 12: Advanced Google Form DOM Extraction & Option Parsing
 **Status**: `completed`  
@@ -43,48 +43,71 @@
 - Backward-compatible fallback for fields without metadata
 - 20 unit tests covering all control types, type mismatches, and mixed-field scenarios
 
+### Phase 15: Universal DOM Reader & Smart Field Extraction Engine
+**Status**: `planned`  
+**Scope**: Build a platform-agnostic DOM reader that detects form fields across standard HTML5 forms, ARIA containers, and custom career page layouts, intelligently resolving labels, field types, and options.  
+**Deliverables**:
+- Heuristic label resolution engine (associated `<label>`, parent wrapping, preceding text/legend, `aria-label`, placeholder)
+- Comprehensive control-type classifier (`text`, `select`, `combobox`, `radio`, `checkbox`, `date`, `file`)
+- Universal option extractor for native `<select>`, ARIA listboxes, and custom dropdown menus
+- Structured `FieldMetadata` extraction on arbitrary web forms
+- Unit test suite with varied DOM layout fixtures
+
+### Phase 16: Universal Multi-Origin Manifest & Navigation Architecture
+**Status**: `planned`  
+**Scope**: Adapt extension manifest, permissions, and service worker lifecycle to support universal form filling across all career portals and dynamic Single-Page Applications.  
+**Deliverables**:
+- Manifest V3 permission expansion (`activeTab`, `<all_urls>` / host permissions)
+- Platform & ATS environment detection (Greenhouse, Lever, Workday, generic)
+- SPA route and page mutation observer to detect dynamic form step transitions
+- Iframe discovery to access embedded career forms
+- Unit tests for platform detection and lifecycle handlers
+
+### Phase 17: Universal Form Filler & Multi-Platform Control Simulators
+**Status**: `planned`  
+**Scope**: Generalize synthetic interaction engine to accurately fill and trigger events on any web control, from standard inputs to complex custom comboboxes, custom radios, and checkboxes.  
+**Deliverables**:
+- Universal native element injector with complete event dispatch (`focus`, `input`, `change`, `blur`)
+- Custom UI select/combobox simulator (trigger click, option seekers, popover settlement, close)
+- Universal radio & checkbox state reconcilers
+- Non-intrusive green glow visual confirmation overlay across varied CSS styles
+- Unit tests for universal control simulators
+
+### Phase 18: ATS Platform Heuristics & Adaptations (Greenhouse, Lever, Workday)
+**Status**: `planned`  
+**Scope**: Specialized heuristics and edge case handling for the most prevalent ATS portals: Greenhouse, Lever, and Workday.  
+**Deliverables**:
+- Greenhouse adapter: personal details, resume upload annotation, custom question blocks
+- Lever adapter: multi-section layout, personal data, demographic radio buttons
+- Workday adapter: dynamic multi-step wizard, custom dropdown search boxes, shadow DOM traversal
+- Graceful error recovery and skipped field telemetry
+- Unit tests for platform adapters
+
+### Phase 19: Multi-Platform E2E Testing, Mock Fixtures & Verification
+**Status**: `planned`  
+**Scope**: Comprehensive end-to-end testing with realistic mock forms representing Greenhouse, Lever, Workday, and generic career pages.  
+**Deliverables**:
+- Mock HTML fixtures for Greenhouse, Lever, Workday, and standard HTML5 career forms
+- Automated E2E verification tests executing scan → LLM map → fill cycles
+- Latency and performance benchmarking (<10s fill time)
+- Verification report and milestone documentation
+
 ---
 
 ## Future Milestones (Post v1.1)
 
-### Phase 15: Multi-Profile Backend Store & Switching API
+### Phase 20: Multi-Profile Backend Store & Switching API
 **Status**: `future`  
-**Scope**: Enable multiple persona profile JSON files in `backend/profiles/` with switching REST endpoints.  
-**Deliverables**:
-- `ProfileStore` refactored to support multiple profiles directory
-- Default profile setup (`default.json`, `work.json`, etc.)
-- `GET /profiles` endpoint listing available profiles
-- `POST /profiles/switch` endpoint setting active profile ID
-- `GET /profile` returns active profile data
-- Unit tests for profile listing, switching, and error cases
+**Scope**: Enable multiple persona profile JSON files in `backend/profiles/` with switching REST endpoints (`GET /profiles`, `POST /profiles/switch`, `GET /profile`).
 
-### Phase 16: Extension Multi-Profile Switcher UI & Storage Sync
+### Phase 21: Extension Multi-Profile Switcher UI & Storage Sync
 **Status**: `future`  
-**Scope**: Add profile switcher dropdown to extension popup UI, persist selection, and synchronize active profile with backend.  
-**Deliverables**:
-- "Profile" dropdown selector in extension popup
-- Fetch profile list from backend on popup mount
-- Persist active profile in Chrome storage and notify backend
-- Profile change event logging in Debug Log Viewer
-- Unit tests for popup profile switching logic
+**Scope**: Add profile switcher dropdown to extension popup UI, persist selection in Chrome storage, and synchronize active profile with backend.
 
-### Phase 17: Multi-Profile & Advanced Controls E2E Integration
+### Phase 22: Profile Editor UI (Web Dashboard)
 **Status**: `future`  
-**Scope**: Full integration testing with mock complex Google Forms (text + radio + checkbox + dropdown + date) across multiple persona profiles, error handling, and performance validation.  
-**Deliverables**:
-- Comprehensive integration tests in extension and backend
-- Mock complex Google Form fixture verifying end-to-end fill
-- Performance timing assertions (<10s fill)
-- Documentation and README updates
+**Scope**: Web-based visual profile editor served from backend (`GET /profile-ui`) for creating, editing, and previewing persona profiles.
 
-### Phase 18: Profile Editor UI (Web Dashboard)
+### Phase 23: Chrome Web Store Publishing & Security Review
 **Status**: `future`  
-**Scope**: Web-based visual profile editor served from backend (`GET /profile-ui`) for creating and editing persona profiles.
-
-### Phase 19: Multi-Provider Forms
-**Status**: `future`  
-**Scope**: Extend DOM reader and filler beyond Google Forms to Typeform, JotForm, and Microsoft Forms.
-
-### Phase 20: Chrome Web Store Publishing
-**Status**: `future`  
-**Scope**: Package extension, security review, store assets, and publish to Chrome Web Store.
+**Scope**: Security hardening, packaging, manifest audit, store listing assets, and Chrome Web Store submission.
