@@ -4,7 +4,7 @@ import { resolveAccessibleLabel, isRequiredField, generateUniqueFieldId } from '
 import { extractSelectOptions, extractAriaListboxOptions } from '../optionParser.js';
 
 /**
- * Scans document for native <select>, ARIA listbox, and combobox dropdowns.
+ * Scans document for native <select>, ARIA listbox, combobox dropdowns, and custom ATS select triggers.
  */
 export function scanDropdowns(
   doc: Document,
@@ -13,7 +13,9 @@ export function scanDropdowns(
   usedIds: Set<string>,
 ): void {
   const dropdownAndComboboxEls = Array.from(
-    doc.querySelectorAll('select, [role="listbox"], [role="combobox"]'),
+    doc.querySelectorAll(
+      'select, [role="listbox"], [role="combobox"], button[aria-haspopup="listbox"], [data-automation-id*="select"], [data-automation-id*="dropdown"], [data-automation-id*="prompt"]',
+    ),
   );
 
   dropdownAndComboboxEls.forEach((el) => {
@@ -21,10 +23,12 @@ export function scanDropdowns(
     processedElements.add(el);
 
     const container =
-      el.closest('[role="listitem"], .freebirdFormviewerViewItemsItemItem, .QrToBd, fieldset') ||
-      el.parentElement;
+      el.closest(
+        '[role="listitem"], .freebirdFormviewerViewItemsItemItem, .QrToBd, fieldset, .form-group, .field, [data-automation-id*="formField"], [data-automation-id*="formItem"], .application-question',
+      ) || el.parentElement;
 
-    const isCombobox = el.getAttribute('role') === 'combobox';
+    const role = el.getAttribute('role');
+    const isCombobox = role === 'combobox';
     const isNativeSelect = el.tagName.toLowerCase() === 'select';
     const isMultiSelectable =
       (isNativeSelect && (el as HTMLSelectElement).multiple) ||
@@ -34,7 +38,11 @@ export function scanDropdowns(
     const controlType: FieldControlType = isCombobox ? 'combobox' : 'dropdown';
 
     const name = el.getAttribute('name') || undefined;
-    const baseId = name || el.id || `${controlType}-${fields.length + 1}`;
+    const baseId =
+      name ||
+      el.id ||
+      el.getAttribute('data-automation-id') ||
+      `${controlType}-${fields.length + 1}`;
     const fieldId = generateUniqueFieldId(baseId, usedIds);
     el.setAttribute('data-autofiller-id', fieldId);
 
@@ -59,7 +67,7 @@ export function scanDropdowns(
         el.querySelectorAll('input, select, textarea').forEach((child) => processedElements.add(child));
       }
       let extracted = extractAriaListboxOptions(optionContainer);
-      // Fallback: in Google Forms, the option popup menu is often a sibling inside the question container
+      // Fallback: in Google Forms or complex ATS, the option popup menu is often a sibling inside the question container
       if (extracted.length === 0 && container) {
         extracted = extractAriaListboxOptions(container);
       }

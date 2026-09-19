@@ -3,7 +3,7 @@ import { isElementHidden } from '../utils.js';
 import { resolveAccessibleLabel, isRequiredField, generateUniqueFieldId } from '../accessibility.js';
 
 /**
- * Scans document for text inputs, textareas, email, tel, number, and other inputs.
+ * Scans document for text inputs, textareas, email, tel, number, and other text-like inputs.
  */
 export function scanTextInputs(
   doc: Document,
@@ -13,12 +13,21 @@ export function scanTextInputs(
 ): void {
   const textInputEls = Array.from(
     doc.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(
-      'input[type="text"], input[type="email"], input[type="tel"], input[type="number"], input[type="password"], input[type="url"], input:not([type]), textarea',
+      'input[type="text"], input[type="email"], input[type="tel"], input[type="number"], input[type="password"], input[type="url"], input:not([type]), textarea, [data-automation-id="textInput"], [data-automation-id*="input"]',
     ),
   );
 
   textInputEls.forEach((inputEl) => {
     if (processedElements.has(inputEl) || isElementHidden(inputEl)) return;
+
+    // Filter out site search inputs outside forms
+    if (
+      (inputEl.getAttribute('type') === 'search' || inputEl.getAttribute('role') === 'searchbox') &&
+      !inputEl.closest('form, [role="form"], [data-automation-id*="application"]')
+    ) {
+      processedElements.add(inputEl);
+      return;
+    }
 
     // Skip companion text inputs for radio/checkbox "Other" options (e.g. Google Forms aria-label="Other response")
     const isOtherCompanion =
@@ -35,14 +44,19 @@ export function scanTextInputs(
     processedElements.add(inputEl);
 
     const container =
-      inputEl.closest('[role="listitem"], .freebirdFormviewerViewItemsItemItem, .QrToBd') ||
-      inputEl.parentElement;
+      inputEl.closest(
+        '[role="listitem"], .freebirdFormviewerViewItemsItemItem, .QrToBd, fieldset, .form-group, .field, [data-automation-id*="formField"], [data-automation-id*="formItem"], .application-question, .form-row',
+      ) || inputEl.parentElement;
 
     const isTextarea = inputEl.tagName.toLowerCase() === 'textarea';
     const controlType: FieldControlType = isTextarea ? 'textarea' : 'text';
 
     const name = inputEl.name || undefined;
-    const baseId = name || inputEl.id || `field-${fields.length + 1}`;
+    const baseId =
+      name ||
+      inputEl.id ||
+      inputEl.getAttribute('data-automation-id') ||
+      `field-${fields.length + 1}`;
     const fieldId = generateUniqueFieldId(baseId, usedIds);
     inputEl.setAttribute('data-autofiller-id', fieldId);
 

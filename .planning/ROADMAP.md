@@ -44,14 +44,14 @@
 - 20 unit tests covering all control types, type mismatches, and mixed-field scenarios
 
 ### Phase 15: Universal DOM Reader & Smart Field Extraction Engine
-**Status**: `planned`  
+**Status**: `completed`  
 **Scope**: Build a platform-agnostic DOM reader that detects form fields across standard HTML5 forms, ARIA containers, and custom career page layouts, intelligently resolving labels, field types, and options.  
 **Deliverables**:
 - Heuristic label resolution engine (associated `<label>`, parent wrapping, preceding text/legend, `aria-label`, placeholder)
 - Comprehensive control-type classifier (`text`, `select`, `combobox`, `radio`, `checkbox`, `date`, `file`)
 - Universal option extractor for native `<select>`, ARIA listboxes, and custom dropdown menus
 - Structured `FieldMetadata` extraction on arbitrary web forms
-- Unit test suite with varied DOM layout fixtures
+- Unit test suite with varied DOM layout fixtures (14 new tests, 102 total extension tests)
 
 ### Phase 16: Universal Multi-Origin Manifest & Navigation Architecture
 **Status**: `planned`  

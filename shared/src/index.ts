@@ -10,7 +10,10 @@ export type FieldControlType =
   | 'combobox'
   | 'radio'
   | 'checkbox'
-  | 'date';
+  | 'date'
+  | 'file';
+
+export type FormPlatform = 'google-forms' | 'greenhouse' | 'lever' | 'workday' | 'generic';
 
 export type SelectionMode = 'single' | 'multiple';
 
@@ -33,6 +36,7 @@ export interface FieldMetadata {
   options?: FieldOption[];
   selectionMode?: SelectionMode;
   required?: boolean;
+  platform?: FormPlatform;
 }
 
 export interface AutofillRequest {

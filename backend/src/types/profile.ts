@@ -48,11 +48,14 @@ export const fieldMetadataSchema = z
     ariaLabel: z.string().optional(),
     type: z.string().optional(),
     controlType: z
-      .enum(['text', 'textarea', 'dropdown', 'combobox', 'radio', 'checkbox', 'date'])
+      .enum(['text', 'textarea', 'dropdown', 'combobox', 'radio', 'checkbox', 'date', 'file'])
       .optional(),
     options: z.array(fieldOptionSchema).optional(),
     selectionMode: z.enum(['single', 'multiple']).optional(),
     required: z.boolean().optional(),
+    platform: z
+      .enum(['google-forms', 'greenhouse', 'lever', 'workday', 'generic'])
+      .optional(),
   })
   .passthrough();
 

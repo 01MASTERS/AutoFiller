@@ -7,9 +7,9 @@
 | Field | Value |
 |---|---|
 | **Milestone** | 2 — Universal Multi-Platform Form Filling Engine (v1.1) |
-| **Current Phase** | 15 — Universal DOM Reader & Smart Field Extraction Engine |
-| **Next Phase** | 16 — Universal Multi-Origin Manifest & Navigation Architecture |
-| **Status** | Milestone 2 (v1.1) cycle initialized. Phases 12–14 completed (Google Forms advanced controls foundation). 160/160 tests passing. Ready to plan Phase 15 (Universal DOM Reader). |
+| **Current Phase** | 16 — Universal Multi-Origin Manifest & Navigation Architecture |
+| **Next Phase** | 17 — Universal Form Filler & Multi-Platform Control Simulators |
+| **Status** | Phase 15 completed — Universal DOM Reader & Smart Field Extraction Engine shipped. Greenhouse, Lever, Workday, and standard HTML5 support verified with 174/174 tests passing. |
 | **Last Updated** | 2026-09-19 |
 
 ## Decision Log
@@ -28,6 +28,7 @@
 | ADR-010 | Multi-Profile File Store Architecture (v1.2) | Modular persona JSON files with instant REST switching (deferred to Milestone 3) | 2026-09-03 |
 | ADR-011 | Standalone IIFE Content Script (`.iife.ts`) | Google Forms CSP blocks dynamic imports (`import()`) in ESM content script loaders | 2026-09-03 |
 | ADR-012 | Universal Multi-Platform Expansion for v1.1 | Expand AutoFiller beyond Google Forms into a universal form-filling engine (Workday, Greenhouse, Lever, career portals) | 2026-09-19 |
+| ADR-013 | Heuristic Label Resolution Cascade & DOM Order Sorting | Resolve labels via explicit ARIA $\to$ label[for] $\to$ wrapping $\to$ legend $\to$ container headings; sort fields by compareDocumentPosition | 2026-09-19 |
 
 ## Patterns
 
@@ -35,11 +36,13 @@
 - **HTTP gateway**: Background worker → backend server via `fetch()`
 - **Provider pattern**: `LLMGateway` interface with `OllamaProvider` and `GeminiProvider` implementations
 - **Dynamic script injection fallback**: Background service worker uses `chrome.scripting.executeScript` to inject content script on tabs opened prior to extension reload
-- **Heuristic label resolution**: Cascade through `<label for="...">`, wrapping labels, preceding headings/legends, ARIA labels, and placeholders
+- **Heuristic label resolution**: Cascade through explicit ARIA labels, `<label for="...">`, wrapping labels, fieldset legends, container headings, and clean placeholders
+- **DOM order sorting**: Discovered fields sorted by live DOM `compareDocumentPosition` to ensure visual top-to-bottom sequence across arbitrary HTML layouts
 
 ## Surprises / Gotchas
 
 - **Google Forms Content Security Policy (CSP)**: `docs.google.com` enforces strict `script-src` CSP directives. Default Vite/CRXJS content script builds use an async loader (`await import(chrome.runtime.getURL(...))`) which is blocked by the host page's CSP. Renaming to `contentScript.iife.ts` instructs CRXJS to inline all dependencies into a standalone IIFE bundle, completely bypassing dynamic imports and CSP restrictions.
+- **Matrix Grid Rows vs Parent Headings**: An element's explicit `aria-label` or `aria-labelledby` on itself must precede ancestor container headings, otherwise multi-choice grid rows inherit the table title instead of their respective row names.
 
 ## Quick Tasks Completed
 

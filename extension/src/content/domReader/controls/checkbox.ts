@@ -4,7 +4,7 @@ import { resolveAccessibleLabel, isRequiredField, generateUniqueFieldId } from '
 import { extractRadioOrCheckboxOptions } from '../optionParser.js';
 
 /**
- * Scans document for checkbox groups and multi-select options.
+ * Scans document for checkbox groups, multi-select questions, and standalone checkboxes.
  */
 export function scanCheckboxGroups(
   doc: Document,
@@ -70,8 +70,37 @@ export function scanCheckboxGroups(
       ariaLabel,
       type: 'checkbox',
       controlType: 'checkbox',
-      selectionMode: 'multiple',
+      selectionMode: checkboxNodes.length > 1 ? 'multiple' : 'single',
       options,
+      required: required || undefined,
+    });
+  });
+
+  // Standalone checkboxes (e.g. single consent, authorization, terms)
+  const standaloneCheckboxes = Array.from(
+    doc.querySelectorAll<HTMLInputElement>('input[type="checkbox"], [role="checkbox"]'),
+  ).filter((cb) => !processedElements.has(cb) && !isElementHidden(cb));
+
+  standaloneCheckboxes.forEach((cb) => {
+    processedElements.add(cb);
+    const container =
+      cb.closest('label, .form-group, .field, fieldset, .form-check, div') || cb.parentElement;
+    const name = cb.getAttribute('name') || undefined;
+    const baseId = name || cb.id || `checkbox-${fields.length + 1}`;
+    const fieldId = generateUniqueFieldId(baseId, usedIds);
+    cb.setAttribute('data-autofiller-id', fieldId);
+
+    const { label, ariaLabel } = resolveAccessibleLabel(cb, container, doc);
+    const required = isRequiredField(cb, container);
+
+    fields.push({
+      id: fieldId,
+      name,
+      label: label || fieldId,
+      ariaLabel,
+      type: 'checkbox',
+      controlType: 'checkbox',
+      selectionMode: 'single',
       required: required || undefined,
     });
   });
