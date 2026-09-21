@@ -37,6 +37,7 @@ export const fieldOptionSchema = z.object({
   value: z.string().optional(),
   selected: z.boolean().optional(),
   disabled: z.boolean().optional(),
+  isOther: z.boolean().optional(),
 });
 
 export const fieldMetadataSchema = z
@@ -54,7 +55,7 @@ export const fieldMetadataSchema = z
     selectionMode: z.enum(['single', 'multiple']).optional(),
     required: z.boolean().optional(),
     platform: z
-      .enum(['google-forms', 'greenhouse', 'lever', 'workday', 'generic'])
+      .enum(['google-forms', 'greenhouse', 'lever', 'workday', 'smartrecruiters', 'generic'])
       .optional(),
     platformFieldType: z
       .enum(['personal', 'experience', 'custom_question', 'demographic', 'resume_upload', 'social_link', 'other'])
