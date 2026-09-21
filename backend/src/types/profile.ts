@@ -68,7 +68,23 @@ export const autofillRequestSchema = z.object({
   provider: z.enum(['ollama', 'gemini']).optional(),
   model: z.string().optional(),
   apiKey: z.string().optional(),
+  profileId: z.string().optional(),
+});
+
+export const switchProfileRequestSchema = z.object({
+  profileId: z.string().min(1, 'Profile ID is required'),
+});
+
+export const createProfileRequestSchema = z.object({
+  id: z
+    .string()
+    .min(1, 'Profile ID is required')
+    .regex(/^[a-zA-Z0-9_-]+$/, 'Profile ID must only contain letters, numbers, dashes, and underscores'),
+  profile: userProfileSchema,
 });
 
 export type UserProfileValidated = z.infer<typeof userProfileSchema>;
 export type AutofillRequestValidated = z.infer<typeof autofillRequestSchema>;
+export type SwitchProfileRequestValidated = z.infer<typeof switchProfileRequestSchema>;
+export type CreateProfileRequestValidated = z.infer<typeof createProfileRequestSchema>;
+

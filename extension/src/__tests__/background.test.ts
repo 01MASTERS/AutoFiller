@@ -225,6 +225,109 @@ describe('background service worker', () => {
     });
   });
 
+  it('forwards explicit profileId in POST /autofill payload', async () => {
+    queryTabsMock.mockResolvedValue([{ id: 101 }]);
+    sendMessageTabMock.mockImplementation((tabId, message) => {
+      if (message.action === 'SCAN_FIELDS') {
+        return Promise.resolve({
+          status: 'success',
+          fields: [{ id: 'entry.1', label: 'Name' }],
+        });
+      }
+      if (message.action === 'FILL_FIELDS') {
+        return Promise.resolve({
+          status: 'success',
+          result: {
+            status: 'success',
+            filledCount: 1,
+            failedCount: 0,
+            skippedCount: 0,
+            filledFields: ['entry.1'],
+            failedFields: [],
+            skippedFields: [],
+          },
+        });
+      }
+      return Promise.reject(new Error('Unknown action'));
+    });
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        status: 'success',
+        mappings: { 'entry.1': 'Dr. Elena Rostova' },
+      }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await handleTriggerAutofill({
+      provider: 'ollama',
+      profileId: 'data-scientist',
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://localhost:3456/autofill',
+      expect.objectContaining({
+        method: 'POST',
+        body: expect.stringContaining('"profileId":"data-scientist"'),
+      }),
+    );
+    expect(result).toEqual({ status: 'success', filledCount: 1, failedCount: 0, skippedCount: 0 });
+  });
+
+  it('reads activeProfileId from chrome.storage.local when profileId is omitted from options', async () => {
+    queryTabsMock.mockResolvedValue([{ id: 101 }]);
+    sendMessageTabMock.mockImplementation((tabId, message) => {
+      if (message.action === 'SCAN_FIELDS') {
+        return Promise.resolve({
+          status: 'success',
+          fields: [{ id: 'entry.1', label: 'Name' }],
+        });
+      }
+      if (message.action === 'FILL_FIELDS') {
+        return Promise.resolve({
+          status: 'success',
+          result: {
+            status: 'success',
+            filledCount: 1,
+            failedCount: 0,
+            skippedCount: 0,
+            filledFields: ['entry.1'],
+            failedFields: [],
+            skippedFields: [],
+          },
+        });
+      }
+      return Promise.reject(new Error('Unknown action'));
+    });
+
+    getStorageMock.mockResolvedValue({
+      activeProfileId: 'product-manager',
+    });
+
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        status: 'success',
+        mappings: { 'entry.1': 'Alex Rivera' },
+      }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await handleTriggerAutofill({
+      provider: 'ollama',
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      'http://localhost:3456/autofill',
+      expect.objectContaining({
+        method: 'POST',
+        body: expect.stringContaining('"profileId":"product-manager"'),
+      }),
+    );
+    expect(result).toEqual({ status: 'success', filledCount: 1, failedCount: 0, skippedCount: 0 });
+  });
+
   it('Item 17 verification: runtime content-script injection file exists in source and matches manifest', async () => {
     const fs = await import('fs');
     const path = await import('path');

@@ -99,17 +99,36 @@
 ## Future Milestones (Post v1.1)
 
 ### Phase 20: Multi-Profile Backend Store & Switching API
-**Status**: `future`  
-**Scope**: Enable multiple persona profile JSON files in `backend/profiles/` with switching REST endpoints (`GET /profiles`, `POST /profiles/switch`, `GET /profile`).
+**Status**: `completed` (2026-09-19)  
+**Scope**: Enable multiple persona profile JSON files in `backend/profiles/` with switching REST endpoints (`GET /profiles`, `POST /profiles/switch`, `GET /profile`, `POST /profiles`, `PUT /profiles/:id`, `DELETE /profiles/:id`).
+**Deliverables**:
+- Multi-profile directory manager (`ProfileStore`) with `.active` pointer file tracking and legacy fallback
+- Persona starter seeds (`default.json`, `product-manager.json`, `data-scientist.json`)
+- REST endpoints for profile CRUD and active profile switching with audit logging
+- Wired `profileId` override into `POST /autofill`
+- Full backend integration test coverage (16 tests, 229/229 monorepo tests passing)
 
 ### Phase 21: Extension Multi-Profile Switcher UI & Storage Sync
-**Status**: `future`  
+**Status**: `completed` (2026-09-19)  
 **Scope**: Add profile switcher dropdown to extension popup UI, persist selection in Chrome storage, and synchronize active profile with backend.
+**Deliverables**:
+- Interactive popup persona switcher dropdown (`#profile-select`) with live headline and email preview
+- Status sync badge ("Loaded", "Cached", "Offline") and manual refresh button (`#refresh-profiles-btn`)
+- Chrome storage persistence and resilient offline caching (`chrome.storage.local`)
+- Persona selection forwarding in background autofill pipeline (`TRIGGER_AUTOFILL` $\to$ backend `POST /autofill`)
+- Full test coverage for popup UI and background worker (144 extension tests, 236/236 monorepo tests passing)
 
 ### Phase 22: Profile Editor UI (Web Dashboard)
-**Status**: `future`  
-**Scope**: Web-based visual profile editor served from backend (`GET /profile-ui`) for creating, editing, and previewing persona profiles.
+**Status**: `completed` (2026-09-19)  
+**Scope**: Web-based visual profile editor served from backend (`GET /profile-ui` and alias `GET /profiles-ui`) for inspecting, creating, editing, and previewing persona profiles.
+**Deliverables**:
+- Interactive web dashboard UI (`backend/src/routes/profileUiHtml.ts`) with Google Fonts, glassmorphism, responsive two-column workspace
+- Sidebar persona list with live search filtering, active badge, and "+ New" persona launcher
+- Dual view modes: Visual Form (personal, headline, work exp, edu, skills chips, links, custom QA) & Raw JSON (format, copy, syntax error check)
+- Backend route registration (`GET /profile-ui`, `GET /profiles-ui`) and automated supertest coverage (3 tests, 95 backend tests total)
+- Extension popup launcher button (`#open-profile-editor-btn`) with test coverage (146 extension tests total, 241/241 monorepo tests passing)
 
 ### Phase 23: Chrome Web Store Publishing & Security Review
 **Status**: `future`  
 **Scope**: Security hardening, packaging, manifest audit, store listing assets, and Chrome Web Store submission.
+

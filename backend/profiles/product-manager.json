@@ -1,0 +1,49 @@
+{
+  "name": "Rittik Sharma",
+  "email": "rittik.pm@gmail.com",
+  "phone": "+91 9135517396",
+  "address": "Bangalore, Karnataka, India",
+  "education": [
+    {
+      "degree": "B.Tech in Electrical and Electronics Engineering",
+      "school": "Indian Institute of Technology Patna",
+      "Graduation year": "2026",
+      "start date": "2022",
+      "end date": "2026"
+    }
+  ],
+  "experience": [
+    {
+      "title": "Associate Product Manager Intern",
+      "company": "Vivriti Capital Pvt. Ltd.",
+      "duration": "2026 - Present",
+      "description": "Owned product requirement docs (PRDs), backlog prioritization, customer discovery interviews, and sprint roadmaps for fintech credit workflows."
+    }
+  ],
+  "skills": [
+    "Product Management",
+    "PRDs",
+    "Agile / Scrum",
+    "User Research",
+    "Roadmap Strategy",
+    "Data Analytics",
+    "SQL",
+    "A/B Testing",
+    "Wireframing",
+    "Stakeholder Management"
+  ],
+  "links": {
+    "LinkedIn": "https://www.linkedin.com/in/rittik-sharmax",
+    "Portfolio": "https://rittiksharma.vercel.app"
+  },
+  "custom": {
+    "Headline": "Technical Product Manager & Fintech Innovator",
+    "First Name": "Rittik",
+    "Last Name": "Sharma",
+    "Gender": "Male",
+    "Work Authorization": "Yes",
+    "Require Sponsorship": "No",
+    "Preferred Location": "Bangalore, Hyderabad, Chennai, Remote",
+    "Expected Salary": "14,00,000 LPA"
+  }
+}

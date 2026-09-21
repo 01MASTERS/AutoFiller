@@ -9,9 +9,18 @@ import {
   mockWorkdayFormHtml,
   mockCareerFormHtml,
   mockGoogleFormHtml,
+  ProfileSummary,
+  ProfilesListResponse,
+  SwitchProfileResponse,
 } from '@autofiller/shared';
 import { ProfileStore } from '../services/profileStore.js';
-import { autofillRequestSchema } from '../types/profile.js';
+import { renderProfileEditorHtml } from './profileUiHtml.js';
+import {
+  autofillRequestSchema,
+  switchProfileRequestSchema,
+  createProfileRequestSchema,
+  userProfileSchema,
+} from '../types/profile.js';
 import { LLMGateway } from '../services/llm/gateway.js';
 import { LLMProviderError, LLMParseError } from '../services/llm/types.js';
 import { ParseDiagnostics } from '../services/llm/responseParser.js';
@@ -921,6 +930,126 @@ apiRouter.get('/logs-ui', (req: Request, res: Response) => {
   res.send(html);
 });
 
+apiRouter.get('/profiles', (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const profiles = ProfileStore.listProfiles();
+    const activeProfileId = ProfileStore.getActiveProfileId();
+    const response: ProfilesListResponse = {
+      status: 'success',
+      profiles,
+      activeProfileId,
+    };
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+});
+
+apiRouter.get('/profiles/:id', (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const profileId = req.params.id as string;
+    const profile = ProfileStore.getProfile(profileId);
+    res.json(profile);
+  } catch (error) {
+    next(error);
+  }
+});
+
+apiRouter.post('/profiles/switch', (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const body = switchProfileRequestSchema.parse(req.body);
+    const profile = ProfileStore.setActiveProfile(body.profileId);
+
+    LoggerService.getInstance().addLog({
+      level: 'INFO',
+      source: 'BACKEND_API',
+      tag: 'PROFILE_SWITCHED',
+      message: `Switched active profile to ${body.profileId}`,
+      details: { profileId: body.profileId },
+    });
+
+    const response: SwitchProfileResponse = {
+      status: 'success',
+      activeProfileId: body.profileId,
+      profile,
+    };
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+});
+
+apiRouter.post('/profiles', (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const body = createProfileRequestSchema.parse(req.body);
+    ProfileStore.createProfile(body.id, body.profile);
+
+    LoggerService.getInstance().addLog({
+      level: 'INFO',
+      source: 'BACKEND_API',
+      tag: 'PROFILE_CREATED',
+      message: `Created new profile ${body.id}`,
+      details: { profileId: body.id },
+    });
+
+    res.status(201).json({
+      status: 'success',
+      message: `Profile "${body.id}" created successfully`,
+      profileId: body.id,
+      profile: body.profile,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+apiRouter.put('/profiles/:id', (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const profileId = req.params.id as string;
+    const body = userProfileSchema.parse(req.body);
+    ProfileStore.saveProfile(body, profileId);
+
+    LoggerService.getInstance().addLog({
+      level: 'INFO',
+      source: 'BACKEND_API',
+      tag: 'PROFILE_UPDATED',
+      message: `Updated profile ${profileId}`,
+      details: { profileId },
+    });
+
+    res.json({
+      status: 'success',
+      message: `Profile "${profileId}" updated successfully`,
+      profileId,
+      profile: body,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+apiRouter.delete('/profiles/:id', (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const profileId = req.params.id as string;
+    ProfileStore.deleteProfile(profileId);
+
+    LoggerService.getInstance().addLog({
+      level: 'INFO',
+      source: 'BACKEND_API',
+      tag: 'PROFILE_DELETED',
+      message: `Deleted profile ${profileId}`,
+      details: { profileId },
+    });
+
+    res.json({
+      status: 'success',
+      message: `Profile "${profileId}" deleted successfully`,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 apiRouter.get('/profile', (req: Request, res: Response, next: NextFunction) => {
   try {
     const profile = ProfileStore.getProfile();
@@ -928,6 +1057,16 @@ apiRouter.get('/profile', (req: Request, res: Response, next: NextFunction) => {
   } catch (error) {
     next(error);
   }
+});
+
+apiRouter.get('/profile-ui', (req: Request, res: Response) => {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(renderProfileEditorHtml());
+});
+
+apiRouter.get('/profiles-ui', (req: Request, res: Response) => {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(renderProfileEditorHtml());
 });
 
 apiRouter.get('/models', async (req: Request, res: Response, next: NextFunction) => {
@@ -972,7 +1111,7 @@ apiRouter.get('/models', async (req: Request, res: Response, next: NextFunction)
 apiRouter.post('/autofill', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const body = autofillRequestSchema.parse(req.body);
-    const profile = ProfileStore.getProfile();
+    const profile = ProfileStore.getProfile(body.profileId);
 
     const provider = body.provider || 'ollama';
     const apiKey = (req.headers['x-gemini-api-key'] as string) || body.apiKey;

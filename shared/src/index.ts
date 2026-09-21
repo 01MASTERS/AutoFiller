@@ -54,6 +54,34 @@ export interface AutofillRequest {
   fields: FieldMetadata[];
   provider?: 'ollama' | 'gemini';
   model?: string;
+  profileId?: string;
+}
+
+export interface ProfileSummary {
+  id: string;
+  name: string;
+  headline?: string;
+  filename: string;
+  isActive: boolean;
+}
+
+export interface ProfilesListResponse {
+  status: 'success' | 'error';
+  activeProfileId: string;
+  profiles: ProfileSummary[];
+  error?: string;
+}
+
+export interface SwitchProfileRequest {
+  profileId: string;
+}
+
+export interface SwitchProfileResponse {
+  status: 'success' | 'error';
+  activeProfileId: string;
+  message?: string;
+  profile?: UserProfile;
+  error?: string;
 }
 
 export type FieldMappingValue = string | string[] | boolean;

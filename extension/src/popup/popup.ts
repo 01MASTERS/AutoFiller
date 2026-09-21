@@ -1,4 +1,11 @@
-import { HealthResponse, ModelsResponse, UserProfile } from '@autofiller/shared';
+import {
+  HealthResponse,
+  ModelsResponse,
+  UserProfile,
+  ProfileSummary,
+  ProfilesListResponse,
+  SwitchProfileResponse,
+} from '@autofiller/shared';
 import { ExtensionLogger } from '../utils/logger.js';
 
 export interface PopupSettings {
@@ -303,20 +310,228 @@ export async function checkBackendHealth() {
   }
 }
 
-export async function fetchProfilePreview() {
+export function updateProfilePreviewUI(
+  profile: {
+    name: string;
+    email?: string;
+    headline?: string;
+  },
+  badgeState: 'Loaded' | 'Cached' | 'Offline' = 'Loaded',
+) {
   const nameEl = document.getElementById('profile-name');
   const emailEl = document.getElementById('profile-email');
+  const headlineEl = document.getElementById('profile-headline');
+  const badgeEl = document.getElementById('profile-badge');
+
+  if (nameEl) nameEl.textContent = profile.name;
+  if (emailEl && profile.email) emailEl.textContent = profile.email;
+  if (headlineEl) headlineEl.textContent = profile.headline || '';
+
+  if (badgeEl) {
+    badgeEl.textContent = badgeState;
+    badgeEl.className = `badge ${
+      badgeState === 'Loaded'
+        ? 'success-badge'
+        : badgeState === 'Cached'
+        ? 'cached-badge'
+        : 'offline-badge'
+    }`;
+  }
+}
+
+export async function fetchProfilesList(
+  preferredProfileId?: string,
+): Promise<ProfileSummary[]> {
+  const selectEl = document.getElementById('profile-select') as HTMLSelectElement | null;
+  const refreshBtn = document.getElementById('refresh-profiles-btn');
+  const refreshIcon = refreshBtn?.querySelector('.refresh-icon');
+
+  if (refreshIcon) refreshIcon.classList.add('spin');
 
   try {
-    const res = await fetch('http://localhost:3456/profile');
+    const res = await fetch('http://localhost:3456/profiles');
     if (res.ok) {
-      const profile = (await res.json()) as UserProfile;
-      if (nameEl) nameEl.textContent = profile.name;
-      if (emailEl) emailEl.textContent = profile.email;
+      const data = (await res.json()) as ProfilesListResponse;
+      if (data.status === 'success' && Array.isArray(data.profiles)) {
+        if (selectEl) {
+          selectEl.innerHTML = '';
+          for (const p of data.profiles) {
+            const opt = document.createElement('option');
+            opt.value = p.id;
+            opt.textContent = p.headline ? `${p.name} — ${p.headline}` : p.name;
+            selectEl.appendChild(opt);
+          }
+          const activeId =
+            preferredProfileId || data.activeProfileId || data.profiles[0]?.id || 'default';
+          selectEl.value = activeId;
+          selectEl.setAttribute('data-active-id', activeId);
+        }
+
+        const activeSummary =
+          data.profiles.find((p) => p.id === (preferredProfileId || data.activeProfileId)) ||
+          data.profiles[0];
+
+        if (activeSummary) {
+          updateProfilePreviewUI(
+            {
+              name: activeSummary.name,
+              headline: activeSummary.headline,
+            },
+            'Loaded',
+          );
+        }
+
+        // Also fetch active profile email
+        try {
+          const profileRes = await fetch('http://localhost:3456/profile');
+          if (profileRes.ok) {
+            const profileData = (await profileRes.json()) as UserProfile;
+            updateProfilePreviewUI(
+              {
+                name: profileData.name,
+                email: profileData.email,
+                headline:
+                  activeSummary?.headline ||
+                  (profileData.custom && typeof profileData.custom.Headline === 'string'
+                    ? profileData.custom.Headline
+                    : undefined),
+              },
+              'Loaded',
+            );
+          }
+        } catch {}
+
+        if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+          await chrome.storage.local.set({
+            cachedProfiles: data.profiles,
+            activeProfileId: preferredProfileId || data.activeProfileId,
+          });
+        }
+
+        return data.profiles;
+      }
     }
+    throw new Error('Failed to fetch profiles list from backend');
   } catch {
-    // Keep placeholder profile if server unreachable
+    // Offline fallback from chrome.storage.local
+    if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+      try {
+        const stored = await chrome.storage.local.get(['cachedProfiles', 'activeProfileId']);
+        if (
+          stored.cachedProfiles &&
+          Array.isArray(stored.cachedProfiles) &&
+          stored.cachedProfiles.length > 0
+        ) {
+          if (selectEl) {
+            selectEl.innerHTML = '';
+            for (const p of stored.cachedProfiles as ProfileSummary[]) {
+              const opt = document.createElement('option');
+              opt.value = p.id;
+              opt.textContent = p.headline ? `${p.name} — ${p.headline}` : p.name;
+              selectEl.appendChild(opt);
+            }
+            const activeId = stored.activeProfileId || stored.cachedProfiles[0].id;
+            selectEl.value = activeId;
+            selectEl.setAttribute('data-active-id', activeId);
+          }
+
+          const cachedActive =
+            (stored.cachedProfiles as ProfileSummary[]).find(
+              (p) => p.id === stored.activeProfileId,
+            ) || stored.cachedProfiles[0];
+
+          updateProfilePreviewUI(
+            {
+              name: cachedActive.name,
+              headline: cachedActive.headline,
+            },
+            'Cached',
+          );
+
+          return stored.cachedProfiles as ProfileSummary[];
+        }
+      } catch {}
+    }
+
+    updateProfilePreviewUI({ name: 'Default Profile' }, 'Offline');
+    return [];
+  } finally {
+    if (refreshIcon) refreshIcon.classList.remove('spin');
   }
+}
+
+export async function switchActiveProfile(profileId: string): Promise<boolean> {
+  const selectEl = document.getElementById('profile-select') as HTMLSelectElement | null;
+  const previousId = selectEl?.getAttribute('data-active-id') || 'default';
+
+  try {
+    const res = await fetch('http://localhost:3456/profiles/switch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ profileId }),
+    });
+
+    if (res.ok) {
+      const data = (await res.json()) as SwitchProfileResponse;
+      if (data.status === 'success' && data.profile) {
+        selectEl?.setAttribute('data-active-id', profileId);
+        if (selectEl) {
+          const hasOption = Array.from(selectEl.options).some((opt) => opt.value === profileId);
+          if (!hasOption) {
+            const opt = document.createElement('option');
+            opt.value = profileId;
+            opt.textContent = data.profile.name || profileId;
+            selectEl.appendChild(opt);
+          }
+          selectEl.value = profileId;
+        }
+
+        const headline =
+          (data.profile.custom &&
+            typeof data.profile.custom.Headline === 'string' &&
+            data.profile.custom.Headline) ||
+          (Array.isArray(data.profile.experience) && data.profile.experience[0]?.title) ||
+          undefined;
+
+        updateProfilePreviewUI(
+          {
+            name: data.profile.name,
+            email: data.profile.email,
+            headline,
+          },
+          'Loaded',
+        );
+
+        if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+          await chrome.storage.local.set({ activeProfileId: profileId });
+        }
+
+        await ExtensionLogger.log(
+          'INFO',
+          'EXTENSION_POPUP',
+          'PROFILE_SWITCH',
+          `Switched active persona to ${profileId} (${data.profile.name})`,
+          { profileId, name: data.profile.name },
+        );
+
+        return true;
+      }
+    }
+    throw new Error(`Profile switch returned status ${res.status}`);
+  } catch (err) {
+    if (selectEl) selectEl.value = previousId;
+    await ExtensionLogger.log(
+      'WARN',
+      'EXTENSION_POPUP',
+      'PROFILE_SWITCH_FAILED',
+      `Failed to switch profile to ${profileId}: ${err instanceof Error ? err.message : String(err)}`,
+    );
+    return false;
+  }
+}
+
+export async function fetchProfilePreview() {
+  await fetchProfilesList();
 }
 
 export function bindPopupEvents() {
@@ -328,6 +543,21 @@ export function bindPopupEvents() {
   const refreshGeminiBtn = document.getElementById('refresh-gemini-btn');
   const autofillBtn = document.getElementById('autofill-btn');
   const openLogsBtn = document.getElementById('open-logs-btn');
+  const openProfileEditorBtn = document.getElementById('open-profile-editor-btn');
+
+  openProfileEditorBtn?.addEventListener('click', () => {
+    ExtensionLogger.log(
+      'INFO',
+      'EXTENSION_POPUP',
+      'PROFILE_EDITOR_UI_OPEN',
+      'User opened Profile Editor Web Dashboard',
+    );
+    if (typeof chrome !== 'undefined' && chrome.tabs?.create) {
+      chrome.tabs.create({ url: 'http://localhost:3456/profile-ui' });
+    } else if (typeof window !== 'undefined') {
+      window.open('http://localhost:3456/profile-ui', '_blank');
+    }
+  });
 
   openLogsBtn?.addEventListener('click', () => {
     ExtensionLogger.log(
@@ -405,6 +635,25 @@ export function bindPopupEvents() {
     }
   });
 
+  const profileSelect = document.getElementById('profile-select') as HTMLSelectElement | null;
+  const refreshProfilesBtn = document.getElementById('refresh-profiles-btn');
+
+  profileSelect?.addEventListener('change', async () => {
+    if (profileSelect.value) {
+      await switchActiveProfile(profileSelect.value);
+    }
+  });
+
+  refreshProfilesBtn?.addEventListener('click', async () => {
+    await ExtensionLogger.log(
+      'INFO',
+      'EXTENSION_POPUP',
+      'REFRESH_PROFILES_CLICK',
+      'User refreshed profiles from backend',
+    );
+    await fetchProfilesList(profileSelect?.value);
+  });
+
   refreshOllamaBtn?.addEventListener('click', async () => {
     ExtensionLogger.log('INFO', 'EXTENSION_POPUP', 'REFRESH_CLICK', 'User refreshed Ollama models');
     const settings = await saveSettings();
@@ -422,12 +671,14 @@ export function bindPopupEvents() {
     const settings = await saveSettings();
     const activeModel =
       settings.provider === 'gemini' ? settings.geminiModel : settings.ollamaModel;
+    const currentProfileSelect = document.getElementById('profile-select') as HTMLSelectElement | null;
+    const activeProfileId = currentProfileSelect?.value || undefined;
 
     ExtensionLogger.log(
       'INFO',
       'EXTENSION_POPUP',
       'TRIGGER_AUTOFILL_CLICK',
-      `Auto-fill form clicked with provider: ${settings.provider}, model: ${activeModel}`,
+      `Auto-fill form clicked with provider: ${settings.provider}, model: ${activeModel}, profile: ${activeProfileId || 'default'}`,
     );
 
     if (typeof chrome !== 'undefined' && chrome.runtime?.sendMessage) {
@@ -437,6 +688,7 @@ export function bindPopupEvents() {
           provider: settings.provider,
           model: activeModel,
           apiKey: settings.geminiApiKey,
+          profileId: activeProfileId,
         },
       });
     }
@@ -464,8 +716,8 @@ if (typeof document !== 'undefined') {
   document.addEventListener('DOMContentLoaded', async () => {
     const settings = await loadSettings();
     const isOnline = await checkBackendHealth();
-    fetchProfilePreview();
     bindPopupEvents();
+    await fetchProfilesList();
 
     if (typeof chrome !== 'undefined' && chrome.storage?.local) {
       try {

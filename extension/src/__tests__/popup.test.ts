@@ -10,12 +10,16 @@ import {
   checkBackendHealth,
   bindPopupEvents,
   formatPopupErrorMessage,
+  fetchProfilesList,
+  switchActiveProfile,
+  updateProfilePreviewUI,
 } from '../popup/popup.js';
 
 describe('Popup UI', () => {
   const setStorageMock = vi.fn().mockResolvedValue(undefined);
   const getStorageMock = vi.fn().mockResolvedValue({});
   const sendMessageRuntimeMock = vi.fn().mockResolvedValue(undefined);
+  const createTabMock = vi.fn().mockResolvedValue(undefined);
 
   beforeEach(() => {
     vi.restoreAllMocks();
@@ -25,11 +29,19 @@ describe('Popup UI', () => {
         <span class="pill-dot"></span>
         <span class="pill-text">Checking</span>
       </div>
+      <button id="open-logs-btn" type="button"></button>
+      <button id="open-profile-editor-btn" type="button"></button>
       <button id="autofill-btn">Auto-Fill Form</button>
       <div id="status-banner" class="status-banner idle">
         <span id="status-text">Ready</span>
       </div>
+      <button id="refresh-profiles-btn" type="button"><svg class="refresh-icon"></svg></button>
+      <span id="profile-badge" class="badge success-badge">Loaded</span>
+      <select id="profile-select">
+        <option value="default">Default</option>
+      </select>
       <div id="profile-name">Jane Doe</div>
+      <div id="profile-headline">Software Engineer</div>
       <div id="profile-email">jane@example.com</div>
       <select id="provider-select">
         <option value="ollama">Ollama</option>
@@ -37,9 +49,17 @@ describe('Popup UI', () => {
       </select>
       <div id="ollama-settings">
         <input type="text" id="ollama-model-input" value="llama3.2" />
+        <select id="ollama-model-select">
+          <option value="llama3.2">llama3.2</option>
+        </select>
+        <button id="refresh-ollama-btn" type="button"></button>
       </div>
       <div id="gemini-settings" class="hidden">
         <input type="password" id="gemini-key-input" value="" />
+        <select id="gemini-model-select">
+          <option value="gemini-1.5-flash">gemini-1.5-flash</option>
+        </select>
+        <button id="refresh-gemini-btn" type="button"></button>
       </div>
     `;
 
@@ -53,6 +73,9 @@ describe('Popup UI', () => {
       runtime: {
         sendMessage: sendMessageRuntimeMock,
         onMessage: { addListener: vi.fn() },
+      },
+      tabs: {
+        create: createTabMock,
       },
     });
   });
@@ -118,8 +141,11 @@ describe('Popup UI', () => {
     expect(providerSelect.value).toBe('gemini');
   });
 
-  it('dispatches TRIGGER_AUTOFILL message on Auto-Fill button click', async () => {
+  it('dispatches TRIGGER_AUTOFILL message on Auto-Fill button click with active profileId', async () => {
     bindPopupEvents();
+
+    const profileSelect = document.getElementById('profile-select') as HTMLSelectElement;
+    profileSelect.value = 'default';
 
     const button = document.getElementById('autofill-btn') as HTMLButtonElement;
     button.click();
@@ -131,6 +157,7 @@ describe('Popup UI', () => {
       options: expect.objectContaining({
         provider: 'ollama',
         model: 'llama3.2',
+        profileId: 'default',
       }),
     });
   });
@@ -147,5 +174,196 @@ describe('Popup UI', () => {
     expect(isOnline).toBe(true);
     const pill = document.getElementById('backend-status-pill');
     expect(pill?.className).toContain('online');
+  });
+
+  describe('Multi-Profile Switcher & Storage Sync', () => {
+    const mockProfiles = [
+      {
+        id: 'default',
+        name: 'Rittik Sharma',
+        headline: 'AI/ML Engineer & Data Scientist',
+        filename: 'default.json',
+        isActive: true,
+      },
+      {
+        id: 'product-manager',
+        name: 'Rittik Sharma',
+        headline: 'Associate Product Manager Intern',
+        filename: 'product-manager.json',
+        isActive: false,
+      },
+    ];
+
+    it('fetches profiles list from backend and populates select dropdown', async () => {
+      const fetchMock = vi.fn().mockImplementation((url: string) => {
+        if (url.endsWith('/profiles')) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              status: 'success',
+              activeProfileId: 'default',
+              profiles: mockProfiles,
+            }),
+          });
+        }
+        if (url.endsWith('/profile')) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              name: 'Rittik Sharma',
+              email: 'rittik.ai@gmail.com',
+              custom: { Headline: 'AI/ML Engineer & Data Scientist' },
+            }),
+          });
+        }
+        return Promise.reject(new Error('Unknown URL'));
+      });
+      vi.stubGlobal('fetch', fetchMock);
+
+      const profiles = await fetchProfilesList();
+
+      expect(profiles).toHaveLength(2);
+
+      const selectEl = document.getElementById('profile-select') as HTMLSelectElement;
+      expect(selectEl.options).toHaveLength(2);
+      expect(selectEl.value).toBe('default');
+
+      const nameEl = document.getElementById('profile-name');
+      const headlineEl = document.getElementById('profile-headline');
+      const badgeEl = document.getElementById('profile-badge');
+
+      expect(nameEl?.textContent).toBe('Rittik Sharma');
+      expect(headlineEl?.textContent).toContain('AI/ML Engineer');
+      expect(badgeEl?.textContent).toBe('Loaded');
+      expect(badgeEl?.className).toContain('success-badge');
+
+      // Verify cached in Chrome storage
+      expect(setStorageMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          activeProfileId: 'default',
+          cachedProfiles: mockProfiles,
+        }),
+      );
+    });
+
+    it('switches active profile via switchActiveProfile and updates UI', async () => {
+      const fetchMock = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          status: 'success',
+          activeProfileId: 'product-manager',
+          profile: {
+            name: 'Rittik Sharma',
+            email: 'rittik.pm@gmail.com',
+            experience: [{ title: 'Associate Product Manager Intern' }],
+          },
+        }),
+      });
+      vi.stubGlobal('fetch', fetchMock);
+
+      const success = await switchActiveProfile('product-manager');
+
+      expect(success).toBe(true);
+      expect(fetchMock).toHaveBeenCalledWith(
+        'http://localhost:3456/profiles/switch',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({ profileId: 'product-manager' }),
+        }),
+      );
+
+      const selectEl = document.getElementById('profile-select') as HTMLSelectElement;
+      expect(selectEl.value).toBe('product-manager');
+
+      const emailEl = document.getElementById('profile-email');
+      const headlineEl = document.getElementById('profile-headline');
+      expect(emailEl?.textContent).toBe('rittik.pm@gmail.com');
+      expect(headlineEl?.textContent).toBe('Associate Product Manager Intern');
+
+      expect(setStorageMock).toHaveBeenCalledWith({
+        activeProfileId: 'product-manager',
+      });
+    });
+
+    it('falls back to cached profiles in chrome.storage when backend is offline', async () => {
+      const fetchMock = vi.fn().mockRejectedValue(new Error('Network error - backend offline'));
+      vi.stubGlobal('fetch', fetchMock);
+
+      getStorageMock.mockResolvedValue({
+        cachedProfiles: mockProfiles,
+        activeProfileId: 'product-manager',
+      });
+
+      const profiles = await fetchProfilesList();
+
+      expect(profiles).toHaveLength(2);
+
+      const selectEl = document.getElementById('profile-select') as HTMLSelectElement;
+      expect(selectEl.options).toHaveLength(2);
+      expect(selectEl.value).toBe('product-manager');
+
+      const badgeEl = document.getElementById('profile-badge');
+      expect(badgeEl?.textContent).toBe('Cached');
+      expect(badgeEl?.className).toContain('cached-badge');
+    });
+
+    it('reverts dropdown selection if switch request fails', async () => {
+      const selectEl = document.getElementById('profile-select') as HTMLSelectElement;
+      selectEl.setAttribute('data-active-id', 'default');
+      selectEl.value = 'invalid-profile';
+
+      const fetchMock = vi.fn().mockResolvedValue({
+        ok: false,
+        status: 404,
+        json: async () => ({ status: 'error', error: 'Profile not found' }),
+      });
+      vi.stubGlobal('fetch', fetchMock);
+
+      const success = await switchActiveProfile('invalid-profile');
+
+      expect(success).toBe(false);
+      expect(selectEl.value).toBe('default');
+    });
+
+    it('updates preview UI cleanly with updateProfilePreviewUI', () => {
+      updateProfilePreviewUI(
+        {
+          name: 'Alex Rivera',
+          email: 'alex@example.com',
+          headline: 'VP of Engineering',
+        },
+        'Cached',
+      );
+
+      expect(document.getElementById('profile-name')?.textContent).toBe('Alex Rivera');
+      expect(document.getElementById('profile-email')?.textContent).toBe('alex@example.com');
+      expect(document.getElementById('profile-headline')?.textContent).toBe('VP of Engineering');
+      expect(document.getElementById('profile-badge')?.textContent).toBe('Cached');
+      expect(document.getElementById('profile-badge')?.className).toContain('cached-badge');
+    });
+
+    it('opens profile editor UI in new tab when open-profile-editor-btn is clicked', () => {
+      bindPopupEvents();
+
+      const btn = document.getElementById('open-profile-editor-btn');
+      expect(btn).not.toBeNull();
+      btn?.click();
+
+      expect(createTabMock).toHaveBeenCalledWith({
+        url: 'http://localhost:3456/profile-ui',
+      });
+    });
+
+    it('opens logs UI in new tab when open-logs-btn is clicked', () => {
+      bindPopupEvents();
+
+      const btn = document.getElementById('open-logs-btn');
+      expect(btn).not.toBeNull();
+      btn?.click();
+
+      expect(createTabMock).toHaveBeenCalledWith({
+        url: 'http://localhost:3456/logs-ui',
+      });
+    });
   });
 });

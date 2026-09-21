@@ -1,0 +1,52 @@
+{
+  "name": "Rittik Sharma",
+  "email": "rittik.ai@gmail.com",
+  "phone": "+91 9135517396",
+  "address": "Hyderabad, Telangana, India",
+  "education": [
+    {
+      "degree": "B.Tech in Electrical and Electronics Engineering",
+      "school": "Indian Institute of Technology Patna",
+      "Graduation year": "2026",
+      "start date": "2022",
+      "end date": "2026"
+    }
+  ],
+  "experience": [
+    {
+      "title": "Machine Learning & AI Intern",
+      "company": "Vivriti Capital Pvt. Ltd.",
+      "duration": "2026 - Present",
+      "description": "Architected predictive risk models, fine-tuned transformer LLMs, and implemented automated data pipelines using PyTorch and Scikit-learn."
+    }
+  ],
+  "skills": [
+    "Python",
+    "PyTorch",
+    "TensorFlow",
+    "Machine Learning",
+    "Deep Learning",
+    "Large Language Models (LLMs)",
+    "NLP",
+    "Scikit-learn",
+    "Pandas",
+    "SQL",
+    "Docker",
+    "MLflow"
+  ],
+  "links": {
+    "LinkedIn": "https://www.linkedin.com/in/rittik-sharmax",
+    "GitHub": "https://github.com/01MASTERS",
+    "Portfolio": "https://rittiksharma.vercel.app"
+  },
+  "custom": {
+    "Headline": "AI/ML Engineer & Data Scientist",
+    "First Name": "Rittik",
+    "Last Name": "Sharma",
+    "Gender": "Male",
+    "Work Authorization": "Yes",
+    "Require Sponsorship": "No",
+    "Preferred Location": "Hyderabad, Bangalore, Chennai, Remote",
+    "Expected Salary": "15,00,000 LPA"
+  }
+}

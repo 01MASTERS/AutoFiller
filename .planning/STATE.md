@@ -6,10 +6,10 @@
 
 | Field | Value |
 |---|---|
-| **Milestone** | 2 — Universal Multi-Platform Form Filling Engine (v1.1) [COMPLETED] |
-| **Current Phase** | Milestone 2 Complete — Capstone Verified |
-| **Next Phase** | 20 — Multi-Profile Backend Store & Switching API (Milestone 3) |
-| **Status** | Milestone 2 complete — Universal Multi-Platform Form Filling Engine (v1.1) verified across Greenhouse, Lever, Workday, Generic Career Portals, and Google Forms. Multi-platform mock fixtures, backend test forms hub (`GET /test-forms`), automated E2E lifecycle tests, and performance benchmarks (<200ms scan, <50ms fill) active. 215/215 monorepo tests passing. Ready for Milestone 3 (Phase 20). |
+| **Milestone** | 3 — Multi-Profile Support & Publishing (v1.2) [IN PROGRESS] |
+| **Current Phase** | Phase 22: Profile Editor UI (Web Dashboard) [COMPLETED] |
+| **Next Phase** | Phase 23: Chrome Web Store Publishing & Security Review |
+| **Status** | Phase 22 complete — Web-based visual profile editor dashboard served from backend (`GET /profile-ui` & `GET /profiles-ui`) with dual Visual Form & Raw JSON editors, persona switching/creation modal, delete safety guards, and extension popup launcher button (`#open-profile-editor-btn`). 241/241 monorepo tests passing. Clean production build. Ready for Phase 23. |
 | **Last Updated** | 2026-09-19 |
 
 ## Decision Log
@@ -33,6 +33,9 @@
 | ADR-015 | Modular Universal Form Filler Engine & Full Lifecycle Event Dispatch | Decompose interaction engine into dedicated simulators; dispatch complete focus $\to$ prototype setter $\to$ input $\to$ change $\to$ blur sequence across standard, rich text, and custom controls | 2026-09-19 |
 | ADR-016 | Platform Heuristic Adapters as Post-Scan Refinement Passes | Keep generic DOM reader clean and universal; run specialized ATS heuristics (Greenhouse, Lever, Workday) only on recognized domains | 2026-09-19 |
 | ADR-017 | Multi-Platform Mock Form Fixtures & Interactive QA Hub | Reusable mock HTML fixtures in `@autofiller/shared` served via backend `GET /test-forms` for automated Vitest E2E regression and live browser QA | 2026-09-19 |
+| ADR-018 | Multi-Profile Directory Store with Pointer File & Dual Mirroring | Store personas in `backend/profiles/*.json` with `.active` file; mirror changes to legacy `profile.json` to guarantee zero data loss and external tool compatibility | 2026-09-19 |
+| ADR-019 | Popup Multi-Profile Switcher with Resilient Local Cache & Autofill Forwarding | Persist persona summaries in `chrome.storage.local` to enable instant offline rendering; pass active `profileId` through background worker to `/autofill` | 2026-09-19 |
+| ADR-020 | Dedicated Backend HTML Generator for Profile Editor Dashboard | Keep backend routes clean by delegating HTML generation to a dedicated module (`profileUiHtml.ts`); consume existing Phase 20 REST endpoints client-side for zero backend architectural friction | 2026-09-19 |
 
 ## Patterns
 

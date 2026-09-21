@@ -1,0 +1,92 @@
+{
+  "name": "Rittik Sharma",
+  "email": "rittik.work1@gmail.com",
+  "phone": "+91 9135517396",
+  "address": "House 181, Bitho Sharif, Gaya, Bihar - 823003, India",
+  "education": [
+    {
+      "degree": "B.Tech in Electrical and Electronics Engineering",
+      "school": "Indian Institute of Technology Patna",
+      "Graduation year": "2026",
+      "start date": "4th Nov 2022",
+      "end date": "31st May 2026"
+    }
+  ],
+  "experience": [
+    {
+      "title": "Software Development Intern",
+      "company": "Vivriti Capital Pvt. Ltd.",
+      "duration": "5th Jan 2026 - 3rd July 2026",
+      "description": ""
+    }
+  ],
+  "skills": [
+    "C",
+    "C++",
+    "Java",
+    "JavaScript",
+    "Typescript",
+    "Python",
+    "SQL",
+    "ReactJS",
+    "Spring Boot",
+    "Node.js",
+    "Express.js",
+    "Docker",
+    "MongoDB",
+    "MySQL",
+    "PostgreSQL",
+    "Git",
+    "GitHub",
+    "Linux",
+    "AWS",
+    "DSA",
+    "Postman",
+    "AI/ML",
+    "HTML/CSS"
+  ],
+  "links": {
+    "LinkedIn": "https://www.linkedin.com/in/rittik-sharmax",
+    "GitHub": "https://github.com/01MASTERS",
+    "LeetCode": "https://leetcode.com/MASTERScp/",
+    "Codeforces": "https://codeforces.com/MASTERScp",
+    "CodeChef": "https://www.codechef.com/users/xxmastersxx",
+    "Portfolio": "https://rittiksharma.vercel.app",
+    "GFG": "https://www.geeksforgeeks.org/profile/ravisharjxed"
+  },
+  "custom": {
+    "Headline": "Software developer",
+    "First Name": "Rittik",
+    "Last Name": "Sharma",
+    "Gender": "Male",
+    "Nationality": "Indian",
+    "Date of Birth": "10.11.2002",
+    "Father Name": "Rajesh Sharma",
+    "Mother Name": "Baby Sharma",
+    "City": "Gaya",
+    "State": "Bihar",
+    "Country": "India",
+    "Pin Code": "823003",
+    "Current Location": "Gaya, Bihar, India",
+    "Preferred Location": "Chennai, Hyderabad, Bangalore, Pune, Mumbai, Delhi",
+    "Willing to Relocate": "Yes",
+    "CGPA": "8.34",
+    "Graduation Percentage": "88.4",
+    "Class 10 Percentage": "96",
+    "Class 12 Percentage": "95.4",
+    "Class 10 Passing Year": "2019",
+    "Class 12 Passing Year": "2021",
+    "Notice Period": "Immediate",
+    "Work Authorization": "Yes",
+    "Require Sponsorship": "No",
+    "Veteran Status": "No",
+    "Disability Status": "No",
+    "Current Salary": "0",
+    "Expected Salary": "12,00,000 LPA",
+    "Languages Known": "English, Hindi",
+    "Preferred Work Arrangement": "Hybrid",
+    "How did you hear about this position?": "LinkedIn,Indeed,Career page OR anything except referral",
+    "Backlogs": "No",
+    "Active Backlogs": "No"
+  }
+}

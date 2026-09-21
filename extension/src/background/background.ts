@@ -65,15 +65,29 @@ export async function handleTriggerAutofill(options?: {
   provider?: 'ollama' | 'gemini';
   model?: string;
   apiKey?: string;
+  profileId?: string;
 }) {
   const overallStart = Date.now();
   try {
     await updateStatusState('analyzing');
+
+    let activeProfileId = options?.profileId;
+    if (!activeProfileId && typeof chrome !== 'undefined' && chrome.storage?.local) {
+      try {
+        const stored = await chrome.storage.local.get(['activeProfileId']);
+        if (stored?.activeProfileId && typeof stored.activeProfileId === 'string') {
+          activeProfileId = stored.activeProfileId;
+        }
+      } catch {
+        // Fallback to undefined
+      }
+    }
+
     await ExtensionLogger.log(
       'INFO',
       'BACKGROUND',
       'AUTOFILL_START',
-      `Starting autofill workflow (provider: ${options?.provider || 'ollama'}, model: ${options?.model || 'default'})`,
+      `Starting autofill workflow (provider: ${options?.provider || 'ollama'}, model: ${options?.model || 'default'}, profile: ${activeProfileId || 'active'})`,
     );
 
     if (typeof chrome === 'undefined' || !chrome.tabs) {
@@ -188,6 +202,7 @@ export async function handleTriggerAutofill(options?: {
           fields: scanResponse.fields,
           provider: options?.provider || 'ollama',
           model: options?.model,
+          profileId: activeProfileId,
         }),
       });
     } catch (networkErr) {
