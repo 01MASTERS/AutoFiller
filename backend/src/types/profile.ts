@@ -61,6 +61,7 @@ export const fieldMetadataSchema = z
       .enum(['personal', 'experience', 'custom_question', 'demographic', 'resume_upload', 'social_link', 'other'])
       .optional(),
     section: z.string().optional(),
+    frameId: z.number().optional(),
   })
   .passthrough();
 

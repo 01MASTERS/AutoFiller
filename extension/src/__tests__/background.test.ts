@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { handleTriggerAutofill, updateStatusState } from '../background/background.js';
+import { handleTriggerAutofill, updateStatusState, getTabFrameIds } from '../background/background.js';
 
 describe('background service worker', () => {
   const setStorageMock = vi.fn().mockResolvedValue(undefined);
@@ -92,7 +92,7 @@ describe('background service worker', () => {
     const result = await handleTriggerAutofill({ provider: 'ollama' });
 
     expect(queryTabsMock).toHaveBeenCalledWith({ active: true, currentWindow: true });
-    expect(sendMessageTabMock).toHaveBeenCalledWith(101, { action: 'SCAN_FIELDS' });
+    expect(sendMessageTabMock).toHaveBeenCalledWith(101, { action: 'SCAN_FIELDS' }, { frameId: 0 });
     expect(fetchMock).toHaveBeenCalledWith(
       'http://localhost:3456/autofill',
       expect.objectContaining({
@@ -100,11 +100,15 @@ describe('background service worker', () => {
         body: expect.stringContaining('"provider":"ollama"'),
       }),
     );
-    expect(sendMessageTabMock).toHaveBeenCalledWith(101, {
-      action: 'FILL_FIELDS',
-      mappings: { 'entry.1': 'Jane' },
-      fields: [{ id: 'entry.1', label: 'Name' }],
-    });
+    expect(sendMessageTabMock).toHaveBeenCalledWith(
+      101,
+      {
+        action: 'FILL_FIELDS',
+        mappings: { 'entry.1': 'Jane' },
+        fields: [{ id: 'entry.1', label: 'Name', frameId: 0 }],
+      },
+      { frameId: 0 },
+    );
     expect(result).toEqual({ status: 'success', filledCount: 1, failedCount: 0, skippedCount: 0 });
   });
 
@@ -340,5 +344,319 @@ describe('background service worker', () => {
     if (fs.existsSync(distDir)) {
       expect(fs.existsSync(distFile)).toBe(true);
     }
+  });
+
+  describe('multi-frame scan aggregation & frame routing', () => {
+    it('getTabFrameIds discovers frames via webNavigation, scripting, or defaults to [0]', async () => {
+      // 1. webNavigation available
+      const getAllFramesMock = vi.fn().mockResolvedValue([
+        { frameId: 0 },
+        { frameId: 10 },
+        { frameId: 20 },
+      ]);
+      vi.stubGlobal('chrome', {
+        webNavigation: { getAllFrames: getAllFramesMock },
+      });
+      const idsFromNav = await getTabFrameIds(99);
+      expect(idsFromNav).toEqual([0, 10, 20]);
+
+      // 2. scripting fallback
+      const executeScriptMock = vi.fn().mockResolvedValue([
+        { frameId: 0 },
+        { frameId: 42 },
+      ]);
+      vi.stubGlobal('chrome', {
+        scripting: { executeScript: executeScriptMock },
+      });
+      const idsFromScript = await getTabFrameIds(99);
+      expect(idsFromScript).toEqual([0, 42]);
+
+      // 3. Fallback when neither available
+      vi.stubGlobal('chrome', {});
+      const idsFallback = await getTabFrameIds(99);
+      expect(idsFallback).toEqual([0]);
+    });
+
+    it('aggregates fields across frames, ignores empty widget frames, and routes fills to proper frameIds', async () => {
+      queryTabsMock.mockResolvedValue([{ id: 101 }]);
+
+      // Mock 3 frames: top frame (0), child iframe (10), recaptcha iframe (20)
+      const getAllFramesMock = vi.fn().mockResolvedValue([
+        { frameId: 0 },
+        { frameId: 10 },
+        { frameId: 20 },
+      ]);
+
+      sendMessageTabMock.mockImplementation((tabId, message, options) => {
+        const frameId = options?.frameId ?? 0;
+        if (message.action === 'SCAN_FIELDS') {
+          if (frameId === 0) {
+            return Promise.resolve({
+              status: 'success',
+              fields: [
+                { id: 'top_first_name', label: 'First Name' },
+                { id: 'top_last_name', label: 'Last Name' },
+              ],
+            });
+          }
+          if (frameId === 10) {
+            return Promise.resolve({
+              status: 'success',
+              fields: [{ id: 'child_experience', label: 'Years Experience' }],
+            });
+          }
+          if (frameId === 20) {
+            // reCAPTCHA widget / empty child frame
+            return Promise.resolve({
+              status: 'success',
+              fields: [],
+            });
+          }
+        }
+
+        if (message.action === 'FILL_FIELDS') {
+          if (frameId === 0) {
+            return Promise.resolve({
+              status: 'success',
+              result: {
+                status: 'success',
+                filledCount: 2,
+                failedCount: 0,
+                skippedCount: 0,
+                filledFields: ['top_first_name', 'top_last_name'],
+                failedFields: [],
+                skippedFields: [],
+              },
+            });
+          }
+          if (frameId === 10) {
+            return Promise.resolve({
+              status: 'success',
+              result: {
+                status: 'success',
+                filledCount: 1,
+                failedCount: 0,
+                skippedCount: 0,
+                filledFields: ['child_experience'],
+                failedFields: [],
+                skippedFields: [],
+              },
+            });
+          }
+        }
+        return Promise.reject(new Error('Unknown message/frame'));
+      });
+
+      vi.stubGlobal('chrome', {
+        storage: {
+          local: { set: setStorageMock, get: getStorageMock },
+        },
+        runtime: { sendMessage: sendMessageRuntimeMock },
+        tabs: { query: queryTabsMock, sendMessage: sendMessageTabMock },
+        webNavigation: { getAllFrames: getAllFramesMock },
+      });
+
+      const fetchMock = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          status: 'success',
+          mappings: {
+            top_first_name: 'John',
+            top_last_name: 'Doe',
+            child_experience: '5',
+          },
+        }),
+      });
+      vi.stubGlobal('fetch', fetchMock);
+
+      const result = await handleTriggerAutofill({ provider: 'ollama' });
+
+      // Verify all 3 fields were sent to backend
+      expect(fetchMock).toHaveBeenCalledWith(
+        'http://localhost:3456/autofill',
+        expect.objectContaining({
+          method: 'POST',
+          body: expect.stringContaining('"fields":[{"id":"top_first_name"'),
+        }),
+      );
+
+      // Verify FILL_FIELDS was routed to frame 0 with frame 0 fields
+      expect(sendMessageTabMock).toHaveBeenCalledWith(
+        101,
+        {
+          action: 'FILL_FIELDS',
+          mappings: { top_first_name: 'John', top_last_name: 'Doe' },
+          fields: expect.arrayContaining([
+            expect.objectContaining({ id: 'top_first_name', frameId: 0 }),
+            expect.objectContaining({ id: 'top_last_name', frameId: 0 }),
+          ]),
+        },
+        { frameId: 0 },
+      );
+
+      // Verify FILL_FIELDS was routed to frame 10 with frame 10 fields
+      expect(sendMessageTabMock).toHaveBeenCalledWith(
+        101,
+        {
+          action: 'FILL_FIELDS',
+          mappings: { child_experience: '5' },
+          fields: expect.arrayContaining([
+            expect.objectContaining({ id: 'child_experience', frameId: 10 }),
+          ]),
+        },
+        { frameId: 10 },
+      );
+
+      // Combined fill result
+      expect(result).toEqual({
+        status: 'success',
+        filledCount: 3,
+        failedCount: 0,
+        skippedCount: 0,
+      });
+    });
+
+    it('handles embedded cross-origin iframe where top frame has 0 fields and iframe has form fields', async () => {
+      queryTabsMock.mockResolvedValue([{ id: 101 }]);
+
+      const getAllFramesMock = vi.fn().mockResolvedValue([
+        { frameId: 0 },
+        { frameId: 42 },
+      ]);
+
+      sendMessageTabMock.mockImplementation((tabId, message, options) => {
+        const frameId = options?.frameId ?? 0;
+        if (message.action === 'SCAN_FIELDS') {
+          if (frameId === 0) {
+            return Promise.resolve({ status: 'success', fields: [] });
+          }
+          if (frameId === 42) {
+            return Promise.resolve({
+              status: 'success',
+              fields: [{ id: 'embedded_email', label: 'Email' }],
+            });
+          }
+        }
+        if (message.action === 'FILL_FIELDS') {
+          if (frameId === 42) {
+            return Promise.resolve({
+              status: 'success',
+              result: {
+                status: 'success',
+                filledCount: 1,
+                failedCount: 0,
+                skippedCount: 0,
+                filledFields: ['embedded_email'],
+                failedFields: [],
+                skippedFields: [],
+              },
+            });
+          }
+        }
+        return Promise.reject(new Error('Unknown message/frame'));
+      });
+
+      vi.stubGlobal('chrome', {
+        storage: {
+          local: { set: setStorageMock, get: getStorageMock },
+        },
+        runtime: { sendMessage: sendMessageRuntimeMock },
+        tabs: { query: queryTabsMock, sendMessage: sendMessageTabMock },
+        webNavigation: { getAllFrames: getAllFramesMock },
+      });
+
+      const fetchMock = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          status: 'success',
+          mappings: { embedded_email: 'test@example.com' },
+        }),
+      });
+      vi.stubGlobal('fetch', fetchMock);
+
+      const result = await handleTriggerAutofill();
+
+      expect(sendMessageTabMock).toHaveBeenCalledWith(
+        101,
+        {
+          action: 'FILL_FIELDS',
+          mappings: { embedded_email: 'test@example.com' },
+          fields: [expect.objectContaining({ id: 'embedded_email', frameId: 42 })],
+        },
+        { frameId: 42 },
+      );
+
+      expect(result).toEqual({
+        status: 'success',
+        filledCount: 1,
+        failedCount: 0,
+        skippedCount: 0,
+      });
+    });
+
+    it('resiliently ignores errors in child frames and proceeds with valid frames', async () => {
+      queryTabsMock.mockResolvedValue([{ id: 101 }]);
+
+      const getAllFramesMock = vi.fn().mockResolvedValue([
+        { frameId: 0 },
+        { frameId: 99 }, // frame that throws
+      ]);
+
+      sendMessageTabMock.mockImplementation((tabId, message, options) => {
+        const frameId = options?.frameId ?? 0;
+        if (message.action === 'SCAN_FIELDS') {
+          if (frameId === 0) {
+            return Promise.resolve({
+              status: 'success',
+              fields: [{ id: 'main_field', label: 'Name' }],
+            });
+          }
+          if (frameId === 99) {
+            return Promise.reject(new Error('Cross-origin frame inaccessible'));
+          }
+        }
+        if (message.action === 'FILL_FIELDS' && frameId === 0) {
+          return Promise.resolve({
+            status: 'success',
+            result: {
+              status: 'success',
+              filledCount: 1,
+              failedCount: 0,
+              skippedCount: 0,
+              filledFields: ['main_field'],
+              failedFields: [],
+              skippedFields: [],
+            },
+          });
+        }
+        return Promise.reject(new Error('Unknown'));
+      });
+
+      vi.stubGlobal('chrome', {
+        storage: {
+          local: { set: setStorageMock, get: getStorageMock },
+        },
+        runtime: { sendMessage: sendMessageRuntimeMock },
+        tabs: { query: queryTabsMock, sendMessage: sendMessageTabMock },
+        webNavigation: { getAllFrames: getAllFramesMock },
+      });
+
+      const fetchMock = vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          status: 'success',
+          mappings: { main_field: 'Alice' },
+        }),
+      });
+      vi.stubGlobal('fetch', fetchMock);
+
+      const result = await handleTriggerAutofill();
+      expect(result).toEqual({
+        status: 'success',
+        filledCount: 1,
+        failedCount: 0,
+        skippedCount: 0,
+      });
+    });
   });
 });

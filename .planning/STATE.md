@@ -69,6 +69,7 @@
 | `content-script-csp-iife-fix` | Fix content script blocked by Google Forms CSP by compiling to standalone IIFE (`.iife.ts`) and adding dynamic injection fallback in background worker | 2026-09-03 | complete ✓ |
 | `dropdown-options-and-selection-fix` | Extract options from closed Google Forms dropdowns, show options in logs, relay content script logs, and simulate full pointerdown/mousedown/mouseup/click sequence for reliable selection | 2026-09-03 | complete ✓ |
 | `dropdown-options-selection-fix` | Fix dropdown genuine selection via trigger resolution, coordinate-aware clicks, hover simulation, and reactive settlement; eliminate fake forced insertion | 2026-09-06 | complete ✓ |
+| `multi-frame-scan-aggregation` | Multi-frame scan discovery, top-frame prioritization, response aggregation, and frame-aware fill routing to resolve child iframe race conditions | 2026-09-21 | complete ✓ |
 
 ## Open Questions
 

@@ -6,7 +6,7 @@ export default defineManifest({
   version: '0.0.1',
   description:
     'AI-powered autofill for Google Forms, Workday, Greenhouse, Lever, and job applications',
-  permissions: ['activeTab', 'storage', 'scripting'],
+  permissions: ['activeTab', 'storage', 'scripting', 'webNavigation'],
   host_permissions: ['<all_urls>'],
   action: {
     default_popup: 'src/popup/popup.html',

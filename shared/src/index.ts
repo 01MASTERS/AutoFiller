@@ -48,6 +48,7 @@ export interface FieldMetadata {
   platform?: FormPlatform;
   platformFieldType?: PlatformFieldType;
   section?: string;
+  frameId?: number;
 }
 
 export interface AutofillRequest {

@@ -61,6 +61,44 @@ export async function updateStatusState(
 
 import { ExtensionLogger } from '../utils/logger.js';
 
+/**
+ * Discovers all active frame IDs for a given tab.
+ * Prefers chrome.webNavigation.getAllFrames, falls back to
+ * chrome.scripting.executeScript, and defaults to [0] (top frame).
+ */
+export async function getTabFrameIds(tabId: number): Promise<number[]> {
+  if (typeof chrome !== 'undefined' && chrome.webNavigation?.getAllFrames) {
+    try {
+      const frames = await chrome.webNavigation.getAllFrames({ tabId });
+      if (Array.isArray(frames) && frames.length > 0) {
+        const ids = frames.map((f) => f.frameId);
+        return Array.from(new Set([0, ...ids]));
+      }
+    } catch {
+      // Fallback
+    }
+  }
+
+  if (typeof chrome !== 'undefined' && chrome.scripting?.executeScript) {
+    try {
+      const results = await chrome.scripting.executeScript({
+        target: { tabId, allFrames: true },
+        func: () => true,
+      });
+      if (Array.isArray(results) && results.length > 0) {
+        const ids = results
+          .map((r) => r.frameId)
+          .filter((id): id is number => typeof id === 'number');
+        return Array.from(new Set([0, ...ids]));
+      }
+    } catch {
+      // Fallback
+    }
+  }
+
+  return [0];
+}
+
 export async function handleTriggerAutofill(options?: {
   provider?: 'ollama' | 'gemini';
   model?: string;
@@ -104,11 +142,18 @@ export async function handleTriggerAutofill(options?: {
     }
 
     const scanStart = Date.now();
-    let scanResponse: { status: string; fields?: FieldMetadata[]; error?: string } | null = null;
+
+    // 1. Discover all frames on the tab
+    const frameIds = await getTabFrameIds(activeTab.id);
+
+    // 2. Scan top frame (frameId: 0) first with targeted routing
+    let topFrameResponse: { status: string; fields?: FieldMetadata[]; error?: string } | null = null;
     try {
-      scanResponse = (await chrome.tabs.sendMessage(activeTab.id, {
-        action: 'SCAN_FIELDS',
-      })) as { status: string; fields?: FieldMetadata[]; error?: string };
+      topFrameResponse = (await chrome.tabs.sendMessage(
+        activeTab.id,
+        { action: 'SCAN_FIELDS' },
+        { frameId: 0 },
+      )) as { status: string; fields?: FieldMetadata[]; error?: string };
     } catch (firstErr) {
       // Content script may not be loaded yet (e.g. tab opened before extension load/reload).
       // Attempt dynamic programmatic injection as automatic recovery.
@@ -120,9 +165,11 @@ export async function handleTriggerAutofill(options?: {
           });
           // Brief yield to allow content script event listeners to register
           await new Promise((resolve) => setTimeout(resolve, 80));
-          scanResponse = (await chrome.tabs.sendMessage(activeTab.id, {
-            action: 'SCAN_FIELDS',
-          })) as { status: string; fields?: FieldMetadata[]; error?: string };
+          topFrameResponse = (await chrome.tabs.sendMessage(
+            activeTab.id,
+            { action: 'SCAN_FIELDS' },
+            { frameId: 0 },
+          )) as { status: string; fields?: FieldMetadata[]; error?: string };
         } else {
           throw firstErr;
         }
@@ -141,34 +188,93 @@ export async function handleTriggerAutofill(options?: {
         return { status: 'error', error: errorMsg };
       }
     }
-    const scanDurationMs = Date.now() - scanStart;
+
+    // 3. Scan any child frames (frameId > 0) individually in parallel
+    const childFrameIds = frameIds.filter((id) => id !== 0);
+    const childScanPromises = childFrameIds.map(async (frameId) => {
+      try {
+        const res = (await chrome.tabs.sendMessage(
+          activeTab.id,
+          { action: 'SCAN_FIELDS' },
+          { frameId },
+        )) as { status: string; fields?: FieldMetadata[]; error?: string };
+        if (res && res.status === 'success' && Array.isArray(res.fields) && res.fields.length > 0) {
+          return { frameId, fields: res.fields };
+        }
+      } catch {
+        // Child frame may be sandboxed, empty, or un-injected; safe to ignore
+      }
+      return null;
+    });
+    const childResults = await Promise.all(childScanPromises);
+
+    // 4. Aggregate all discovered fields across frames, deduplicating by ID
+    const aggregatedFields: FieldMetadata[] = [];
+    const fieldsByFrame = new Map<number, FieldMetadata[]>();
+    const seenFieldIds = new Set<string>();
 
     if (
-      !scanResponse ||
-      scanResponse.status !== 'success' ||
-      !scanResponse.fields ||
-      scanResponse.fields.length === 0
+      topFrameResponse &&
+      topFrameResponse.status === 'success' &&
+      Array.isArray(topFrameResponse.fields) &&
+      topFrameResponse.fields.length > 0
     ) {
-      const errorMsg = scanResponse?.error || 'No fillable text fields found on this form';
+      const topFields: FieldMetadata[] = [];
+      for (const f of topFrameResponse.fields) {
+        if (!seenFieldIds.has(f.id)) {
+          seenFieldIds.add(f.id);
+          const tagged = { ...f, frameId: 0 };
+          topFields.push(tagged);
+          aggregatedFields.push(tagged);
+        }
+      }
+      if (topFields.length > 0) {
+        fieldsByFrame.set(0, topFields);
+      }
+    }
+
+    for (const child of childResults) {
+      if (!child || child.fields.length === 0) continue;
+      const childFields: FieldMetadata[] = [];
+      for (const f of child.fields) {
+        if (!seenFieldIds.has(f.id)) {
+          seenFieldIds.add(f.id);
+          const tagged = { ...f, frameId: child.frameId };
+          childFields.push(tagged);
+          aggregatedFields.push(tagged);
+        }
+      }
+      if (childFields.length > 0) {
+        fieldsByFrame.set(child.frameId, childFields);
+      }
+    }
+
+    const scanDurationMs = Date.now() - scanStart;
+
+    if (aggregatedFields.length === 0) {
+      const errorMsg = topFrameResponse?.error || 'No fillable text fields found on this form';
       await ExtensionLogger.log('WARN', 'BACKGROUND', 'SCAN_NO_FIELDS', errorMsg, {
         tabUrl: activeTab.url,
         tabTitle: activeTab.title,
         fieldsFound: 0,
+        framesScanned: frameIds.length,
         hint: 'AutoFiller scans for text, email, tel, textarea, date, radio, checkbox, and dropdown form fields. Ensure the form fields are visible and loaded on the page.',
       });
       await updateStatusState('error', { error: errorMsg });
       return { status: 'error', error: errorMsg };
     }
 
-    const detectedPlatform = scanResponse.fields[0]?.platform || 'generic';
+    const detectedPlatform = aggregatedFields[0]?.platform || 'generic';
     await ExtensionLogger.log(
       'INFO',
       'BACKGROUND',
       'PLATFORM_DETECTED',
-      `Detected form platform: ${detectedPlatform.toUpperCase()} (${scanResponse.fields.length} fields found)`,
+      `Detected form platform: ${detectedPlatform.toUpperCase()} (${aggregatedFields.length} fields found across ${fieldsByFrame.size} frame(s))`,
       {
         platform: detectedPlatform,
-        fieldsFound: scanResponse.fields.length,
+        fieldsFound: aggregatedFields.length,
+        framesCount: fieldsByFrame.size,
+        frameIds: Array.from(fieldsByFrame.keys()),
         tabUrl: activeTab.url,
       },
     );
@@ -199,7 +305,7 @@ export async function handleTriggerAutofill(options?: {
         method: 'POST',
         headers,
         body: JSON.stringify({
-          fields: scanResponse.fields,
+          fields: aggregatedFields,
           provider: options?.provider || 'ollama',
           model: options?.model,
           profileId: activeProfileId,
@@ -226,7 +332,7 @@ export async function handleTriggerAutofill(options?: {
         backendUrl,
         provider: options?.provider,
         model: options?.model,
-        fieldsSent: scanResponse.fields.length,
+        fieldsSent: aggregatedFields.length,
       });
       await updateStatusState('error', { error: errorMsg });
       return { status: 'error', error: errorMsg };
@@ -243,8 +349,8 @@ export async function handleTriggerAutofill(options?: {
         provider: options?.provider,
         model: options?.model,
         durationMs: autofillData.durationMs || llmDurationMs,
-        scannedFieldsCount: scanResponse.fields.length,
-        scannedFields: scanResponse.fields.map((f) => ({ id: f.id, label: f.label })),
+        scannedFieldsCount: aggregatedFields.length,
+        scannedFields: aggregatedFields.map((f) => ({ id: f.id, label: f.label })),
         hint: 'None of the form fields matched your profile in backend/profile.json.',
       });
       await updateStatusState('error', { error: errorMsg });
@@ -254,15 +360,102 @@ export async function handleTriggerAutofill(options?: {
     await updateStatusState('filling');
 
     const fillStart = Date.now();
-    const fillResponse = (await chrome.tabs.sendMessage(activeTab.id, {
-      action: 'FILL_FIELDS',
-      mappings: autofillData.mappings,
-      fields: scanResponse.fields,
-    })) as { status: string; result?: FillResult; error?: string };
+
+    // Map each field ID to its origin frameId
+    const fieldToFrameMap = new Map<string, number>();
+    for (const f of aggregatedFields) {
+      fieldToFrameMap.set(f.id, f.frameId ?? 0);
+    }
+
+    // Partition mappings by target frameId
+    const mappingsByFrame = new Map<number, Record<string, FieldMappingValue>>();
+    for (const [fieldId, value] of Object.entries(autofillData.mappings)) {
+      const targetFrame = fieldToFrameMap.get(fieldId) ?? 0;
+      if (!mappingsByFrame.has(targetFrame)) {
+        mappingsByFrame.set(targetFrame, {});
+      }
+      mappingsByFrame.get(targetFrame)![fieldId] = value;
+    }
+
+    // Dispatch FILL_FIELDS to each frame containing mapped elements
+    const fillResults: FillResult[] = [];
+    for (const [frameId, frameMappings] of mappingsByFrame.entries()) {
+      const frameFields =
+        fieldsByFrame.get(frameId) ||
+        aggregatedFields.filter((f) => (f.frameId ?? 0) === frameId);
+
+      try {
+        const fillResponse = (await chrome.tabs.sendMessage(
+          activeTab.id,
+          {
+            action: 'FILL_FIELDS',
+            mappings: frameMappings,
+            fields: frameFields,
+          },
+          { frameId },
+        )) as { status: string; result?: FillResult; error?: string };
+
+        if (fillResponse?.status === 'success' && fillResponse.result) {
+          fillResults.push(fillResponse.result);
+        } else {
+          fillResults.push({
+            status: 'error',
+            filledCount: 0,
+            failedCount: Object.keys(frameMappings).length,
+            skippedCount: 0,
+            filledFields: [],
+            failedFields: Object.keys(frameMappings),
+            skippedFields: [],
+            error: fillResponse?.error || `Frame ${frameId} fill failed`,
+          });
+        }
+      } catch (frameErr) {
+        fillResults.push({
+          status: 'error',
+          filledCount: 0,
+          failedCount: Object.keys(frameMappings).length,
+          skippedCount: 0,
+          filledFields: [],
+          failedFields: Object.keys(frameMappings),
+          skippedFields: [],
+          error: frameErr instanceof Error ? frameErr.message : String(frameErr),
+        });
+      }
+    }
+
     const fillDurationMs = Date.now() - fillStart;
 
-    if (!fillResponse || fillResponse.status !== 'success' || !fillResponse.result) {
-      const errorMsg = fillResponse?.error || 'Form filling failed in content script';
+    // Combine fill results across all frames
+    const combinedResult: FillResult = {
+      status: 'success',
+      filledCount: 0,
+      failedCount: 0,
+      skippedCount: 0,
+      filledFields: [],
+      failedFields: [],
+      skippedFields: [],
+      failureReasons: {},
+      skippedReasons: {},
+    };
+
+    for (const res of fillResults) {
+      combinedResult.filledCount += res.filledCount || 0;
+      combinedResult.failedCount += res.failedCount || 0;
+      combinedResult.skippedCount += res.skippedCount || 0;
+      if (Array.isArray(res.filledFields)) combinedResult.filledFields.push(...res.filledFields);
+      if (Array.isArray(res.failedFields)) combinedResult.failedFields.push(...res.failedFields);
+      if (Array.isArray(res.skippedFields)) combinedResult.skippedFields.push(...res.skippedFields);
+      if (res.failureReasons) Object.assign(combinedResult.failureReasons!, res.failureReasons);
+      if (res.skippedReasons) Object.assign(combinedResult.skippedReasons!, res.skippedReasons);
+    }
+
+    const { filledCount, failedCount, skippedCount } = combinedResult;
+    const totalIssues = failedCount + skippedCount;
+    const finalState: AutofillState =
+      totalIssues === 0 ? 'done' : filledCount > 0 ? 'partial' : 'error';
+
+    if (fillResults.length === 0 || (filledCount === 0 && failedCount > 0)) {
+      const errorMsg = fillResults[0]?.error || 'Form filling failed in content script';
       await ExtensionLogger.log('ERROR', 'BACKGROUND', 'DOM_FILL_FAIL', errorMsg, {
         mappings: autofillData.mappings,
         tabId: activeTab.id,
@@ -270,12 +463,6 @@ export async function handleTriggerAutofill(options?: {
       await updateStatusState('error', { error: errorMsg });
       return { status: 'error', error: errorMsg };
     }
-
-    const { filledCount, failedCount, skippedCount } = fillResponse.result;
-
-    const totalIssues = failedCount + skippedCount;
-    const finalState: AutofillState =
-      totalIssues === 0 ? 'done' : filledCount > 0 ? 'partial' : 'error';
 
     const totalDurationMs = Date.now() - overallStart;
     const effectiveLlmMs = autofillData.durationMs || llmDurationMs;
