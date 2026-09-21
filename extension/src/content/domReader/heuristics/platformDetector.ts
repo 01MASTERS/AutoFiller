@@ -49,5 +49,15 @@ export function detectPlatform(doc: Document = document): FormPlatform {
     return 'workday';
   }
 
+  // 5. SmartRecruiters
+  if (
+    hostname.includes('smartrecruiters.com') ||
+    doc.querySelector(
+      'spl-job-application, smart-apply-form, [data-automation-id*="smartrecruiters"], [data-qa*="smartrecruiters"], [class*="smartrecruiters"], spl-form-field, smart-input',
+    )
+  ) {
+    return 'smartrecruiters';
+  }
+
   return 'generic';
 }

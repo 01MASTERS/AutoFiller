@@ -14,11 +14,11 @@ export function escapeCss(str: string): string {
 }
 
 /**
- * Dispatches standard synthetic events on a form element.
+ * Dispatches standard synthetic events on a form element with composed: true for Shadow DOM.
  */
 export function dispatchFormEvents(el: Element, events: string[] = ['input', 'change', 'blur']): void {
   for (const name of events) {
-    el.dispatchEvent(new Event(name, { bubbles: true }));
+    el.dispatchEvent(new Event(name, { bubbles: true, composed: true }));
   }
 }
 
@@ -32,13 +32,22 @@ export function normalize(s: string): string {
 /**
  * Finds an option element inside a container that matches the target value.
  * Search order: data-autofiller-option -> value/data-value -> data-automation-id -> text content -> aria-label -> substring.
+ * Supports elements inside Shadow DOM.
  */
 export function findOptionElement(
   container: Element,
   targetValue: string,
-  selector: string = '[role="option"], [role="radio"], [role="checkbox"], input[type="radio"], input[type="checkbox"], .quantumWizMenuPaperselectOption, [data-automation-id*="promptOption"], li[role="option"]',
+  selector: string = '[role="option"], [role="radio"], [role="checkbox"], input[type="radio"], input[type="checkbox"], .quantumWizMenuPaperselectOption, [data-automation-id*="promptOption"], li[role="option"], spl-select-option, spl-radio, spl-checkbox',
 ): Element | null {
-  const candidates = Array.from(container.querySelectorAll(selector));
+  const candidates: Element[] = [];
+  try {
+    candidates.push(...Array.from(container.querySelectorAll(selector)));
+  } catch {}
+  if (container.shadowRoot) {
+    try {
+      candidates.push(...Array.from(container.shadowRoot.querySelectorAll(selector)));
+    } catch {}
+  }
   const norm = normalize(targetValue);
 
   // 1. Exact match on data-autofiller-option
@@ -168,8 +177,8 @@ export function dispatchFullInputSequence(
 
   // 1. Focus lifecycle
   try {
-    el.dispatchEvent(new Event('focus', { bubbles: false }));
-    el.dispatchEvent(new Event('focusin', { bubbles: true }));
+    el.dispatchEvent(new Event('focus', { bubbles: false, composed: true }));
+    el.dispatchEvent(new Event('focusin', { bubbles: true, composed: true }));
   } catch {}
 
   // 2. Set value via prototype setter (bypassing React 16+ setter wrap)
@@ -185,7 +194,7 @@ export function dispatchFullInputSequence(
     (el as HTMLInputElement | HTMLTextAreaElement).value = value;
   }
 
-  // 3. Dispatch input event (bubbles: true)
+  // 3. Dispatch input event (bubbles: true, composed: true)
   try {
     if (typeof InputEvent !== 'undefined') {
       try {
@@ -199,22 +208,22 @@ export function dispatchFullInputSequence(
           }),
         );
       } catch {
-        el.dispatchEvent(new Event('input', { bubbles: true }));
+        el.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
       }
     } else {
-      el.dispatchEvent(new Event('input', { bubbles: true }));
+      el.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
     }
   } catch {
-    el.dispatchEvent(new Event('input', { bubbles: true }));
+    el.dispatchEvent(new Event('input', { bubbles: true, composed: true }));
   }
 
-  // 4. Dispatch change event
-  el.dispatchEvent(new Event('change', { bubbles: true }));
+  // 4. Dispatch change event (composed: true)
+  el.dispatchEvent(new Event('change', { bubbles: true, composed: true }));
 
-  // 5. Blur lifecycle
-  el.dispatchEvent(new Event('blur', { bubbles: true }));
+  // 5. Blur lifecycle (composed: true)
+  el.dispatchEvent(new Event('blur', { bubbles: true, composed: true }));
   try {
-    el.dispatchEvent(new Event('focusout', { bubbles: true }));
+    el.dispatchEvent(new Event('focusout', { bubbles: true, composed: true }));
   } catch {}
 }
 

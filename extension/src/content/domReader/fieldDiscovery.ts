@@ -9,6 +9,13 @@ import { scanDateInputs } from './controls/date.js';
 import { scanFileInputs } from './controls/file.js';
 import { scanTextInputs } from './controls/text.js';
 import { applyPlatformAdapters } from './adapters/index.js';
+import {
+  getAllDOMRoots,
+  querySelectorAllAcrossRoots,
+  deepClosest,
+  deepGetElementById,
+  isElementConnected,
+} from './shadowDom.js';
 
 export interface ExtractFormFieldsOptions {
   /**
@@ -19,7 +26,8 @@ export interface ExtractFormFieldsOptions {
 }
 
 /**
- * Main DOM extraction pipeline: orchestrates scanning across all control types and platforms.
+ * Main DOM extraction pipeline: orchestrates scanning across all control types,
+ * open Shadow DOM roots, and ATS platforms (including Angular 20 and SmartRecruiters).
  */
 export function extractFormFields(
   doc: Document = document,
@@ -29,34 +37,36 @@ export function extractFormFields(
   const processedElements = new Set<Element>();
   const usedIds = new Set<string>();
 
+  // Discover all DOM roots (Document and all open ShadowRoot trees in visual flow order)
+  const roots = getAllDOMRoots(doc);
+
   const platform = detectPlatform(doc);
 
-  // Question container discovery (HTML fieldsets, Google Forms items, ARIA groups, ATS question wrappers)
-  const questionContainers = Array.from(
-    doc.querySelectorAll(
-      '[role="listitem"], .freebirdFormviewerViewItemsItemItem, .QrToBd, fieldset, [role="radiogroup"], [role="group"], .form-group, .form-row, .field, [data-automation-id*="formField"], [data-automation-id*="formItem"], .application-question, .section-candidate-wrapper, .postings-group',
-    ),
+  // Question container discovery (HTML fieldsets, Google Forms, ATS question wrappers, Web Components)
+  const questionContainers = querySelectorAllAcrossRoots(
+    roots,
+    '[role="listitem"], .freebirdFormviewerViewItemsItemItem, .QrToBd, fieldset, [role="radiogroup"], [role="group"], .form-group, .form-row, .field, [data-automation-id*="formField"], [data-automation-id*="formItem"], .application-question, .section-candidate-wrapper, .postings-group, spl-form-field, [class*="spl-form-field"], .c-form-field, .form-field',
   );
 
   // STAGE 1: Radio Groups & Linear Scales
-  scanRadioGroups(doc, questionContainers, fields, processedElements, usedIds);
+  scanRadioGroups(roots, questionContainers, fields, processedElements, usedIds);
 
   // STAGE 2: Checkbox Groups (Multi-select) & Standalone Checkboxes
-  scanCheckboxGroups(doc, questionContainers, fields, processedElements, usedIds);
+  scanCheckboxGroups(roots, questionContainers, fields, processedElements, usedIds);
 
   // STAGE 3: Native <select>, role="listbox", role="combobox", and ATS select triggers
-  scanDropdowns(doc, fields, processedElements, usedIds);
+  scanDropdowns(roots, fields, processedElements, usedIds);
 
   // STAGE 4: Date Inputs (Multi-part and standalone)
-  scanDateInputs(doc, fields, processedElements, usedIds);
+  scanDateInputs(roots, fields, processedElements, usedIds);
 
   // STAGE 5: File Upload Inputs & Resume Dropzones (by default skipped due to browser security sandbox)
   if (options.includeFileInputs) {
-    scanFileInputs(doc, fields, processedElements, usedIds);
+    scanFileInputs(roots, fields, processedElements, usedIds);
   }
 
   // STAGE 6: Text, Textarea, Email, Tel & Other Inputs
-  scanTextInputs(doc, fields, processedElements, usedIds);
+  scanTextInputs(roots, fields, processedElements, usedIds);
 
   // Annotate platform on each extracted field
   fields.forEach((f) => {
@@ -66,41 +76,44 @@ export function extractFormFields(
   // Apply platform-specific heuristics and adaptations
   applyPlatformAdapters(fields, doc, platform);
 
-  // Sort extracted fields according to their live DOM document position
-  const elementMap = new Map<string, Element>();
-  doc.querySelectorAll('[data-autofiller-id]').forEach((el) => {
+  // Sort extracted fields according to their live DOM document position across roots
+  const allMarked = querySelectorAllAcrossRoots(roots, '[data-autofiller-id]');
+  const orderMap = new Map<string, number>();
+  let orderIndex = 0;
+  for (const el of allMarked) {
     const id = el.getAttribute('data-autofiller-id');
-    if (id && !elementMap.has(id)) {
-      elementMap.set(id, el);
+    if (id && !orderMap.has(id)) {
+      orderMap.set(id, orderIndex++);
     }
-  });
+  }
 
   fields.sort((a, b) => {
-    const elA = elementMap.get(a.id);
-    const elB = elementMap.get(b.id);
-    if (!elA || !elB) return 0;
-    const pos = elA.compareDocumentPosition(elB);
-    if (pos & Node.DOCUMENT_POSITION_FOLLOWING) return -1;
-    if (pos & Node.DOCUMENT_POSITION_PRECEDING) return 1;
-    return 0;
+    const idxA = orderMap.get(a.id) ?? 0;
+    const idxB = orderMap.get(b.id) ?? 0;
+    return idxA - idxB;
   });
 
   return fields;
 }
 
 /**
- * Re-associates a logical FieldMetadata with a live DOM element using a 5-tier confidence strategy.
- * If multiple candidate nodes match equally well (e.g. duplicate labels), returns null.
+ * Re-associates a logical FieldMetadata with a live DOM element using a 6-tier confidence strategy,
+ * with complete support for piercing Shadow DOM boundaries.
  */
 export function findFieldElement(
   field: FieldMetadata,
   doc: Document = document,
 ): Element | null {
+  const roots = getAllDOMRoots(doc);
+
   // Tier 1: data-autofiller-id if element is still connected to the DOM
   try {
-    const el = doc.querySelector(`[data-autofiller-id="${escapeCss(field.id)}"]`);
-    if (el && doc.contains(el)) {
-      return el;
+    const escapedId = escapeCss(field.id);
+    for (const r of roots) {
+      const el = r.querySelector(`[data-autofiller-id="${escapedId}"]`);
+      if (el && isElementConnected(el)) {
+        return el;
+      }
     }
   } catch {
     // Ignore CSS selector escape issues
@@ -108,27 +121,33 @@ export function findFieldElement(
 
   // Tier 2: Stable native ID
   if (field.id) {
-    const el = doc.getElementById(field.id);
-    if (el) return el;
+    const el = deepGetElementById(field.id, doc);
+    if (el && isElementConnected(el)) return el;
   }
 
-  // Tier 3: data-automation-id (Workday, ATS portals)
+  // Tier 3: data-automation-id (Workday, SmartRecruiters, ATS portals)
   if (field.id) {
     try {
-      const autoEl = doc.querySelector(`[data-automation-id="${escapeCss(field.id)}"]`);
-      if (autoEl && doc.contains(autoEl)) return autoEl;
+      const autoMatches = querySelectorAllAcrossRoots(roots, `[data-automation-id="${escapeCss(field.id)}"]`);
+      for (const autoEl of autoMatches) {
+        if (autoEl && isElementConnected(autoEl)) return autoEl;
+      }
     } catch {
       // Ignore selector errors
     }
   }
 
-  // Tier 4: Match by name + controlType
+  // Tier 4: Match by name / formControlName + controlType
   if (field.name) {
-    const matches = Array.from(doc.querySelectorAll(`[name="${escapeCss(field.name)}"]`));
+    const escapedName = escapeCss(field.name);
+    const matches = querySelectorAllAcrossRoots(
+      roots,
+      `[name="${escapedName}"], [formcontrolname="${escapedName}"], [ng-reflect-name="${escapedName}"]`,
+    );
     const typeMatches = matches.filter((el) => {
-      if (field.controlType === 'radio' && (el.getAttribute('role') === 'radio' || (el as HTMLInputElement).type === 'radio')) return true;
-      if (field.controlType === 'checkbox' && (el.getAttribute('role') === 'checkbox' || (el as HTMLInputElement).type === 'checkbox')) return true;
-      if (field.controlType === 'dropdown' && (el.tagName.toLowerCase() === 'select' || el.getAttribute('role') === 'listbox')) return true;
+      if (field.controlType === 'radio' && (el.getAttribute('role') === 'radio' || (el as HTMLInputElement).type === 'radio' || el.tagName.toLowerCase() === 'spl-radio')) return true;
+      if (field.controlType === 'checkbox' && (el.getAttribute('role') === 'checkbox' || (el as HTMLInputElement).type === 'checkbox' || el.tagName.toLowerCase() === 'spl-checkbox')) return true;
+      if (field.controlType === 'dropdown' && (el.tagName.toLowerCase() === 'select' || el.getAttribute('role') === 'listbox' || el.tagName.toLowerCase() === 'spl-select')) return true;
       if (field.controlType === 'combobox' && (el.getAttribute('role') === 'combobox' || el.getAttribute('aria-haspopup') === 'listbox')) return true;
       if (field.controlType === 'file' && (el as HTMLInputElement).type === 'file') return true;
       if (field.controlType === 'textarea' && el.tagName.toLowerCase() === 'textarea') return true;
@@ -141,22 +160,23 @@ export function findFieldElement(
     }
     // If multiple radio/checkbox inputs share name, return their common grouping container
     if (typeMatches.length > 1 && (field.controlType === 'radio' || field.controlType === 'checkbox')) {
-      const container = typeMatches[0].closest('[role="radiogroup"], [role="group"], fieldset, .form-group') || typeMatches[0].parentElement;
+      const container =
+        deepClosest(typeMatches[0], '[role="radiogroup"], [role="group"], fieldset, .form-group, spl-form-field') ||
+        typeMatches[0].parentElement;
       if (container) return container;
     }
   }
 
   // Tier 5: Container fingerprint matching controlType and heading/label text
   if (field.label && field.controlType) {
-    const containers = Array.from(
-      doc.querySelectorAll(
-        '[role="listitem"], .freebirdFormviewerViewItemsItemItem, .QrToBd, fieldset, [role="radiogroup"], [role="group"], .form-group, .field, [data-automation-id*="formField"]',
-      ),
+    const containers = querySelectorAllAcrossRoots(
+      roots,
+      '[role="listitem"], .freebirdFormviewerViewItemsItemItem, .QrToBd, fieldset, [role="radiogroup"], [role="group"], .form-group, .field, [data-automation-id*="formField"], spl-form-field',
     );
 
     const matchingContainers = containers.filter((c) => {
       const heading = c.querySelector(
-        '[role="heading"], h1, h2, h3, h4, h5, h6, .M7eMe, legend, label, .field-label, [data-automation-id*="label"]',
+        '[role="heading"], h1, h2, h3, h4, h5, h6, .M7eMe, legend, label, .field-label, [data-automation-id*="label"], .spl-form-field__label',
       );
       if (!heading) return false;
       const headingText = cleanLabelText(heading.textContent || '');
@@ -167,17 +187,16 @@ export function findFieldElement(
       const c = matchingContainers[0];
       if (field.controlType === 'radio' || field.controlType === 'checkbox') return c;
       const inner = c.querySelector(
-        'input, select, textarea, [role="listbox"], [role="combobox"], button[aria-haspopup="listbox"], input[type="file"]',
+        'input, select, textarea, [role="listbox"], [role="combobox"], button[aria-haspopup="listbox"], input[type="file"], spl-select, spl-input',
       );
       if (inner) return inner;
     }
   }
 
   // Tier 6: Accessible label resolution match
-  const allCandidates = Array.from(
-    doc.querySelectorAll(
-      'input, select, textarea, [role="listbox"], [role="combobox"], [role="radiogroup"], [role="group"], button[aria-haspopup="listbox"], input[type="file"]',
-    ),
+  const allCandidates = querySelectorAllAcrossRoots(
+    roots,
+    'input, select, textarea, [role="listbox"], [role="combobox"], [role="radiogroup"], [role="group"], button[aria-haspopup="listbox"], input[type="file"], spl-select, spl-input',
   );
 
   const matchedCandidates = allCandidates.filter((el) => {

@@ -13,7 +13,7 @@ export type FieldControlType =
   | 'date'
   | 'file';
 
-export type FormPlatform = 'google-forms' | 'greenhouse' | 'lever' | 'workday' | 'generic';
+export type FormPlatform = 'google-forms' | 'greenhouse' | 'lever' | 'workday' | 'smartrecruiters' | 'generic';
 
 export type SelectionMode = 'single' | 'multiple';
 

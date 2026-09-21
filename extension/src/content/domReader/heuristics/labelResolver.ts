@@ -123,9 +123,18 @@ export function resolveUniversalLabel(
   if (directLabelledBy) {
     const ids = directLabelledBy.split(/\s+/).filter(Boolean);
     const textParts: string[] = [];
+    const rootNode = controlEl.getRootNode();
     for (const id of ids) {
       try {
-        const refEl = doc.getElementById(id);
+        let refEl: Element | null = null;
+        if (rootNode && 'getElementById' in rootNode && typeof (rootNode as Document).getElementById === 'function') {
+          refEl = (rootNode as Document).getElementById(id);
+        } else if (rootNode && 'querySelector' in rootNode && typeof (rootNode as ShadowRoot).querySelector === 'function') {
+          refEl = (rootNode as ShadowRoot).querySelector(`#${escapeCss(id)}`);
+        }
+        if (!refEl) {
+          refEl = doc.getElementById(id);
+        }
         if (refEl) {
           const t = sanitizeLabelText(getElementTextExcludingInputs(refEl));
           if (t) textParts.push(t);
@@ -150,10 +159,17 @@ export function resolveUniversalLabel(
     }
   }
 
-  // 3. Explicit <label for="id">
+  // 3. Explicit <label for="id"> (searched in local shadow scope first, then document)
   if (controlEl.id) {
     try {
-      const explicitLabel = doc.querySelector(`label[for="${escapeCss(controlEl.id)}"]`);
+      const rootNode = controlEl.getRootNode();
+      let explicitLabel: Element | null = null;
+      if (rootNode && 'querySelector' in rootNode) {
+        explicitLabel = (rootNode as ShadowRoot).querySelector(`label[for="${escapeCss(controlEl.id)}"]`);
+      }
+      if (!explicitLabel) {
+        explicitLabel = doc.querySelector(`label[for="${escapeCss(controlEl.id)}"]`);
+      }
       if (explicitLabel) {
         const txt = sanitizeLabelText(getElementTextExcludingInputs(explicitLabel));
         if (txt && !isGenericSublabel(txt)) {
@@ -174,6 +190,26 @@ export function resolveUniversalLabel(
     }
   }
 
+  // 4b. Web Component / Shadow Host attributes & slotted labels
+  const rootNode = controlEl.getRootNode();
+  if (rootNode && typeof rootNode === 'object' && 'host' in rootNode && (rootNode as ShadowRoot).host) {
+    const host = (rootNode as ShadowRoot).host;
+    const hostLabelAttr = host.getAttribute('label') || host.getAttribute('aria-label') || host.getAttribute('data-label');
+    if (hostLabelAttr) {
+      const txt = sanitizeLabelText(hostLabelAttr);
+      if (txt && !isGenericSublabel(txt)) {
+        return { label: txt, ariaLabel, placeholder, required: isRequired };
+      }
+    }
+    const hostLightLabel = host.querySelector('label, [slot="label"], .label, .field-label, [class*="label"]');
+    if (hostLightLabel) {
+      const txt = sanitizeLabelText(getElementTextExcludingInputs(hostLightLabel));
+      if (txt && !isGenericSublabel(txt)) {
+        return { label: txt, ariaLabel, placeholder, required: isRequired };
+      }
+    }
+  }
+
   // 5. Fieldset <legend> (if inside a fieldset)
   const fieldset = controlEl.closest('fieldset');
   if (fieldset) {
@@ -186,7 +222,7 @@ export function resolveUniversalLabel(
     }
   }
 
-  // 6. Container heading or label element (Google Forms question title, Workday, Greenhouse, Lever)
+  // 6. Container heading or label element (Google Forms, SmartRecruiters, Workday, Greenhouse, Lever)
   if (container) {
     const candidateSelectors = [
       '[role="heading"]',
@@ -197,6 +233,8 @@ export function resolveUniversalLabel(
       '.field-label',
       '.question-label',
       '.label-text',
+      '.spl-form-field__label',
+      '.c-form-field__label',
       '.M7eMe',
       '.freebirdFormviewerViewItemsItemItemTitle',
     ];
@@ -246,8 +284,16 @@ export function resolveUniversalLabel(
     return { label: sanitizeLabelText(title), ariaLabel, placeholder, required: isRequired };
   }
 
-  // 11. Fallback: formatted name or id
-  const rawName = (controlEl as HTMLInputElement).name || controlEl.id;
+  // 11. Fallback: formatted name, formControlName, ng-reflect-name or id
+  const rawName =
+    (controlEl as HTMLInputElement).name ||
+    controlEl.getAttribute('formcontrolname') ||
+    controlEl.getAttribute('ng-reflect-name') ||
+    (rootNode && typeof rootNode === 'object' && 'host' in rootNode
+      ? ((rootNode as ShadowRoot).host as Element).getAttribute('name') ||
+        ((rootNode as ShadowRoot).host as Element).getAttribute('formcontrolname')
+      : null) ||
+    controlEl.id;
   if (rawName && cleanText(rawName)) {
     const formatted = formatMachineName(rawName);
     if (formatted && !isGenericSublabel(formatted)) {

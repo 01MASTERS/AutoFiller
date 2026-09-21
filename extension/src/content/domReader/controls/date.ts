@@ -7,21 +7,37 @@ import {
   isRequiredField,
   generateUniqueFieldId,
 } from '../accessibility.js';
+import {
+  getAllDOMRoots,
+  querySelectorAllAcrossRoots,
+  deepClosest,
+  getShadowHost,
+} from '../shadowDom.js';
 
 /**
- * Scans document for multi-part (.exportDate) and standard single date inputs.
+ * Scans document and any open shadow roots for multi-part (.exportDate) and standard single date inputs.
  */
 export function scanDateInputs(
-  doc: Document,
+  docOrRoots: Document | (Document | ShadowRoot)[],
   fields: FieldMetadata[],
   processedElements: Set<Element>,
   usedIds: Set<string>,
 ): void {
+  const roots = Array.isArray(docOrRoots) ? docOrRoots : getAllDOMRoots(docOrRoots);
+  const doc = Array.isArray(docOrRoots)
+    ? ((roots.find((r) => r.nodeType === Node.DOCUMENT_NODE) as Document) || document)
+    : docOrRoots;
+
   // 4a. Multi-part date groups (Google Forms .exportDate or container with Month/Day/Year inputs)
-  const multiPartDateContainers = Array.from(
-    doc.querySelectorAll('.exportDate, .v3p8nd, [role="listitem"]'),
+  const multiPartDateContainers = querySelectorAllAcrossRoots(
+    roots,
+    '.exportDate, .v3p8nd, [role="listitem"], spl-form-field',
   ).filter((container) => {
-    const inputs = Array.from(container.querySelectorAll<HTMLInputElement>('input[type="text"], input:not([type])'));
+    const containerRoots = getAllDOMRoots(container);
+    const inputs = querySelectorAllAcrossRoots<HTMLInputElement>(
+      containerRoots,
+      'input[type="text"], input:not([type])',
+    );
     if (inputs.length < 2) return false;
     const labels = inputs.map((i) => (i.getAttribute('aria-label') || '').toLowerCase());
     const names = inputs.map((i) => (i.name || '').toLowerCase());
@@ -33,13 +49,17 @@ export function scanDateInputs(
   });
 
   multiPartDateContainers.forEach((container) => {
-    const inputs = Array.from(container.querySelectorAll<HTMLInputElement>('input[type="text"], input:not([type])'));
+    const containerRoots = getAllDOMRoots(container);
+    const inputs = querySelectorAllAcrossRoots<HTMLInputElement>(
+      containerRoots,
+      'input[type="text"], input:not([type])',
+    );
     if (inputs.some((i) => processedElements.has(i))) return;
 
     inputs.forEach((i) => processedElements.add(i));
 
     const outerContainer =
-      container.closest('[role="listitem"], .freebirdFormviewerViewItemsItemItem, .QrToBd') ||
+      deepClosest(container, '[role="listitem"], .freebirdFormviewerViewItemsItemItem, .QrToBd, spl-form-field') ||
       container;
 
     const firstName = inputs[0]?.name || '';
@@ -84,11 +104,10 @@ export function scanDateInputs(
     });
   });
 
-  // 4b. Single/Standalone date inputs (including Google Forms date inputs inside .exportDate / .v3p8nd)
-  const dateCandidateEls = Array.from(
-    doc.querySelectorAll(
-      'input[type="date"], input[data-type="date"], .exportDate input, .v3p8nd input',
-    ),
+  // 4b. Single/Standalone date inputs
+  const dateCandidateEls = querySelectorAllAcrossRoots(
+    roots,
+    'input[type="date"], input[data-type="date"], .exportDate input, .v3p8nd input, spl-date-picker input',
   );
 
   dateCandidateEls.forEach((el) => {
@@ -98,17 +117,19 @@ export function scanDateInputs(
     const isDate =
       inputEl.type === 'date' ||
       inputEl.getAttribute('data-type') === 'date' ||
-      inputEl.closest('.exportDate') !== null;
+      deepClosest(inputEl, '.exportDate') !== null;
 
     if (!isDate) return;
 
     processedElements.add(el);
+    const shadowHost = getShadowHost(el);
     const container =
-      el.closest('[role="listitem"], .freebirdFormviewerViewItemsItemItem, .QrToBd') ||
+      deepClosest(el, '[role="listitem"], .freebirdFormviewerViewItemsItemItem, .QrToBd, spl-form-field, fieldset') ||
+      shadowHost ||
       el.parentElement;
 
-    const name = inputEl.name || undefined;
-    const baseId = name || inputEl.id || `date-${fields.length + 1}`;
+    const name = inputEl.name || inputEl.getAttribute('formcontrolname') || undefined;
+    const baseId = name || inputEl.id || (shadowHost && shadowHost.id) || `date-${fields.length + 1}`;
     const fieldId = generateUniqueFieldId(baseId, usedIds);
     el.setAttribute('data-autofiller-id', fieldId);
 
@@ -118,8 +139,6 @@ export function scanDateInputs(
       doc,
     );
 
-    // In Google Forms, date inputs typically have a sublabel "Date" (e.g. .v3p8nd) or aria-label="Date"
-    // while the true question title (e.g. "Joining Date") sits on the container heading.
     let label = container ? resolveHeadingText(container) : '';
     if (!label || isGenericSublabel(label)) {
       label = accessibleLabel;

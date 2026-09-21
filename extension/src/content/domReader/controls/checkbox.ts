@@ -2,23 +2,34 @@ import { FieldMetadata } from '@autofiller/shared';
 import { isElementHidden } from '../utils.js';
 import { resolveAccessibleLabel, isRequiredField, generateUniqueFieldId } from '../accessibility.js';
 import { extractRadioOrCheckboxOptions } from '../optionParser.js';
+import {
+  getAllDOMRoots,
+  querySelectorAllAcrossRoots,
+  deepClosest,
+  getShadowHost,
+} from '../shadowDom.js';
 
 /**
- * Scans document for checkbox groups, multi-select questions, and standalone checkboxes.
+ * Scans document and any open shadow roots for checkbox groups, multi-select questions, and standalone checkboxes.
  */
 export function scanCheckboxGroups(
-  doc: Document,
+  docOrRoots: Document | (Document | ShadowRoot)[],
   questionContainers: Element[],
   fields: FieldMetadata[],
   processedElements: Set<Element>,
   usedIds: Set<string>,
 ): void {
+  const roots = Array.isArray(docOrRoots) ? docOrRoots : getAllDOMRoots(docOrRoots);
+  const doc = Array.isArray(docOrRoots)
+    ? ((roots.find((r) => r.nodeType === Node.DOCUMENT_NODE) as Document) || document)
+    : docOrRoots;
+
   const checkboxGroupsFound = new Set<Element>();
   questionContainers.forEach((container) => {
     // If container contains nested child question containers, let the leaf containers be the unit
     if (container.querySelector('.form-group, .form-row, .field, [role="group"], [role="listitem"]')) return;
-    // Tightened role="group": Only consider as checkbox group if it contains checkbox semantics
-    const checkboxes = container.querySelectorAll('[role="checkbox"], input[type="checkbox"]');
+    const containerRoots = getAllDOMRoots(container);
+    const checkboxes = querySelectorAllAcrossRoots(containerRoots, '[role="checkbox"], input[type="checkbox"], spl-checkbox');
     if (checkboxes.length > 0) {
       checkboxGroupsFound.add(container);
     }
@@ -26,8 +37,10 @@ export function scanCheckboxGroups(
 
   checkboxGroupsFound.forEach((container) => {
     if (isElementHidden(container)) return;
-    const checkboxNodes = Array.from(
-      container.querySelectorAll('[role="checkbox"], input[type="checkbox"]'),
+    const containerRoots = getAllDOMRoots(container);
+    const checkboxNodes = querySelectorAllAcrossRoots(
+      containerRoots,
+      '[role="checkbox"], input[type="checkbox"], spl-checkbox',
     ).filter((c) => !isElementHidden(c));
 
     if (checkboxNodes.length === 0) return;
@@ -37,9 +50,13 @@ export function scanCheckboxGroups(
     processedElements.add(container);
 
     const firstCheckbox = checkboxNodes[0];
+    const shadowHost = getShadowHost(firstCheckbox);
     const name =
       firstCheckbox.getAttribute('name') ||
+      firstCheckbox.getAttribute('formcontrolname') ||
       container.getAttribute('data-name') ||
+      container.getAttribute('formcontrolname') ||
+      (shadowHost && shadowHost.getAttribute('name')) ||
       undefined;
 
     const baseId =
@@ -52,11 +69,12 @@ export function scanCheckboxGroups(
     container.setAttribute('data-autofiller-id', fieldId);
 
     const questionContainer =
-      container.closest('[role="listitem"], .freebirdFormviewerViewItemsItemItem, .QrToBd, fieldset') ||
+      deepClosest(container, '[role="listitem"], .freebirdFormviewerViewItemsItemItem, .QrToBd, fieldset, spl-form-field') ||
       container;
 
     // Mark companion "Other" text inputs inside this question as processed
-    const otherInputs = questionContainer.querySelectorAll(
+    const otherInputs = querySelectorAllAcrossRoots(
+      getAllDOMRoots(questionContainer),
       'input[aria-label*="Other" i], input.Hvn9fb, input[name*="other_option_response"]',
     );
     otherInputs.forEach((inp) => processedElements.add(inp));
@@ -79,16 +97,24 @@ export function scanCheckboxGroups(
   });
 
   // Standalone checkboxes (e.g. single consent, authorization, terms)
-  const standaloneCheckboxes = Array.from(
-    doc.querySelectorAll<HTMLInputElement>('input[type="checkbox"], [role="checkbox"]'),
+  const standaloneCheckboxes = querySelectorAllAcrossRoots<HTMLInputElement>(
+    roots,
+    'input[type="checkbox"], [role="checkbox"], spl-checkbox',
   ).filter((cb) => !processedElements.has(cb) && !isElementHidden(cb));
 
   standaloneCheckboxes.forEach((cb) => {
     processedElements.add(cb);
+    const shadowHost = getShadowHost(cb);
     const container =
-      cb.closest('label, .form-group, .field, fieldset, .form-check, div') || cb.parentElement;
-    const name = cb.getAttribute('name') || undefined;
-    const baseId = name || cb.id || `checkbox-${fields.length + 1}`;
+      deepClosest(cb, 'label, .form-group, .field, fieldset, .form-check, spl-form-field, div') ||
+      shadowHost ||
+      cb.parentElement;
+    const name =
+      cb.getAttribute('name') ||
+      cb.getAttribute('formcontrolname') ||
+      (shadowHost && shadowHost.getAttribute('name')) ||
+      undefined;
+    const baseId = name || cb.id || (shadowHost && shadowHost.id) || `checkbox-${fields.length + 1}`;
     const fieldId = generateUniqueFieldId(baseId, usedIds);
     cb.setAttribute('data-autofiller-id', fieldId);
 

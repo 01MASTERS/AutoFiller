@@ -7,10 +7,12 @@ import { FieldMetadata, FormPlatform } from '@autofiller/shared';
 import { adaptGreenhouseFields } from './greenhouseAdapter.js';
 import { adaptLeverFields } from './leverAdapter.js';
 import { adaptWorkdayFields } from './workdayAdapter.js';
+import { adaptSmartrecruitersFields } from './smartrecruitersAdapter.js';
 
 export * from './greenhouseAdapter.js';
 export * from './leverAdapter.js';
 export * from './workdayAdapter.js';
+export * from './smartrecruitersAdapter.js';
 
 /**
  * Applies platform-specific heuristics and adaptations to discovered form fields.
@@ -29,6 +31,9 @@ export function applyPlatformAdapters(
       break;
     case 'workday':
       adaptWorkdayFields(fields, doc);
+      break;
+    case 'smartrecruiters':
+      adaptSmartrecruitersFields(fields, doc);
       break;
     case 'google-forms':
     case 'generic':

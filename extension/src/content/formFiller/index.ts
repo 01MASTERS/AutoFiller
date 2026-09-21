@@ -4,7 +4,7 @@
  */
 
 import { FillResult, FieldMappingValue, FieldMetadata } from '@autofiller/shared';
-import { findFieldElement } from '../domReader.js';
+import { findFieldElement, deepQuerySelector, deepGetElementById } from '../domReader.js';
 import { escapeCss } from './events.js';
 import { fillTextInput } from './simulators/inputSimulator.js';
 import { fillNativeDropdown, fillAriaDropdown } from './simulators/selectSimulator.js';
@@ -99,20 +99,21 @@ export async function fillFormFields(
       target = findFieldElement(meta, doc);
     }
 
-    // Fallback: ad-hoc CSS search for fields without metadata
+    // Fallback: ad-hoc CSS search for fields without metadata (pierces shadow roots)
     if (!target) {
       try {
-        target = doc.querySelector(
+        target = deepQuerySelector(
+          doc,
           `[data-autofiller-id="${escapeCss(fieldId)}"], input[name="${escapeCss(fieldId)}"], textarea[name="${escapeCss(fieldId)}"], #${escapeCss(fieldId)}`,
         );
       } catch {
-        target = doc.getElementById(fieldId);
+        target = deepGetElementById(fieldId, doc);
       }
       if (!target) {
         try {
-          target = doc.querySelector(`[name="${escapeCss(fieldId)}"]`);
+          target = deepQuerySelector(doc, `[name="${escapeCss(fieldId)}"]`);
         } catch {
-          target = doc.getElementById(fieldId);
+          target = deepGetElementById(fieldId, doc);
         }
       }
     }
