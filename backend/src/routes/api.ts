@@ -932,6 +932,7 @@ apiRouter.get('/logs-ui', (req: Request, res: Response) => {
 
 apiRouter.get('/profiles', (req: Request, res: Response, next: NextFunction) => {
   try {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     const profiles = ProfileStore.listProfiles();
     const activeProfileId = ProfileStore.getActiveProfileId();
     const response: ProfilesListResponse = {
@@ -947,6 +948,7 @@ apiRouter.get('/profiles', (req: Request, res: Response, next: NextFunction) => 
 
 apiRouter.get('/profiles/:id', (req: Request, res: Response, next: NextFunction) => {
   try {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     const profileId = req.params.id as string;
     const profile = ProfileStore.getProfile(profileId);
     res.json(profile);
@@ -957,6 +959,7 @@ apiRouter.get('/profiles/:id', (req: Request, res: Response, next: NextFunction)
 
 apiRouter.post('/profiles/switch', (req: Request, res: Response, next: NextFunction) => {
   try {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     const body = switchProfileRequestSchema.parse(req.body);
     const profile = ProfileStore.setActiveProfile(body.profileId);
 
@@ -981,6 +984,7 @@ apiRouter.post('/profiles/switch', (req: Request, res: Response, next: NextFunct
 
 apiRouter.post('/profiles', (req: Request, res: Response, next: NextFunction) => {
   try {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     const body = createProfileRequestSchema.parse(req.body);
     ProfileStore.createProfile(body.id, body.profile);
 
@@ -1005,6 +1009,7 @@ apiRouter.post('/profiles', (req: Request, res: Response, next: NextFunction) =>
 
 apiRouter.put('/profiles/:id', (req: Request, res: Response, next: NextFunction) => {
   try {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     const profileId = req.params.id as string;
     const body = userProfileSchema.parse(req.body);
     ProfileStore.saveProfile(body, profileId);
@@ -1028,8 +1033,35 @@ apiRouter.put('/profiles/:id', (req: Request, res: Response, next: NextFunction)
   }
 });
 
+apiRouter.put('/profile', (req: Request, res: Response, next: NextFunction) => {
+  try {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    const activeProfileId = ProfileStore.getActiveProfileId();
+    const body = userProfileSchema.parse(req.body);
+    ProfileStore.saveProfile(body, activeProfileId);
+
+    LoggerService.getInstance().addLog({
+      level: 'INFO',
+      source: 'BACKEND_API',
+      tag: 'PROFILE_UPDATED',
+      message: `Updated active profile ${activeProfileId} via PUT /profile`,
+      details: { profileId: activeProfileId },
+    });
+
+    res.json({
+      status: 'success',
+      message: `Active profile "${activeProfileId}" updated successfully`,
+      profileId: activeProfileId,
+      profile: body,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 apiRouter.delete('/profiles/:id', (req: Request, res: Response, next: NextFunction) => {
   try {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     const profileId = req.params.id as string;
     ProfileStore.deleteProfile(profileId);
 
@@ -1052,6 +1084,7 @@ apiRouter.delete('/profiles/:id', (req: Request, res: Response, next: NextFuncti
 
 apiRouter.get('/profile', (req: Request, res: Response, next: NextFunction) => {
   try {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     const profile = ProfileStore.getProfile();
     res.json(profile);
   } catch (error) {

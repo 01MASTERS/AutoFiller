@@ -23,6 +23,7 @@ export const userProfileSchema = z
     phone: z.string().min(1, 'Phone is required'),
     alternatePhone: z.string().optional(),
     'alternate phone': z.string().optional(),
+    alternatephone: z.string().optional(),
     address: z.string().optional(),
     education: z.array(educationItemSchema).optional(),
     experience: z.array(experienceItemSchema).optional(),

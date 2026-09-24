@@ -801,15 +801,23 @@ export function renderProfileEditorHtml(): string {
         <button id="modal-create-btn" class="btn btn-primary" type="button">Create Persona</button>
       </div>
     </div>
-  </div>
-
-  <!-- Client-Side Dashboard Script -->
+  </div>  <!-- Client-Side Dashboard Script -->
   <script>
     let allProfiles = [];
     let currentProfileId = null;
     let currentActiveId = null;
     let currentProfileData = null;
     let currentViewMode = 'visual';
+
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
 
     function showToast(message, type = 'success') {
       const toast = document.getElementById('toast');
@@ -821,7 +829,7 @@ export function renderProfileEditorHtml(): string {
 
     async function loadProfiles(selectId = null) {
       try {
-        const res = await fetch('/profiles');
+        const res = await fetch('/profiles?_t=' + Date.now(), { cache: 'no-store' });
         const data = await res.json();
         if (data.status === 'success') {
           allProfiles = data.profiles;
@@ -835,6 +843,26 @@ export function renderProfileEditorHtml(): string {
         }
       } catch (err) {
         showToast('Failed to load profiles: ' + err.message, 'error');
+      }
+    }
+
+    async function refreshPersonaListOnly() {
+      try {
+        const res = await fetch('/profiles?_t=' + Date.now(), { cache: 'no-store' });
+        const data = await res.json();
+        if (data.status === 'success') {
+          allProfiles = data.profiles;
+          currentActiveId = data.activeProfileId;
+          renderPersonaList();
+          if (currentProfileData && currentProfileId) {
+            document.getElementById('target-persona-name').textContent = currentProfileData.name || currentProfileId;
+            document.getElementById('target-persona-id').textContent = currentProfileId;
+            const activeBadge = document.getElementById('target-active-badge');
+            activeBadge.style.display = currentProfileId === currentActiveId ? 'inline-block' : 'none';
+          }
+        }
+      } catch (err) {
+        console.error('Failed to refresh persona list:', err);
       }
     }
 
@@ -897,13 +925,13 @@ export function renderProfileEditorHtml(): string {
       renderPersonaList();
 
       try {
-        const res = await fetch('/profiles/' + profileId);
+        const res = await fetch('/profiles/' + encodeURIComponent(profileId) + '?_t=' + Date.now(), { cache: 'no-store' });
         if (!res.ok) throw new Error('Failed to fetch profile details');
         const data = await res.json();
         currentProfileData = data;
 
         // Update toolbar
-        document.getElementById('target-persona-name').textContent = data.name;
+        document.getElementById('target-persona-name').textContent = data.name || profileId;
         document.getElementById('target-persona-id').textContent = profileId;
         const activeBadge = document.getElementById('target-active-badge');
         activeBadge.style.display = profileId === currentActiveId ? 'inline-block' : 'none';
@@ -934,25 +962,20 @@ export function renderProfileEditorHtml(): string {
       document.getElementById('input-name').value = data.name || '';
       document.getElementById('input-email').value = data.email || '';
       document.getElementById('input-phone').value = data.phone || '';
-      document.getElementById('input-alt-phone').value = data['alternate phone'] || data.alternatePhone || '';
+      document.getElementById('input-alt-phone').value =
+        data['alternate phone'] || data.alternatePhone || data.alternatephone || '';
       document.getElementById('input-address').value = data.address || '';
 
-      const headline = (data.custom && data.custom.Headline) || (data.experience && data.experience[0]?.title) || '';
+      const headline =
+        (data.custom && typeof data.custom.Headline === 'string' && data.custom.Headline) ||
+        (Array.isArray(data.experience) && data.experience[0]?.title) ||
+        '';
       document.getElementById('input-headline').value = headline;
 
-      // Render Skills
       renderSkills(data.skills || []);
-
-      // Render Experience
       renderExperienceList(data.experience || []);
-
-      // Render Education
       renderEducationList(data.education || []);
-
-      // Render Links
       renderLinksList(data.links || {});
-
-      // Render Custom Fields
       renderCustomFieldsList(data.custom || {});
     }
 
@@ -965,176 +988,205 @@ export function renderProfileEditorHtml(): string {
     function renderSkills(skills) {
       const container = document.getElementById('skills-list');
       container.innerHTML = '';
-      skills.forEach((skill, idx) => {
+      (skills || []).forEach((skill, idx) => {
         const chip = document.createElement('span');
         chip.className = 'skill-chip';
-        chip.innerHTML = skill + ' <span class="skill-chip-remove" onclick="removeSkill(' + idx + ')">&times;</span>';
+        chip.textContent = skill + ' ';
+
+        const removeBtn = document.createElement('span');
+        removeBtn.className = 'skill-chip-remove';
+        removeBtn.innerHTML = '&times;';
+        removeBtn.title = 'Remove skill';
+        removeBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (currentProfileData && Array.isArray(currentProfileData.skills)) {
+            currentProfileData.skills.splice(idx, 1);
+            renderSkills(currentProfileData.skills);
+          }
+        });
+        chip.appendChild(removeBtn);
         container.appendChild(chip);
       });
     }
 
-    function removeSkill(index) {
-      if (!currentProfileData.skills) return;
-      currentProfileData.skills.splice(index, 1);
-      renderSkills(currentProfileData.skills);
+    function createExperienceCard(item = {}) {
+      const card = document.createElement('div');
+      card.className = 'sub-item-card';
+      card.innerHTML = \`
+        <button type="button" class="sub-item-remove" title="Remove experience">&times;</button>
+        <div class="grid-2">
+          <div class="field-group">
+            <label class="field-label">Job Title</label>
+            <input type="text" class="field-input exp-title" value="\${escapeHtml(item.title || '')}" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">Company</label>
+            <input type="text" class="field-input exp-company" value="\${escapeHtml(item.company || '')}" />
+          </div>
+        </div>
+        <div class="field-group">
+          <label class="field-label">Duration</label>
+          <input type="text" class="field-input exp-duration" value="\${escapeHtml(item.duration || '')}" placeholder="e.g. 2023 - Present" />
+        </div>
+        <div class="field-group">
+          <label class="field-label">Description / Responsibilities</label>
+          <textarea class="field-textarea exp-desc">\${escapeHtml(item.description || '')}</textarea>
+        </div>
+      \`;
+      card.querySelector('.sub-item-remove').addEventListener('click', () => {
+        card.remove();
+      });
+      return card;
     }
 
     function renderExperienceList(list) {
       const container = document.getElementById('experience-list');
       container.innerHTML = '';
-      list.forEach((item, idx) => {
-        const card = document.createElement('div');
-        card.className = 'sub-item-card';
-        card.innerHTML = \`
-          <button type="button" class="sub-item-remove" onclick="removeExperience(\${idx})">&times;</button>
-          <div class="grid-2">
-            <div class="field-group">
-              <label class="field-label">Job Title</label>
-              <input type="text" class="field-input exp-title" value="\${item.title || ''}" />
-            </div>
-            <div class="field-group">
-              <label class="field-label">Company</label>
-              <input type="text" class="field-input exp-company" value="\${item.company || ''}" />
-            </div>
-          </div>
-          <div class="field-group">
-            <label class="field-label">Duration</label>
-            <input type="text" class="field-input exp-duration" value="\${item.duration || ''}" placeholder="e.g. 2023 - Present" />
-          </div>
-          <div class="field-group">
-            <label class="field-label">Description / Responsibilities</label>
-            <textarea class="field-textarea exp-desc">\${item.description || ''}</textarea>
-          </div>
-        \`;
-        container.appendChild(card);
+      (list || []).forEach(item => {
+        container.appendChild(createExperienceCard(item));
       });
     }
 
-    function removeExperience(index) {
-      if (!currentProfileData.experience) return;
-      currentProfileData.experience.splice(index, 1);
-      renderExperienceList(currentProfileData.experience);
+    function createEducationCard(item = {}) {
+      const card = document.createElement('div');
+      card.className = 'sub-item-card';
+      card.innerHTML = \`
+        <button type="button" class="sub-item-remove" title="Remove education">&times;</button>
+        <div class="grid-2">
+          <div class="field-group">
+            <label class="field-label">Degree / Field of Study</label>
+            <input type="text" class="field-input edu-degree" value="\${escapeHtml(item.degree || '')}" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">School / University</label>
+            <input type="text" class="field-input edu-school" value="\${escapeHtml(item.school || '')}" />
+          </div>
+        </div>
+        <div class="grid-3">
+          <div class="field-group">
+            <label class="field-label">Graduation Year</label>
+            <input type="text" class="field-input edu-year" value="\${escapeHtml(item['Graduation year'] || item.year || '')}" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">Start Date</label>
+            <input type="text" class="field-input edu-start" value="\${escapeHtml(item['start date'] || '')}" />
+          </div>
+          <div class="field-group">
+            <label class="field-label">End Date</label>
+            <input type="text" class="field-input edu-end" value="\${escapeHtml(item['end date'] || '')}" />
+          </div>
+        </div>
+      \`;
+      card.querySelector('.sub-item-remove').addEventListener('click', () => {
+        card.remove();
+      });
+      return card;
     }
 
     function renderEducationList(list) {
       const container = document.getElementById('education-list');
       container.innerHTML = '';
-      list.forEach((item, idx) => {
-        const card = document.createElement('div');
-        card.className = 'sub-item-card';
-        card.innerHTML = \`
-          <button type="button" class="sub-item-remove" onclick="removeEducation(\${idx})">&times;</button>
-          <div class="grid-2">
-            <div class="field-group">
-              <label class="field-label">Degree / Field of Study</label>
-              <input type="text" class="field-input edu-degree" value="\${item.degree || ''}" />
-            </div>
-            <div class="field-group">
-              <label class="field-label">School / University</label>
-              <input type="text" class="field-input edu-school" value="\${item.school || ''}" />
-            </div>
-          </div>
-          <div class="grid-3">
-            <div class="field-group">
-              <label class="field-label">Graduation Year</label>
-              <input type="text" class="field-input edu-year" value="\${item['Graduation year'] || item.year || ''}" />
-            </div>
-            <div class="field-group">
-              <label class="field-label">Start Date</label>
-              <input type="text" class="field-input edu-start" value="\${item['start date'] || ''}" />
-            </div>
-            <div class="field-group">
-              <label class="field-label">End Date</label>
-              <input type="text" class="field-input edu-end" value="\${item['end date'] || ''}" />
-            </div>
-          </div>
-        \`;
-        container.appendChild(card);
+      (list || []).forEach(item => {
+        container.appendChild(createEducationCard(item));
       });
     }
 
-    function removeEducation(index) {
-      if (!currentProfileData.education) return;
-      currentProfileData.education.splice(index, 1);
-      renderEducationList(currentProfileData.education);
+    function createLinkRow(key = '', val = '') {
+      const row = document.createElement('div');
+      row.className = 'grid-2 link-row';
+      row.style.marginBottom = '8px';
+      row.innerHTML = \`
+        <input type="text" class="field-input link-key" value="\${escapeHtml(key)}" placeholder="Platform (e.g. LinkedIn)" />
+        <div style="display: flex; gap: 6px;">
+          <input type="text" class="field-input link-val" value="\${escapeHtml(val)}" placeholder="https://..." />
+          <button type="button" class="sub-item-remove" style="position: static;" title="Remove link">&times;</button>
+        </div>
+      \`;
+      row.querySelector('.sub-item-remove').addEventListener('click', () => {
+        row.remove();
+      });
+      return row;
     }
 
     function renderLinksList(links) {
       const container = document.getElementById('links-list');
       container.innerHTML = '';
-      Object.entries(links).forEach(([key, val], idx) => {
-        const row = document.createElement('div');
-        row.className = 'grid-2';
-        row.style.marginBottom = '8px';
-        row.innerHTML = \`
-          <input type="text" class="field-input link-key" value="\${key}" placeholder="Platform (e.g. LinkedIn)" />
-          <div style="display: flex; gap: 6px;">
-            <input type="text" class="field-input link-val" value="\${val}" placeholder="https://..." />
-            <button type="button" class="sub-item-remove" style="position: static;" onclick="removeLink('\${key}')">&times;</button>
-          </div>
-        \`;
-        container.appendChild(row);
+      Object.entries(links || {}).forEach(([key, val]) => {
+        container.appendChild(createLinkRow(key, val));
       });
     }
 
-    function removeLink(key) {
-      if (currentProfileData.links) {
-        delete currentProfileData.links[key];
-        renderLinksList(currentProfileData.links);
-      }
+    function createCustomFieldRow(key = '', val = '') {
+      const row = document.createElement('div');
+      row.className = 'grid-2 custom-field-row';
+      row.style.marginBottom = '8px';
+      row.innerHTML = \`
+        <input type="text" class="field-input custom-key" value="\${escapeHtml(key)}" placeholder="Question Name" />
+        <div style="display: flex; gap: 6px;">
+          <input type="text" class="field-input custom-val" value="\${escapeHtml(val)}" placeholder="Answer value" />
+          <button type="button" class="sub-item-remove" style="position: static;" title="Remove question">&times;</button>
+        </div>
+      \`;
+      row.querySelector('.sub-item-remove').addEventListener('click', () => {
+        row.remove();
+      });
+      return row;
     }
 
     function renderCustomFieldsList(custom) {
       const container = document.getElementById('custom-fields-list');
       container.innerHTML = '';
-      Object.entries(custom).forEach(([key, val]) => {
+      Object.entries(custom || {}).forEach(([key, val]) => {
         if (key === 'Headline') return; // Handled in top card
-        const row = document.createElement('div');
-        row.className = 'grid-2';
-        row.style.marginBottom = '8px';
-        row.innerHTML = \`
-          <input type="text" class="field-input custom-key" value="\${key}" placeholder="Question Name" />
-          <div style="display: flex; gap: 6px;">
-            <input type="text" class="field-input custom-val" value="\${val}" placeholder="Answer value" />
-            <button type="button" class="sub-item-remove" style="position: static;" onclick="removeCustomField('\${key}')">&times;</button>
-          </div>
-        \`;
-        container.appendChild(row);
+        container.appendChild(createCustomFieldRow(key, val));
       });
     }
 
-    function removeCustomField(key) {
-      if (currentProfileData.custom) {
-        delete currentProfileData.custom[key];
-        renderCustomFieldsList(currentProfileData.custom);
-      }
-    }
-
     function collectVisualFormData() {
-      const headline = document.getElementById('input-headline').value.trim();
+      // Start with cloned currentProfileData to preserve unedited top-level or passthrough metadata
+      const result = currentProfileData ? JSON.parse(JSON.stringify(currentProfileData)) : {};
+
+      result.name = (document.getElementById('input-name')?.value || '').trim();
+      result.email = (document.getElementById('input-email')?.value || '').trim();
+      result.phone = (document.getElementById('input-phone')?.value || '').trim();
+      result.address = (document.getElementById('input-address')?.value || '').trim();
+
+      const altPhone = (document.getElementById('input-alt-phone')?.value || '').trim();
+      if (altPhone) {
+        result.alternatePhone = altPhone;
+        result['alternate phone'] = altPhone;
+        result.alternatephone = altPhone;
+      } else {
+        delete result.alternatePhone;
+        delete result['alternate phone'];
+        delete result.alternatephone;
+      }
+
+      const headline = (document.getElementById('input-headline')?.value || '').trim();
 
       // Collect experiences
       const expCards = document.querySelectorAll('#experience-list .sub-item-card');
       const experience = [];
       expCards.forEach(card => {
-        const title = card.querySelector('.exp-title').value.trim();
-        const company = card.querySelector('.exp-company').value.trim();
-        const duration = card.querySelector('.exp-duration').value.trim();
-        const description = card.querySelector('.exp-desc').value.trim();
+        const title = (card.querySelector('.exp-title')?.value || '').trim();
+        const company = (card.querySelector('.exp-company')?.value || '').trim();
+        const duration = (card.querySelector('.exp-duration')?.value || '').trim();
+        const description = (card.querySelector('.exp-desc')?.value || '').trim();
         if (title || company) {
           experience.push({ title, company, duration, description });
         }
       });
+      result.experience = experience;
 
       // Collect education
       const eduCards = document.querySelectorAll('#education-list .sub-item-card');
       const education = [];
       eduCards.forEach(card => {
-        const degree = card.querySelector('.edu-degree').value.trim();
-        const school = card.querySelector('.edu-school').value.trim();
-        const year = card.querySelector('.edu-year').value.trim();
-        const startDate = card.querySelector('.edu-start').value.trim();
-        const endDate = card.querySelector('.edu-end').value.trim();
+        const degree = (card.querySelector('.edu-degree')?.value || '').trim();
+        const school = (card.querySelector('.edu-school')?.value || '').trim();
+        const year = (card.querySelector('.edu-year')?.value || '').trim();
+        const startDate = (card.querySelector('.edu-start')?.value || '').trim();
+        const endDate = (card.querySelector('.edu-end')?.value || '').trim();
         if (degree || school) {
           const item = { degree, school };
           if (year) item['Graduation year'] = year;
@@ -1143,41 +1195,43 @@ export function renderProfileEditorHtml(): string {
           education.push(item);
         }
       });
+      result.education = education;
 
       // Collect links
-      const linkRows = document.querySelectorAll('#links-list .grid-2');
+      const linkRows = document.querySelectorAll('#links-list .link-row');
       const links = {};
       linkRows.forEach(row => {
-        const key = row.querySelector('.link-key').value.trim();
-        const val = row.querySelector('.link-val').value.trim();
-        if (key && val) links[key] = val;
+        const key = (row.querySelector('.link-key')?.value || '').trim();
+        const val = (row.querySelector('.link-val')?.value || '').trim();
+        if (key) {
+          links[key] = val;
+        }
       });
+      result.links = links;
 
       // Collect custom fields
-      const customRows = document.querySelectorAll('#custom-fields-list .grid-2');
+      const customRows = document.querySelectorAll('#custom-fields-list .custom-field-row');
       const custom = {};
       if (headline) custom.Headline = headline;
       customRows.forEach(row => {
-        const key = row.querySelector('.custom-key').value.trim();
-        const val = row.querySelector('.custom-val').value.trim();
-        if (key && val) custom[key] = val;
+        const key = (row.querySelector('.custom-key')?.value || '').trim();
+        const val = (row.querySelector('.custom-val')?.value || '').trim();
+        if (key) {
+          custom[key] = val;
+        }
       });
+      result.custom = custom;
 
-      return {
-        name: document.getElementById('input-name').value.trim(),
-        email: document.getElementById('input-email').value.trim(),
-        phone: document.getElementById('input-phone').value.trim(),
-        address: document.getElementById('input-address').value.trim(),
-        skills: currentProfileData?.skills || [],
-        experience,
-        education,
-        links,
-        custom,
-      };
+      result.skills = currentProfileData?.skills || result.skills || [];
+
+      return result;
     }
 
     async function saveCurrentPersona() {
-      if (!currentProfileId) return;
+      if (!currentProfileId) {
+        showToast('Please select a persona profile first.', 'error');
+        return;
+      }
 
       let payload = null;
       if (currentViewMode === 'visual') {
@@ -1187,24 +1241,32 @@ export function renderProfileEditorHtml(): string {
         try {
           payload = JSON.parse(jsonText);
         } catch (err) {
-          document.getElementById('json-error-box').style.display = 'block';
-          document.getElementById('json-error-box').textContent = 'JSON Syntax Error: ' + err.message;
-          showToast('Invalid JSON format', 'error');
+          const errBox = document.getElementById('json-error-box');
+          errBox.style.display = 'block';
+          errBox.textContent = 'JSON Syntax Error: ' + err.message;
+          showToast('Invalid JSON syntax: ' + err.message, 'error');
           return;
         }
       }
 
       try {
-        const res = await fetch('/profiles/' + currentProfileId, {
+        const res = await fetch('/profiles/' + encodeURIComponent(currentProfileId), {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache',
+          },
           body: JSON.stringify(payload),
         });
 
         const data = await res.json();
         if (res.ok && data.status === 'success') {
+          currentProfileData = data.profile || payload;
           showToast('Profile "' + currentProfileId + '" saved successfully!', 'success');
-          await loadProfiles(currentProfileId);
+          // Re-populate both views with the confirmed saved profile data
+          populateVisualForm(currentProfileData);
+          populateJsonEditor(currentProfileData);
+          await refreshPersonaListOnly();
         } else {
           showToast('Save failed: ' + (data.error || 'Server error'), 'error');
         }
@@ -1218,14 +1280,17 @@ export function renderProfileEditorHtml(): string {
       try {
         const res = await fetch('/profiles/switch', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache',
+          },
           body: JSON.stringify({ profileId: currentProfileId }),
         });
         const data = await res.json();
         if (res.ok && data.status === 'success') {
           currentActiveId = currentProfileId;
           showToast('Active persona switched to "' + currentProfileId + '"', 'success');
-          await loadProfiles(currentProfileId);
+          await refreshPersonaListOnly();
         } else {
           showToast('Switch failed: ' + (data.error || 'Server error'), 'error');
         }
@@ -1246,8 +1311,9 @@ export function renderProfileEditorHtml(): string {
       }
 
       try {
-        const res = await fetch('/profiles/' + currentProfileId, {
+        const res = await fetch('/profiles/' + encodeURIComponent(currentProfileId), {
           method: 'DELETE',
+          headers: { 'Cache-Control': 'no-cache' },
         });
         const data = await res.json();
         if (res.ok && data.status === 'success') {
@@ -1433,7 +1499,8 @@ export function renderProfileEditorHtml(): string {
         const input = document.getElementById('input-new-skill');
         const skill = input.value.trim();
         if (skill) {
-          if (!currentProfileData.skills) currentProfileData.skills = [];
+          if (!currentProfileData) currentProfileData = {};
+          if (!Array.isArray(currentProfileData.skills)) currentProfileData.skills = [];
           if (!currentProfileData.skills.includes(skill)) {
             currentProfileData.skills.push(skill);
             renderSkills(currentProfileData.skills);
@@ -1450,32 +1517,36 @@ export function renderProfileEditorHtml(): string {
       });
 
       document.getElementById('add-experience-btn').addEventListener('click', () => {
-        if (!currentProfileData.experience) currentProfileData.experience = [];
-        currentProfileData.experience.unshift({ title: '', company: '', duration: '', description: '' });
-        renderExperienceList(currentProfileData.experience);
+        const container = document.getElementById('experience-list');
+        const card = createExperienceCard({ title: '', company: '', duration: '', description: '' });
+        container.prepend(card);
+        card.querySelector('.exp-title')?.focus();
       });
 
       document.getElementById('add-education-btn').addEventListener('click', () => {
-        if (!currentProfileData.education) currentProfileData.education = [];
-        currentProfileData.education.unshift({ degree: '', school: '', 'Graduation year': '' });
-        renderEducationList(currentProfileData.education);
+        const container = document.getElementById('education-list');
+        const card = createEducationCard({ degree: '', school: '', 'Graduation year': '' });
+        container.prepend(card);
+        card.querySelector('.edu-degree')?.focus();
       });
 
       document.getElementById('add-link-btn').addEventListener('click', () => {
-        if (!currentProfileData.links) currentProfileData.links = {};
         const key = prompt('Enter link platform (e.g. Portfolio, Twitter, Blog):');
         if (key && key.trim()) {
-          currentProfileData.links[key.trim()] = '';
-          renderLinksList(currentProfileData.links);
+          const container = document.getElementById('links-list');
+          const row = createLinkRow(key.trim(), '');
+          container.prepend(row);
+          row.querySelector('.link-val')?.focus();
         }
       });
 
       document.getElementById('add-custom-btn').addEventListener('click', () => {
-        if (!currentProfileData.custom) currentProfileData.custom = {};
         const key = prompt('Enter custom question name (e.g. Expected Salary, Work Authorization, Notice Period):');
         if (key && key.trim()) {
-          currentProfileData.custom[key.trim()] = '';
-          renderCustomFieldsList(currentProfileData.custom);
+          const container = document.getElementById('custom-fields-list');
+          const row = createCustomFieldRow(key.trim(), '');
+          container.prepend(row);
+          row.querySelector('.custom-val')?.focus();
         }
       });
     });

@@ -349,7 +349,7 @@ export async function fetchProfilesList(
   if (refreshIcon) refreshIcon.classList.add('spin');
 
   try {
-    const res = await fetch('http://localhost:3456/profiles');
+    const res = await fetch('http://localhost:3456/profiles', { cache: 'no-store' });
     if (res.ok) {
       const data = (await res.json()) as ProfilesListResponse;
       if (data.status === 'success' && Array.isArray(data.profiles)) {
@@ -383,7 +383,7 @@ export async function fetchProfilesList(
 
         // Also fetch active profile email
         try {
-          const profileRes = await fetch('http://localhost:3456/profile');
+          const profileRes = await fetch('http://localhost:3456/profile', { cache: 'no-store' });
           if (profileRes.ok) {
             const profileData = (await profileRes.json()) as UserProfile;
             updateProfilePreviewUI(

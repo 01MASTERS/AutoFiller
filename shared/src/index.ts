@@ -100,6 +100,7 @@ export interface UserProfile {
   phone: string;
   alternatePhone?: string;
   'alternate phone'?: string;
+  alternatephone?: string;
   address?: string;
   education?: Array<{
     degree?: string;
