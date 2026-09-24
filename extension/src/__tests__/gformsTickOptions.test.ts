@@ -337,4 +337,102 @@ describe('Google Forms Tick Options (Checkboxes & Radios)', () => {
     expect(seniorRadio.getAttribute('aria-checked')).toBe('true');
     expect(entryRadio.getAttribute('aria-checked')).toBe('false');
   });
+
+  it('correctly groups Google Forms checkboxes when choices have role="listitem" under role="list"', async () => {
+    document.body.innerHTML = `
+      <form>
+        <!-- Question 1: How did you hear about this opportunity? -->
+        <div role="listitem" class="QrToBd">
+          <div class="geS5n">
+            <div class="M7eMe" role="heading" aria-level="3">How did you hear about this opportunity? <span class="v3p8nd" aria-label="Required question">*</span></div>
+            <div role="list" class="y5rMb">
+              <div role="listitem" class="docssharedWizToggleLabeledLabelWrapper">
+                <label>
+                  <div role="checkbox" class="uHMk8b" aria-checked="false" aria-label="Linkedin" tabindex="0"></div>
+                  <span class="aDTYNe">Linkedin</span>
+                </label>
+              </div>
+              <div role="listitem" class="docssharedWizToggleLabeledLabelWrapper">
+                <label>
+                  <div role="checkbox" class="uHMk8b" aria-checked="false" aria-label="WhatsApp Group" tabindex="0"></div>
+                  <span class="aDTYNe">WhatsApp Group</span>
+                </label>
+              </div>
+              <div role="listitem" class="docssharedWizToggleLabeledLabelWrapper">
+                <label>
+                  <div role="checkbox" class="uHMk8b" aria-checked="false" aria-label="College" tabindex="0"></div>
+                  <span class="aDTYNe">College</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Question 2: Technical Skills -->
+        <div role="listitem" class="QrToBd">
+          <div class="geS5n">
+            <div class="M7eMe" role="heading" aria-level="3">Technical Skills</div>
+            <div role="list" class="y5rMb">
+              <div role="listitem" class="docssharedWizToggleLabeledLabelWrapper">
+                <label>
+                  <div role="checkbox" class="uHMk8b" aria-checked="false" aria-label="HTML, CSS" tabindex="0"></div>
+                  <span class="aDTYNe">HTML, CSS</span>
+                </label>
+              </div>
+              <div role="listitem" class="docssharedWizToggleLabeledLabelWrapper">
+                <label>
+                  <div role="checkbox" class="uHMk8b" aria-checked="false" aria-label="JavaScript" tabindex="0"></div>
+                  <span class="aDTYNe">JavaScript</span>
+                </label>
+              </div>
+              <div role="listitem" class="docssharedWizToggleLabeledLabelWrapper">
+                <label>
+                  <div role="checkbox" class="uHMk8b" aria-checked="false" aria-label="Python" tabindex="0"></div>
+                  <span class="aDTYNe">Python</span>
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </form>
+    `;
+
+    const checkboxes = document.querySelectorAll('[role="checkbox"]');
+    checkboxes.forEach((cb) => {
+      cb.addEventListener('click', () => {
+        const cur = cb.getAttribute('aria-checked') === 'true';
+        cb.setAttribute('aria-checked', String(!cur));
+      });
+    });
+
+    const fields = extractFormFields(document);
+    expect(fields).toHaveLength(2);
+
+    // Question 1 assertions
+    const sourceField = fields[0];
+    expect(sourceField.label).toBe('How did you hear about this opportunity?');
+    expect(sourceField.controlType).toBe('checkbox');
+    expect(sourceField.selectionMode).toBe('multiple');
+    expect(sourceField.options?.map((o) => o.label)).toEqual(['Linkedin', 'WhatsApp Group', 'College']);
+    expect(sourceField.required).toBe(true);
+
+    // Question 2 assertions
+    const skillsField = fields[1];
+    expect(skillsField.label).toBe('Technical Skills');
+    expect(skillsField.controlType).toBe('checkbox');
+    expect(skillsField.selectionMode).toBe('multiple');
+    expect(skillsField.options?.map((o) => o.label)).toEqual(['HTML, CSS', 'JavaScript', 'Python']);
+
+    // Fill Question 2 with HTML, CSS and Python
+    const fillResult = await fillFormFields(
+      { [skillsField.id]: ['HTML, CSS', 'Python'] },
+      fields,
+      document,
+    );
+
+    expect(fillResult.status).toBe('success');
+    expect(checkboxes[3].getAttribute('aria-checked')).toBe('true'); // HTML, CSS
+    expect(checkboxes[4].getAttribute('aria-checked')).toBe('false'); // JavaScript
+    expect(checkboxes[5].getAttribute('aria-checked')).toBe('true'); // Python
+  });
 });

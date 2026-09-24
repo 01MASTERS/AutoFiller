@@ -223,25 +223,68 @@ export function resolveUniversalLabel(
   }
 
   // 6. Container heading or label element (Google Forms, SmartRecruiters, Workday, Greenhouse, Lever)
-  if (container) {
-    const candidateSelectors = [
-      '[role="heading"]',
-      'h1, h2, h3, h4, h5, h6',
-      'label',
-      '[data-automation-id*="label"]',
-      '[data-automation-id*="Label"]',
-      '.field-label',
-      '.question-label',
-      '.label-text',
-      '.spl-form-field__label',
-      '.c-form-field__label',
-      '.M7eMe',
-      '.freebirdFormviewerViewItemsItemItemTitle',
-    ];
+  const searchContainers = [container, controlEl].filter(
+    (el, idx, arr): el is Element => Boolean(el) && arr.indexOf(el) === idx,
+  );
+  const candidateSelectors = [
+    '.M7eMe',
+    '.freebirdFormviewerViewItemsItemItemTitle',
+    '[role="heading"]',
+    'h1, h2, h3, h4, h5, h6',
+    '.exportLabel',
+    '[data-automation-id*="label"]',
+    '[data-automation-id*="Label"]',
+    '.field-label',
+    '.question-label',
+    '.label-text',
+    '.spl-form-field__label',
+    '.c-form-field__label',
+    'label',
+  ];
+  for (const c of searchContainers) {
     for (const sel of candidateSelectors) {
-      const headingEl = container.querySelector(sel);
-      if (headingEl && headingEl !== controlEl && !controlEl.contains(headingEl)) {
-        const txt = sanitizeLabelText(getElementTextExcludingInputs(headingEl));
+      const headingEl = c.querySelector(sel);
+      if (headingEl && headingEl !== controlEl) {
+        // If controlEl is a leaf input, it shouldn't contain its own heading
+        const isLeafInput = /^(input|textarea|select)$/i.test(controlEl.tagName);
+        if (!isLeafInput || !controlEl.contains(headingEl)) {
+          const txt = sanitizeLabelText(getElementTextExcludingInputs(headingEl));
+          if (txt && !isGenericSublabel(txt)) {
+            return { label: txt, ariaLabel, placeholder, required: isRequired };
+          }
+        }
+      }
+    }
+  }
+
+  // 7. Container aria-labelledby / aria-label
+  if (container) {
+    const containerLabelledBy = container.getAttribute('aria-labelledby');
+    if (containerLabelledBy) {
+      const ids = containerLabelledBy.split(/\s+/).filter(Boolean);
+      const textParts: string[] = [];
+      const rootNode = container.getRootNode();
+      for (const id of ids) {
+        try {
+          let refEl: Element | null = null;
+          if (rootNode && 'getElementById' in rootNode && typeof (rootNode as Document).getElementById === 'function') {
+            refEl = (rootNode as Document).getElementById(id);
+          } else if (rootNode && 'querySelector' in rootNode && typeof (rootNode as ShadowRoot).querySelector === 'function') {
+            refEl = (rootNode as ShadowRoot).querySelector(`#${escapeCss(id)}`);
+          }
+          if (!refEl) {
+            refEl = doc.getElementById(id);
+          }
+          if (refEl) {
+            const t = sanitizeLabelText(getElementTextExcludingInputs(refEl));
+            if (t) textParts.push(t);
+          }
+        } catch {
+          // Ignore lookup error
+        }
+      }
+      if (textParts.length > 0) {
+        const txt = sanitizeLabelText(textParts.join(' '));
         if (txt && !isGenericSublabel(txt)) {
           return { label: txt, ariaLabel, placeholder, required: isRequired };
         }
@@ -249,7 +292,6 @@ export function resolveUniversalLabel(
     }
   }
 
-  // 7. Container aria-labelledby / aria-label
   if (containerAriaLabel) {
     const txt = sanitizeLabelText(containerAriaLabel);
     if (txt && !isGenericSublabel(txt)) {

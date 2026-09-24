@@ -31,7 +31,34 @@ export function scanRadioGroups(
   // Also discover question containers or fieldsets containing radio buttons
   questionContainers.forEach((container) => {
     if (container.getAttribute('role') === 'radiogroup') return;
-    if (container.querySelector('.form-group, .form-row, .field, [role="radiogroup"], [role="listitem"]')) return;
+    // In Google Forms, internal option wrappers or individual choice listitems inside .QrToBd
+    // must never be treated as question containers.
+    const parentQuestion = container.closest('.QrToBd, .freebirdFormviewerViewItemsItemItem');
+    if (parentQuestion && container !== parentQuestion) {
+      const isExplicitGroup = container.getAttribute('role') === 'group';
+      const containerRoots = getAllDOMRoots(container);
+      const innerRadios = querySelectorAllAcrossRoots(
+        containerRoots,
+        '[role="radio"], input[type="radio"], spl-radio',
+      ).filter((r) => !isElementHidden(r));
+      if (!isExplicitGroup || innerRadios.length <= 1) {
+        return;
+      }
+    }
+
+    const childContainers = container.querySelectorAll(
+      '.form-group, .form-row, .field, [role="radiogroup"], fieldset, spl-form-field',
+    );
+    const hasChildRadioGroup = Array.from(childContainers).some((child) => {
+      if (child === container) return false;
+      const childRadios = querySelectorAllAcrossRoots(
+        getAllDOMRoots(child),
+        '[role="radio"], input[type="radio"], spl-radio',
+      ).filter((r) => !isElementHidden(r));
+      return childRadios.length > 1;
+    });
+    if (hasChildRadioGroup) return;
+
     const containerRoots = getAllDOMRoots(container);
     const radios = querySelectorAllAcrossRoots(containerRoots, '[role="radio"], input[type="radio"], spl-radio');
     if (radios.length > 0) {
@@ -86,8 +113,14 @@ export function scanRadioGroups(
     container.setAttribute('data-autofiller-id', fieldId);
 
     const questionContainer =
-      deepClosest(container, '[role="listitem"], .freebirdFormviewerViewItemsItemItem, .QrToBd, fieldset, spl-form-field') ||
-      container;
+      container.matches('.QrToBd, .freebirdFormviewerViewItemsItemItem, fieldset, spl-form-field')
+        ? container
+        : (container.parentElement &&
+            deepClosest(
+              container.parentElement,
+              '.QrToBd, .freebirdFormviewerViewItemsItemItem, fieldset, [role="listitem"], [role="radiogroup"], spl-form-field',
+            )) ||
+          container;
 
     // Mark companion "Other" text inputs inside this question as processed
     const otherInputs = querySelectorAllAcrossRoots(

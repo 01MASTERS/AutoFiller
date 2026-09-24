@@ -26,8 +26,38 @@ export function scanCheckboxGroups(
 
   const checkboxGroupsFound = new Set<Element>();
   questionContainers.forEach((container) => {
-    // If container contains nested child question containers, let the leaf containers be the unit
-    if (container.querySelector('.form-group, .form-row, .field, [role="group"], [role="listitem"]')) return;
+    // In Google Forms, internal option wrappers or individual choice listitems inside .QrToBd
+    // must never be treated as question containers.
+    const parentQuestion = container.closest('.QrToBd, .freebirdFormviewerViewItemsItemItem');
+    if (parentQuestion && container !== parentQuestion) {
+      const isExplicitGroup = container.getAttribute('role') === 'group';
+      const containerRoots = getAllDOMRoots(container);
+      const innerCheckboxes = querySelectorAllAcrossRoots(
+        containerRoots,
+        '[role="checkbox"], input[type="checkbox"], spl-checkbox',
+      ).filter((c) => !isElementHidden(c));
+      // Only keep an element inside a Google Form question card if it is an explicit multi-checkbox group (e.g. grid row)
+      if (!isExplicitGroup || innerCheckboxes.length <= 1) {
+        return;
+      }
+    }
+
+    // Only prune container if it contains child question containers that each have multiple checkboxes
+    // (i.e. separate multi-checkbox subquestions inside a broad form wrapper).
+    // Never prune for option-level listitems or single-checkbox wrappers!
+    const childContainers = container.querySelectorAll(
+      '.form-group, .form-row, .field, [role="group"], fieldset, spl-form-field',
+    );
+    const hasChildCheckboxGroup = Array.from(childContainers).some((child) => {
+      if (child === container) return false;
+      const childCheckboxes = querySelectorAllAcrossRoots(
+        getAllDOMRoots(child),
+        '[role="checkbox"], input[type="checkbox"], spl-checkbox',
+      ).filter((c) => !isElementHidden(c));
+      return childCheckboxes.length > 1;
+    });
+    if (hasChildCheckboxGroup) return;
+
     const containerRoots = getAllDOMRoots(container);
     const checkboxes = querySelectorAllAcrossRoots(containerRoots, '[role="checkbox"], input[type="checkbox"], spl-checkbox');
     if (checkboxes.length > 0) {
@@ -69,8 +99,14 @@ export function scanCheckboxGroups(
     container.setAttribute('data-autofiller-id', fieldId);
 
     const questionContainer =
-      deepClosest(container, '[role="listitem"], .freebirdFormviewerViewItemsItemItem, .QrToBd, fieldset, spl-form-field') ||
-      container;
+      container.matches('.QrToBd, .freebirdFormviewerViewItemsItemItem, fieldset, spl-form-field')
+        ? container
+        : (container.parentElement &&
+            deepClosest(
+              container.parentElement,
+              '.QrToBd, .freebirdFormviewerViewItemsItemItem, fieldset, [role="listitem"], [role="group"], spl-form-field',
+            )) ||
+          container;
 
     // Mark companion "Other" text inputs inside this question as processed
     const otherInputs = querySelectorAllAcrossRoots(
