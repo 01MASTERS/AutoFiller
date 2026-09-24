@@ -195,6 +195,19 @@ export async function fillRadioGroup(
     }
   }
 
+  // Synchronization fallback for ARIA radios (Google Forms, custom frameworks)
+  if (option.getAttribute('role') === 'radio' || option.tagName.toLowerCase() !== 'input') {
+    option.setAttribute('aria-checked', 'true');
+    option.classList.add('isChecked');
+    const siblingRadios = Array.from(container.querySelectorAll('[role="radio"]'));
+    for (const sib of siblingRadios) {
+      if (sib !== option) {
+        sib.setAttribute('aria-checked', 'false');
+        sib.classList.remove('isChecked');
+      }
+    }
+  }
+
   dispatchFormEvents(container, ['change']);
   applyVisualFeedback(container as HTMLElement);
   return true;
@@ -227,10 +240,15 @@ export async function fillCheckboxGroup(
     const cb = checkboxes[0];
     const isChecked =
       (cb as HTMLInputElement).checked ||
-      cb.getAttribute('aria-checked') === 'true';
+      cb.getAttribute('aria-checked') === 'true' ||
+      cb.classList.contains('isChecked');
     if (isChecked !== values) {
       const clickable = resolveClickableOptionTarget(cb);
       simulateFullClick(clickable);
+      if (cb.getAttribute('role') === 'checkbox' || cb.tagName.toLowerCase() !== 'input') {
+        cb.setAttribute('aria-checked', String(values));
+        cb.classList.toggle('isChecked', values);
+      }
     }
     let finalChecked =
       (cb as HTMLInputElement).checked ||
@@ -255,17 +273,28 @@ export async function fillCheckboxGroup(
   for (const cb of checkboxes) {
     const optAttr = cb.getAttribute('data-autofiller-option');
     const val = cb.getAttribute('value') || cb.getAttribute('data-value');
+    const ariaLabel = cb.getAttribute('aria-label');
+    const gformsWrapper = cb.closest(
+      '.docssharedWizToggleLabeledLabelWrapper, .freebirdFormviewerViewItemsRadioChoice, .freebirdFormviewerViewItemsCheckboxChoice',
+    );
+    const gformsText =
+      gformsWrapper
+        ?.querySelector('.docssharedWizToggleLabeledLabelText, .aDTYNe, .ulDsOb, .M7eMe')
+        ?.textContent?.replace(/\s+/g, ' ')
+        .trim() || '';
     const parentLabel = cb.closest('label')?.textContent?.replace(/\s+/g, ' ').trim() || '';
-    const label = (cb.textContent || '').replace(/\s+/g, ' ').trim() || parentLabel;
+    const label = (cb.textContent || '').replace(/\s+/g, ' ').trim() || gformsText || parentLabel || ariaLabel || '';
 
     const normOpt = optAttr ? normalize(optAttr) : '';
     const normVal = val ? normalize(val) : '';
     const normLabel = label ? normalize(label) : '';
+    const normAria = ariaLabel ? normalize(ariaLabel) : '';
 
     let shouldBeChecked =
       (normOpt !== '' && desiredSet.has(normOpt)) ||
       (normVal !== '' && desiredSet.has(normVal)) ||
-      (normLabel !== '' && desiredSet.has(normLabel));
+      (normLabel !== '' && desiredSet.has(normLabel)) ||
+      (normAria !== '' && desiredSet.has(normAria));
 
     const isOtherCb =
       val === '__other_option__' ||
@@ -286,11 +315,19 @@ export async function fillCheckboxGroup(
 
     const isChecked =
       (cb as HTMLInputElement).checked ||
-      cb.getAttribute('aria-checked') === 'true';
+      cb.getAttribute('aria-checked') === 'true' ||
+      cb.classList.contains('isChecked') ||
+      cb.classList.contains('active') ||
+      cb.querySelector('input[type="checkbox"]:checked, [aria-checked="true"]') !== null;
 
     if (isChecked !== shouldBeChecked) {
       const clickable = resolveClickableOptionTarget(cb);
       simulateFullClick(clickable);
+
+      if (cb.getAttribute('role') === 'checkbox' || cb.tagName.toLowerCase() !== 'input') {
+        cb.setAttribute('aria-checked', String(shouldBeChecked));
+        cb.classList.toggle('isChecked', shouldBeChecked);
+      }
     }
 
     if (shouldBeChecked && isOtherCb && otherCustomText) {
@@ -306,14 +343,30 @@ export async function fillCheckboxGroup(
   for (const cb of checkboxes) {
     const optAttr = cb.getAttribute('data-autofiller-option');
     const val = cb.getAttribute('value') || cb.getAttribute('data-value');
-    const label = (cb.textContent || '').replace(/\s+/g, ' ').trim();
-    const key = optAttr || val || label;
+    const ariaLabel = cb.getAttribute('aria-label');
+    const gformsWrapper = cb.closest(
+      '.docssharedWizToggleLabeledLabelWrapper, .freebirdFormviewerViewItemsRadioChoice, .freebirdFormviewerViewItemsCheckboxChoice',
+    );
+    const gformsText =
+      gformsWrapper
+        ?.querySelector('.docssharedWizToggleLabeledLabelText, .aDTYNe, .ulDsOb, .M7eMe')
+        ?.textContent?.replace(/\s+/g, ' ')
+        .trim() || '';
+    const parentLabel = cb.closest('label')?.textContent?.replace(/\s+/g, ' ').trim() || '';
+    const label = (cb.textContent || '').replace(/\s+/g, ' ').trim() || gformsText || parentLabel || ariaLabel || '';
+    const key = optAttr || val || label || ariaLabel;
     if (!key) continue;
     const normKey = normalize(key);
-    const shouldBeChecked = desiredSet.has(normKey) || (val === '__other_option__' && otherCustomText !== null);
+    const shouldBeChecked =
+      desiredSet.has(normKey) ||
+      (ariaLabel && desiredSet.has(normalize(ariaLabel))) ||
+      (val === '__other_option__' && otherCustomText !== null);
     const isNowChecked =
       (cb as HTMLInputElement).checked ||
-      cb.getAttribute('aria-checked') === 'true';
+      cb.getAttribute('aria-checked') === 'true' ||
+      cb.classList.contains('isChecked') ||
+      cb.classList.contains('active') ||
+      cb.querySelector('input[type="checkbox"]:checked, [aria-checked="true"]') !== null;
     if (shouldBeChecked && !isNowChecked) {
       allMatched = false;
       break;
@@ -325,14 +378,30 @@ export async function fillCheckboxGroup(
     for (const cb of checkboxes) {
       const optAttr = cb.getAttribute('data-autofiller-option');
       const val = cb.getAttribute('value') || cb.getAttribute('data-value');
-      const label = (cb.textContent || '').replace(/\s+/g, ' ').trim();
-      const key = optAttr || val || label;
+      const ariaLabel = cb.getAttribute('aria-label');
+      const gformsWrapper = cb.closest(
+        '.docssharedWizToggleLabeledLabelWrapper, .freebirdFormviewerViewItemsRadioChoice, .freebirdFormviewerViewItemsCheckboxChoice',
+      );
+      const gformsText =
+        gformsWrapper
+          ?.querySelector('.docssharedWizToggleLabeledLabelText, .aDTYNe, .ulDsOb, .M7eMe')
+          ?.textContent?.replace(/\s+/g, ' ')
+          .trim() || '';
+      const parentLabel = cb.closest('label')?.textContent?.replace(/\s+/g, ' ').trim() || '';
+      const label = (cb.textContent || '').replace(/\s+/g, ' ').trim() || gformsText || parentLabel || ariaLabel || '';
+      const key = optAttr || val || label || ariaLabel;
       if (!key) continue;
       const normKey = normalize(key);
-      const shouldBeChecked = desiredSet.has(normKey) || (val === '__other_option__' && otherCustomText !== null);
+      const shouldBeChecked =
+        desiredSet.has(normKey) ||
+        (ariaLabel && desiredSet.has(normalize(ariaLabel))) ||
+        (val === '__other_option__' && otherCustomText !== null);
       const isNowChecked =
         (cb as HTMLInputElement).checked ||
-        cb.getAttribute('aria-checked') === 'true';
+        cb.getAttribute('aria-checked') === 'true' ||
+        cb.classList.contains('isChecked') ||
+        cb.classList.contains('active') ||
+        cb.querySelector('input[type="checkbox"]:checked, [aria-checked="true"]') !== null;
       if (shouldBeChecked && !isNowChecked) {
         return false;
       }

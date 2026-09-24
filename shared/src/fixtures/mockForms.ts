@@ -439,8 +439,18 @@ export const mockGoogleFormHtml = `<!DOCTYPE html>
     h1 { color: #1e293b; font-size: 20px; margin-bottom: 20px; }
     .item { margin-bottom: 20px; }
     .heading { font-weight: 600; font-size: 14px; margin-bottom: 8px; color: #334155; }
-    input, textarea { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; }
+    input[type="text"], input[type="email"], input[type="tel"], textarea { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; }
     .required-star { color: #ef4444; }
+    .docssharedWizToggleLabeledLabelWrapper { display: flex; align-items: center; margin-bottom: 10px; cursor: pointer; }
+    [role="checkbox"], [role="radio"] { width: 20px; height: 20px; border: 2px solid #5f6368; border-radius: 3px; margin-right: 10px; display: inline-flex; align-items: center; justify-content: center; box-sizing: border-box; flex-shrink: 0; }
+    [role="radio"] { border-radius: 50%; }
+    [role="checkbox"][aria-checked="true"], [role="checkbox"].isChecked { background: #1a73e8; border-color: #1a73e8; }
+    [role="checkbox"][aria-checked="true"]::after, [role="checkbox"].isChecked::after { content: "✓"; color: white; font-size: 14px; font-weight: bold; }
+    [role="radio"][aria-checked="true"], [role="radio"].isChecked { border-color: #1a73e8; background: radial-gradient(circle, #1a73e8 45%, transparent 50%); }
+    .M7eMe { font-size: 14px; color: #202124; }
+    .grid-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    .grid-table th, .grid-table td { padding: 8px 12px; text-align: center; border-bottom: 1px solid #e2e8f0; }
+    .grid-table th:first-child, .grid-table td:first-child { text-align: left; }
   </style>
 </head>
 <body>
@@ -467,11 +477,182 @@ export const mockGoogleFormHtml = `<!DOCTYPE html>
         <input type="tel" name="entry.105" aria-label="Alternate Phone Number" placeholder="(555) 000-0000" />
       </div>
 
+      <!-- Tick Options: Google Forms Multi-Select Checkboxes -->
+      <div role="listitem" class="item QrToBd">
+        <div role="heading" class="heading">Technical Skills (Tick all that apply)</div>
+        <div role="group" aria-label="Technical Skills (Tick all that apply)">
+          <div class="eCGGMc">
+            <label class="docssharedWizToggleLabeledLabelWrapper">
+              <div class="uHMk8b">
+                <div role="checkbox" class="uHMk8b" aria-checked="false" aria-label="JavaScript" tabindex="0"></div>
+              </div>
+              <div class="aDTYNe">
+                <span class="M7eMe">JavaScript</span>
+              </div>
+            </label>
+          </div>
+          <div class="eCGGMc">
+            <label class="docssharedWizToggleLabeledLabelWrapper">
+              <div class="uHMk8b">
+                <div role="checkbox" class="uHMk8b" aria-checked="false" aria-label="TypeScript" tabindex="0"></div>
+              </div>
+              <div class="aDTYNe">
+                <span class="M7eMe">TypeScript</span>
+              </div>
+            </label>
+          </div>
+          <div class="eCGGMc">
+            <label class="docssharedWizToggleLabeledLabelWrapper">
+              <div class="uHMk8b">
+                <div role="checkbox" class="uHMk8b" aria-checked="false" aria-label="Python" tabindex="0"></div>
+              </div>
+              <div class="aDTYNe">
+                <span class="M7eMe">Python</span>
+              </div>
+            </label>
+          </div>
+          <div class="eCGGMc">
+            <label class="docssharedWizToggleLabeledLabelWrapper">
+              <div class="uHMk8b">
+                <div role="checkbox" class="uHMk8b" aria-checked="false" aria-label="Docker" tabindex="0"></div>
+              </div>
+              <div class="aDTYNe">
+                <span class="M7eMe">Docker</span>
+              </div>
+            </label>
+          </div>
+          <div class="eCGGMc">
+            <label class="docssharedWizToggleLabeledLabelWrapper">
+              <div class="uHMk8b">
+                <div role="checkbox" class="uHMk8b" aria-checked="false" aria-label="Other:" data-value="__other_option__" tabindex="0"></div>
+              </div>
+              <div class="aDTYNe">
+                <span class="M7eMe">Other:</span>
+              </div>
+            </label>
+            <input type="text" class="Hvn9fb" aria-label="Other response" placeholder="Custom skill" style="margin-left: 30px; width: calc(100% - 30px);" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Tick Options: Google Forms Single-Choice Radios -->
+      <div role="listitem" class="item QrToBd">
+        <div role="heading" class="heading">Experience Level</div>
+        <div role="radiogroup" aria-label="Experience Level">
+          <div class="eCGGMc">
+            <label class="docssharedWizToggleLabeledLabelWrapper">
+              <div class="uHMk8b">
+                <div role="radio" class="uHMk8b" aria-checked="false" aria-label="Entry Level (0-2 years)" data-value="Entry Level" tabindex="0"></div>
+              </div>
+              <div class="aDTYNe">
+                <span class="M7eMe">Entry Level (0-2 years)</span>
+              </div>
+            </label>
+          </div>
+          <div class="eCGGMc">
+            <label class="docssharedWizToggleLabeledLabelWrapper">
+              <div class="uHMk8b">
+                <div role="radio" class="uHMk8b" aria-checked="false" aria-label="Mid Level (3-5 years)" data-value="Mid Level" tabindex="0"></div>
+              </div>
+              <div class="aDTYNe">
+                <span class="M7eMe">Mid Level (3-5 years)</span>
+              </div>
+            </label>
+          </div>
+          <div class="eCGGMc">
+            <label class="docssharedWizToggleLabeledLabelWrapper">
+              <div class="uHMk8b">
+                <div role="radio" class="uHMk8b" aria-checked="false" aria-label="Senior (5+ years)" data-value="Senior" tabindex="0"></div>
+              </div>
+              <div class="aDTYNe">
+                <span class="M7eMe">Senior (5+ years)</span>
+              </div>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tick Options: Google Forms Tick Box Grid -->
+      <div role="listitem" class="item QrToBd">
+        <div role="heading" class="heading">Domain Proficiency (Tick Box Grid)</div>
+        <table class="grid-table">
+          <thead>
+            <tr>
+              <th>Domain</th>
+              <th>Beginner</th>
+              <th>Proficient</th>
+              <th>Expert</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Frontend</td>
+              <td>
+                <div role="group" aria-label="Frontend Proficiency">
+                  <div role="checkbox" aria-checked="false" aria-label="Beginner" data-value="Beginner"></div>
+                </div>
+              </td>
+              <td>
+                <div role="group" aria-label="Frontend Proficiency">
+                  <div role="checkbox" aria-checked="false" aria-label="Proficient" data-value="Proficient"></div>
+                </div>
+              </td>
+              <td>
+                <div role="group" aria-label="Frontend Proficiency">
+                  <div role="checkbox" aria-checked="false" aria-label="Expert" data-value="Expert"></div>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td>Backend</td>
+              <td>
+                <div role="group" aria-label="Backend Proficiency">
+                  <div role="checkbox" aria-checked="false" aria-label="Beginner" data-value="Beginner"></div>
+                </div>
+              </td>
+              <td>
+                <div role="group" aria-label="Backend Proficiency">
+                  <div role="checkbox" aria-checked="false" aria-label="Proficient" data-value="Proficient"></div>
+                </div>
+              </td>
+              <td>
+                <div role="group" aria-label="Backend Proficiency">
+                  <div role="checkbox" aria-checked="false" aria-label="Expert" data-value="Expert"></div>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
       <div role="listitem" class="item">
         <div role="heading" class="heading">Short Bio</div>
         <textarea name="entry.104" aria-label="Short Bio" placeholder="Tell us about yourself..."></textarea>
       </div>
     </form>
   </div>
+
+  <script>
+    // Live toggle simulation for interactive manual browser testing
+    document.querySelectorAll('[role="checkbox"]').forEach(cb => {
+      cb.addEventListener('click', (e) => {
+        const isChecked = cb.getAttribute('aria-checked') === 'true';
+        cb.setAttribute('aria-checked', String(!isChecked));
+        cb.classList.toggle('isChecked', !isChecked);
+      });
+    });
+    document.querySelectorAll('[role="radiogroup"]').forEach(rg => {
+      rg.querySelectorAll('[role="radio"]').forEach(r => {
+        r.addEventListener('click', () => {
+          rg.querySelectorAll('[role="radio"]').forEach(sibling => {
+            sibling.setAttribute('aria-checked', 'false');
+            sibling.classList.remove('isChecked');
+          });
+          r.setAttribute('aria-checked', 'true');
+          r.classList.add('isChecked');
+        });
+      });
+    });
+  </script>
 </body>
 </html>`;

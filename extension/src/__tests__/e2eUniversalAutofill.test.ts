@@ -331,7 +331,17 @@ describe('Multi-Platform E2E Form Autofill Pipeline', () => {
       document.documentElement.innerHTML = mockGoogleFormHtml;
 
       const fields = extractFormFields(document);
-      expect(fields.length).toBe(5);
+      expect(fields.length).toBeGreaterThanOrEqual(7);
+
+      const skillsField = fields.find((f) => f.label.includes('Technical Skills'));
+      const expField = fields.find((f) => f.label.includes('Experience Level'));
+
+      expect(skillsField).toBeDefined();
+      expect(skillsField?.controlType).toBe('checkbox');
+      expect(skillsField?.selectionMode).toBe('multiple');
+
+      expect(expField).toBeDefined();
+      expect(expField?.controlType).toBe('radio');
 
       const mappings: Record<string, FieldMappingValue> = {
         'entry.101': 'Jane Doe',
@@ -339,15 +349,27 @@ describe('Multi-Platform E2E Form Autofill Pipeline', () => {
         'entry.103': '555-123-4567',
         'entry.105': '555-987-6543',
         'entry.104': 'Hello from Google Forms test!',
+        [skillsField!.id]: ['JavaScript', 'TypeScript'],
+        [expField!.id]: 'Senior',
       };
 
       const fillResult = await fillFormFields(mappings, fields, document);
       expect(fillResult.status).toBe('success');
-      expect(fillResult.filledCount).toBe(5);
+      expect(fillResult.filledCount).toBe(7);
 
       expect((document.querySelector('input[name="entry.101"]') as HTMLInputElement).value).toBe('Jane Doe');
       expect((document.querySelector('input[name="entry.102"]') as HTMLInputElement).value).toBe('jane.doe@example.com');
       expect((document.querySelector('textarea[name="entry.104"]') as HTMLTextAreaElement).value).toBe('Hello from Google Forms test!');
+
+      const jsCb = document.querySelector('[role="checkbox"][aria-label="JavaScript"]');
+      const tsCb = document.querySelector('[role="checkbox"][aria-label="TypeScript"]');
+      const pyCb = document.querySelector('[role="checkbox"][aria-label="Python"]');
+      const seniorRadio = document.querySelector('[role="radio"][data-value="Senior"]');
+
+      expect(jsCb?.getAttribute('aria-checked')).toBe('true');
+      expect(tsCb?.getAttribute('aria-checked')).toBe('true');
+      expect(pyCb?.getAttribute('aria-checked')).toBe('false');
+      expect(seniorRadio?.getAttribute('aria-checked')).toBe('true');
     });
   });
 
