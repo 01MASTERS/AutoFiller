@@ -12,3 +12,5 @@ export { scanFileInputs } from './controls/file.js';
 export { scanTextInputs } from './controls/text.js';
 export * from './shadowDom.js';
 export * from './adapters/index.js';
+export * from './dynamicOptionSettler.js';
+

@@ -9,6 +9,7 @@ import {
   mockWorkdayFormHtml,
   mockCareerFormHtml,
   mockGoogleFormHtml,
+  mockDynamicOptionsFormHtml,
   ProfileSummary,
   ProfilesListResponse,
   SwitchProfileResponse,
@@ -1329,6 +1330,11 @@ apiRouter.get('/test-forms/career', (req: Request, res: Response) => {
   res.send(mockCareerFormHtml);
 });
 
+apiRouter.get('/test-forms/dynamic-options', (req: Request, res: Response) => {
+  res.setHeader('Content-Type', 'text/html');
+  res.send(mockDynamicOptionsFormHtml);
+});
+
 apiRouter.get(['/test-form', '/test-forms/google-forms'], (req: Request, res: Response) => {
   res.setHeader('Content-Type', 'text/html');
   res.send(mockGoogleFormHtml);
@@ -1355,6 +1361,7 @@ apiRouter.get('/test-forms', (req: Request, res: Response) => {
     .badge-wd { background: #1e3a8a; color: #60a5fa; }
     .badge-career { background: #581c87; color: #c084fc; }
     .badge-gf { background: #7c2d12; color: #fb923c; }
+    .badge-dyn { background: #0c4a6e; color: #38bdf8; }
     h3 { margin: 0 0 8px 0; font-size: 18px; color: #f1f5f9; }
     p.desc { font-size: 14px; color: #94a3b8; margin: 0 0 16px 0; line-height: 1.5; }
     .btn { background: #2563eb; color: #fff; padding: 8px 16px; border-radius: 6px; font-size: 14px; font-weight: 600; text-align: center; margin-top: auto; }
@@ -1400,6 +1407,15 @@ apiRouter.get('/test-forms', (req: Request, res: Response) => {
           <p class="desc">Standard HTML5 career form with fieldsets, legends, selects, radio groups, checkboxes, and textarea bio.</p>
         </div>
         <div class="btn">Open Career Form →</div>
+      </a>
+
+      <a href="/test-forms/dynamic-options" class="card" target="_blank">
+        <div>
+          <span class="badge badge-dyn">Dynamic / Async</span>
+          <h3>Dynamic Backend Options</h3>
+          <p class="desc">Asynchronous remote option loading, delayed country calling codes, cascading Country & State selects, and search comboboxes.</p>
+        </div>
+        <div class="btn">Open Dynamic Options Form →</div>
       </a>
 
       <a href="/test-form" class="card" target="_blank">

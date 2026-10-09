@@ -32,7 +32,16 @@ export type PlatformFieldType =
   | 'demographic'
   | 'resume_upload'
   | 'social_link'
+  | 'source'
   | 'other';
+
+export type OptionSource = 'static' | 'dynamic' | 'cascading';
+
+export interface DynamicOptionState {
+  isAsync?: boolean;
+  requiresInputToSearch?: boolean;
+  endpointUrl?: string;
+}
 
 export interface FieldMetadata {
   id: string;
@@ -49,6 +58,10 @@ export interface FieldMetadata {
   platformFieldType?: PlatformFieldType;
   section?: string;
   frameId?: number;
+  optionSource?: OptionSource;
+  parentFieldId?: string;
+  optionsLoaded?: boolean;
+  dynamicState?: DynamicOptionState;
 }
 
 export interface AutofillRequest {

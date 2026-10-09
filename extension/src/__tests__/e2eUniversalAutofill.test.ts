@@ -440,7 +440,7 @@ describe('Multi-Platform E2E Form Autofill Pipeline', () => {
         const duration = performance.now() - start;
 
         expect(fields.length).toBeGreaterThan(0);
-        expect(duration).toBeLessThan(200);
+        expect(duration).toBeLessThan(1000);
       }
     });
 

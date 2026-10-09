@@ -93,7 +93,61 @@ export function extractFormFields(
     return idxA - idxB;
   });
 
+  // STAGE 8: Link Cascading Field Dependencies (e.g. Country -> State)
+  linkCascadingFields(fields);
+
   return fields;
+}
+
+/**
+ * Post-scan pass to detect and establish cascading parent-child dependencies
+ * between fields (e.g. Country -> State/Province, Region -> City).
+ */
+export function linkCascadingFields(fields: FieldMetadata[]): void {
+  const PAIRINGS = [
+    {
+      parentRegex: /\b(country|nation)\b/i,
+      childRegex: /\b(state|province|region|territory)\b/i,
+    },
+    {
+      parentRegex: /\b(state|province|region)\b/i,
+      childRegex: /\b(city|town|municipality|county)\b/i,
+    },
+    {
+      parentRegex: /\b(department|division)\b/i,
+      childRegex: /\b(sub-department|team|role|function)\b/i,
+    },
+    {
+      parentRegex: /\b(category|industry)\b/i,
+      childRegex: /\b(sub-category|specialization)\b/i,
+    },
+  ];
+
+  for (const pair of PAIRINGS) {
+    const parentField = fields.find((f) => {
+      const text = `${f.label} ${f.name || ''} ${f.id}`;
+      return pair.parentRegex.test(text);
+    });
+
+    if (!parentField) continue;
+
+    const childField = fields.find((f) => {
+      if (f.id === parentField.id) return false;
+      const text = `${f.label} ${f.name || ''} ${f.id}`;
+      return pair.childRegex.test(text);
+    });
+
+    if (!childField) continue;
+
+    if (
+      childField.controlType === 'dropdown' ||
+      childField.controlType === 'combobox' ||
+      childField.controlType === 'radio'
+    ) {
+      childField.optionSource = 'cascading';
+      childField.parentFieldId = parentField.id;
+    }
+  }
 }
 
 /**
@@ -148,7 +202,7 @@ export function findFieldElement(
       if (field.controlType === 'radio' && (el.getAttribute('role') === 'radio' || (el as HTMLInputElement).type === 'radio' || el.tagName.toLowerCase() === 'spl-radio')) return true;
       if (field.controlType === 'checkbox' && (el.getAttribute('role') === 'checkbox' || (el as HTMLInputElement).type === 'checkbox' || el.tagName.toLowerCase() === 'spl-checkbox')) return true;
       if (field.controlType === 'dropdown' && (el.tagName.toLowerCase() === 'select' || el.getAttribute('role') === 'listbox' || el.tagName.toLowerCase() === 'spl-select')) return true;
-      if (field.controlType === 'combobox' && (el.getAttribute('role') === 'combobox' || el.getAttribute('aria-haspopup') === 'listbox')) return true;
+      if (field.controlType === 'combobox' && (el.getAttribute('role') === 'combobox' || el.getAttribute('role') === 'listbox' || el.getAttribute('aria-haspopup') === 'listbox' || el.getAttribute('aria-haspopup') === 'true' || el.hasAttribute('aria-haspopup') || el.matches('[data-automation-id*="prompt"], [data-automation-id*="select"]'))) return true;
       if (field.controlType === 'file' && (el as HTMLInputElement).type === 'file') return true;
       if (field.controlType === 'textarea' && el.tagName.toLowerCase() === 'textarea') return true;
       if (field.controlType === 'text' && el.tagName.toLowerCase() === 'input') return true;

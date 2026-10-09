@@ -1,7 +1,7 @@
 import { FieldMetadata, FieldControlType, FieldOption, SelectionMode } from '@autofiller/shared';
 import { isElementHidden } from '../utils.js';
 import { resolveAccessibleLabel, isRequiredField, generateUniqueFieldId } from '../accessibility.js';
-import { extractSelectOptions, extractAriaListboxOptions } from '../optionParser.js';
+import { extractSelectOptions, extractAriaListboxOptions, detectOptionSource } from '../optionParser.js';
 import {
   getAllDOMRoots,
   querySelectorAllAcrossRoots,
@@ -26,11 +26,36 @@ export function scanDropdowns(
 
   const dropdownAndComboboxEls = querySelectorAllAcrossRoots(
     roots,
-    'select, [role="listbox"], [role="combobox"], button[aria-haspopup="listbox"], [data-automation-id*="select"], [data-automation-id*="dropdown"], [data-automation-id*="prompt"], spl-select, [class*="spl-select"]',
+    'select, [role="listbox"], [role="combobox"], button[aria-haspopup], button[data-automation-id*="prompt"], button[data-automation-id*="select"], button[data-automation-id*="dropdown"], input[role="combobox"], input[data-automation-id*="prompt"], spl-select, [class*="spl-select"]',
   );
 
   dropdownAndComboboxEls.forEach((el) => {
     if (processedElements.has(el) || isElementHidden(el)) return;
+
+    // Reject non-interactive internal elements of prompt / select widgets:
+    // options, option text, pills, clear buttons, selection labels, selected item lists
+    if (
+      el.matches(
+        '[role="option"], [data-automation-id*="promptOption"], [data-automation-id*="pill"], [data-automation-id*="selectedItem"], [data-automation-id*="SelectionLabel"], [data-automation-id*="promptLabel"], [data-automation-id*="selected-value"], [data-automation-id*="selectedValue"], li, span, ul',
+      ) ||
+      el.closest(
+        '[role="option"], [data-automation-id*="promptOption"], [data-automation-id*="pill"], [data-automation-id*="selectedItemList"]',
+      )
+    ) {
+      return;
+    }
+
+    // Reject outer wrapper containers if an inner interactive control exists
+    const tagName = el.tagName.toLowerCase();
+    if (tagName !== 'select' && tagName !== 'button' && tagName !== 'input') {
+      const innerInteractive = el.querySelector(
+        'select, input[role="combobox"], input[data-automation-id*="prompt"], button[aria-haspopup], button[data-automation-id*="prompt"], button[data-automation-id*="select"], button[data-automation-id*="dropdown"]',
+      );
+      if (innerInteractive) {
+        return;
+      }
+    }
+
     processedElements.add(el);
 
     const shadowHost = getShadowHost(el);
@@ -39,6 +64,18 @@ export function scanDropdowns(
         el,
         '[role="listitem"], .freebirdFormviewerViewItemsItemItem, .QrToBd, fieldset, .form-group, .field, [data-automation-id*="formField"], [data-automation-id*="formItem"], .application-question, spl-form-field, [class*="spl-form-field"], .c-form-field, .form-field',
       ) || shadowHost || el.parentElement;
+
+    if (container) {
+      container
+        .querySelectorAll(
+          '[data-automation-id*="prompt"], [data-automation-id*="select"], [data-automation-id*="pill"], [data-automation-id*="selectedItem"]',
+        )
+        .forEach((companion) => {
+          if (companion !== el) {
+            processedElements.add(companion);
+          }
+        });
+    }
 
     const role = el.getAttribute('role');
     const isCombobox = role === 'combobox';
@@ -100,6 +137,8 @@ export function scanDropdowns(
       }
     }
 
+    const { optionSource, optionsLoaded, dynamicState } = detectOptionSource(el, options, container);
+
     fields.push({
       id: fieldId,
       name,
@@ -110,6 +149,9 @@ export function scanDropdowns(
       controlType,
       selectionMode,
       options,
+      optionSource,
+      optionsLoaded,
+      dynamicState,
       required: required || undefined,
     });
   });

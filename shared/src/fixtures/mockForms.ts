@@ -656,3 +656,186 @@ export const mockGoogleFormHtml = `<!DOCTYPE html>
   </script>
 </body>
 </html>`;
+
+export const mockDynamicOptionsFormHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>AutoFiller Dynamic & Backend Options Test Form</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0b0f19; color: #f1f5f9; padding: 40px 20px; margin: 0; }
+    .card { max-width: 680px; margin: auto; background: #131b2e; border: 1px solid #1e293b; border-radius: 12px; padding: 32px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+    h1 { font-size: 24px; color: #38bdf8; margin-top: 0; margin-bottom: 8px; }
+    p.lead { color: #94a3b8; font-size: 14px; margin-bottom: 24px; }
+    .field-group { margin-bottom: 20px; }
+    label { display: block; font-weight: 600; font-size: 13px; margin-bottom: 6px; color: #cbd5e1; }
+    input[type="text"], input[type="email"], select {
+      width: 100%; padding: 10px 12px; background: #0b0f19; border: 1px solid #334155; border-radius: 6px; font-size: 14px; color: #fff; box-sizing: border-box; outline: none; transition: border-color 0.15s;
+    }
+    input:focus, select:focus { border-color: #38bdf8; }
+    select:disabled { opacity: 0.5; cursor: not-allowed; }
+    .badge { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 4px; background: #1e293b; color: #94a3b8; margin-left: 6px; font-weight: normal; }
+    .status-msg { font-size: 12px; color: #38bdf8; margin-top: 4px; }
+    .combobox-container { position: relative; }
+    .combobox-input { width: 100%; padding: 10px 12px; background: #0b0f19; border: 1px solid #334155; border-radius: 6px; font-size: 14px; color: #fff; box-sizing: border-box; }
+    .combobox-listbox { position: absolute; top: 100%; left: 0; right: 0; background: #1e293b; border: 1px solid #334155; border-radius: 6px; margin-top: 4px; z-index: 10; max-height: 200px; overflow-y: auto; display: none; }
+    .combobox-option { padding: 8px 12px; cursor: pointer; font-size: 13px; color: #e2e8f0; }
+    .combobox-option:hover, .combobox-option.active { background: #2563eb; color: #fff; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Dynamic & Backend-Fetched Options QA</h1>
+    <p class="lead">Simulates asynchronous remote API fetches, delayed option population, cascading Country & State relationships, and remote combobox search.</p>
+
+    <form id="dynamic-form">
+      <div class="field-group">
+        <label for="fullName">Full Name</label>
+        <input type="text" id="fullName" name="fullName" placeholder="Jane Doe" required />
+      </div>
+
+      <div class="field-group">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" placeholder="jane@example.com" required />
+      </div>
+
+      <!-- 1. Asynchronously Loaded Country Code -->
+      <div class="field-group">
+        <label for="countryCode">Phone Country Code <span class="badge">Async API</span></label>
+        <select id="countryCode" name="countryCode" aria-busy="true">
+          <option value="" disabled selected>Loading country codes...</option>
+        </select>
+        <div id="country-code-status" class="status-msg">Fetching from /api/country-codes...</div>
+      </div>
+
+      <!-- 2. Parent Country Dropdown -->
+      <div class="field-group">
+        <label for="country">Country <span class="badge">Trigger Parent</span></label>
+        <select id="country" name="country">
+          <option value="">-- Select Country --</option>
+          <option value="US">United States</option>
+          <option value="CA">Canada</option>
+        </select>
+      </div>
+
+      <!-- 3. Cascading Dependent State Dropdown -->
+      <div class="field-group">
+        <label for="state">State / Province <span class="badge">Cascading Child</span></label>
+        <select id="state" name="state" disabled aria-disabled="true">
+          <option value="" disabled selected>Select country first...</option>
+        </select>
+        <div id="state-status" class="status-msg" style="display: none;">Loading states...</div>
+      </div>
+
+      <!-- 4. Searchable Combobox -->
+      <div class="field-group">
+        <label id="lbl-role">Primary Role Specialization <span class="badge">Search Combobox</span></label>
+        <div class="combobox-container">
+          <input type="text"
+                 role="combobox"
+                 id="role-combobox"
+                 name="roleSpecialization"
+                 aria-labelledby="lbl-role"
+                 aria-autocomplete="list"
+                 aria-expanded="false"
+                 placeholder="Type to search roles (e.g. Frontend)..."
+                 class="combobox-input" />
+          <div role="listbox" id="role-listbox" class="combobox-listbox">
+            <div role="option" class="combobox-option" data-value="frontend">Frontend Engineer</div>
+            <div role="option" class="combobox-option" data-value="backend">Backend Engineer</div>
+            <div role="option" class="combobox-option" data-value="fullstack">Fullstack Engineer</div>
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    // 1. Simulate Async Country Codes API response
+    setTimeout(() => {
+      const select = document.getElementById('countryCode');
+      select.innerHTML = '';
+      select.setAttribute('aria-busy', 'false');
+
+      const codes = [
+        { val: '+1', text: '+1 (United States / Canada)' },
+        { val: '+44', text: '+44 (United Kingdom)' },
+        { val: '+91', text: '+91 (India)' },
+        { val: '+61', text: '+61 (Australia)' }
+      ];
+
+      codes.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.val;
+        opt.textContent = c.text;
+        select.appendChild(opt);
+      });
+
+      document.getElementById('country-code-status').textContent = 'Country codes loaded (4 available)';
+    }, 100);
+
+    // 2. Simulate Cascading State Population
+    const countrySelect = document.getElementById('country');
+    const stateSelect = document.getElementById('state');
+    const stateStatus = document.getElementById('state-status');
+
+    countrySelect.addEventListener('change', () => {
+      const country = countrySelect.value;
+      if (!country) return;
+
+      stateSelect.disabled = true;
+      stateSelect.setAttribute('aria-disabled', 'true');
+      stateSelect.innerHTML = '<option value="" disabled selected>Loading states...</option>';
+      stateStatus.style.display = 'block';
+
+      setTimeout(() => {
+        stateSelect.disabled = false;
+        stateSelect.removeAttribute('disabled');
+        stateSelect.setAttribute('aria-disabled', 'false');
+        stateSelect.innerHTML = '';
+
+        const statesByCountry = {
+          'US': [
+            { val: 'CA', text: 'California' },
+            { val: 'NY', text: 'New York' },
+            { val: 'TX', text: 'Texas' }
+          ],
+          'CA': [
+            { val: 'ON', text: 'Ontario' },
+            { val: 'QC', text: 'Quebec' },
+            { val: 'BC', text: 'British Columbia' }
+          ]
+        };
+
+        const list = statesByCountry[country] || [];
+        list.forEach(s => {
+          const opt = document.createElement('option');
+          opt.value = s.val;
+          opt.textContent = s.text;
+          stateSelect.appendChild(opt);
+        });
+
+        stateStatus.style.display = 'none';
+      }, 100);
+    });
+
+    // 3. Combobox toggle
+    const comboInput = document.getElementById('role-combobox');
+    const comboList = document.getElementById('role-listbox');
+
+    comboInput.addEventListener('focus', () => {
+      comboList.style.display = 'block';
+      comboInput.setAttribute('aria-expanded', 'true');
+    });
+
+    document.querySelectorAll('.combobox-option').forEach(opt => {
+      opt.addEventListener('click', () => {
+        comboInput.value = opt.textContent;
+        comboList.style.display = 'none';
+        comboInput.setAttribute('aria-expanded', 'false');
+      });
+    });
+  </script>
+</body>
+</html>`;
+

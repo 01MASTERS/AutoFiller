@@ -4,7 +4,13 @@
  */
 
 import { FillResult, FieldMappingValue, FieldMetadata } from '@autofiller/shared';
-import { findFieldElement, deepQuerySelector, deepGetElementById } from '../domReader.js';
+import {
+  findFieldElement,
+  deepQuerySelector,
+  deepGetElementById,
+  waitForFieldEnabled,
+  waitForDynamicOptions,
+} from '../domReader.js';
 import { escapeCss } from './events.js';
 import { fillTextInput } from './simulators/inputSimulator.js';
 import { fillNativeDropdown, fillAriaDropdown } from './simulators/selectSimulator.js';
@@ -17,6 +23,74 @@ export * from './simulators/inputSimulator.js';
 export * from './simulators/selectSimulator.js';
 export * from './simulators/selectionReconciler.js';
 export * from './simulators/dateSimulator.js';
+
+/**
+ * Orders field IDs topologically according to parent-child dependency relationships.
+ * Fields acting as parents (e.g. Country) will precede dependent children (e.g. State).
+ * Unconstrained fields preserve their original relative order.
+ */
+export function sortFieldsByDependency(
+  fields: FieldMetadata[],
+  mappingsOrKeys: Record<string, FieldMappingValue> | string[],
+): string[] {
+  const keys = Array.isArray(mappingsOrKeys) ? [...mappingsOrKeys] : Object.keys(mappingsOrKeys);
+  if (keys.length <= 1) return keys;
+
+  const keySet = new Set(keys);
+  const fieldById = new Map<string, FieldMetadata>();
+  for (const f of fields) {
+    fieldById.set(f.id, f);
+  }
+
+  // Build dependency graph: parentFieldId -> childFieldId[]
+  // inDegree tracks how many active parents a child must wait for
+  const childrenOf = new Map<string, string[]>();
+  const inDegree = new Map<string, number>();
+
+  for (const key of keys) {
+    inDegree.set(key, 0);
+  }
+
+  for (const key of keys) {
+    const meta = fieldById.get(key);
+    const parentId = meta?.parentFieldId;
+    if (parentId && keySet.has(parentId) && parentId !== key) {
+      const existingChildren = childrenOf.get(parentId) || [];
+      existingChildren.push(key);
+      childrenOf.set(parentId, existingChildren);
+      inDegree.set(key, (inDegree.get(key) || 0) + 1);
+    }
+  }
+
+  // Kahn's algorithm: start with keys having inDegree === 0, preserving initial order
+  const queue: string[] = keys.filter((k) => (inDegree.get(k) || 0) === 0);
+  const sorted: string[] = [];
+
+  while (queue.length > 0) {
+    const current = queue.shift()!;
+    sorted.push(current);
+
+    const children = childrenOf.get(current) || [];
+    for (const child of children) {
+      const deg = (inDegree.get(child) || 1) - 1;
+      inDegree.set(child, deg);
+      if (deg === 0) {
+        queue.push(child);
+      }
+    }
+  }
+
+  // If there are any unvisited nodes (e.g., circular dependencies), append them in original order
+  if (sorted.length < keys.length) {
+    for (const key of keys) {
+      if (!sorted.includes(key)) {
+        sorted.push(key);
+      }
+    }
+  }
+
+  return sorted;
+}
 
 /**
  * Universally fills form fields based on mapped values and field metadata.
@@ -55,7 +129,11 @@ export async function fillFormFields(
     fieldMap.set(f.id, f);
   }
 
-  for (const [fieldId, value] of Object.entries(mappings)) {
+  // Topologically sort keys so parent fields precede dependent children
+  const orderedKeys = sortFieldsByDependency(fields, mappings);
+
+  for (const fieldId of orderedKeys) {
+    const value = mappings[fieldId];
     if (value === undefined || value === null || value === '') {
       failedFields.push(fieldId);
       failureReasons[fieldId] = 'Value mapped for this field was empty or null';
@@ -124,6 +202,14 @@ export async function fillFormFields(
       continue;
     }
 
+    // If target is currently disabled (e.g. cascading child awaiting parent selection), wait for enablement
+    if (
+      target instanceof HTMLElement &&
+      (target.hasAttribute('disabled') || target.getAttribute('aria-disabled') === 'true')
+    ) {
+      await waitForFieldEnabled(target);
+    }
+
     try {
       let success = true;
 
@@ -151,7 +237,7 @@ export async function fillFormFields(
 
         case 'dropdown':
           if (target.tagName.toLowerCase() === 'select') {
-            success = fillNativeDropdown(target as HTMLSelectElement, value as string | string[], doc);
+            success = await fillNativeDropdown(target as HTMLSelectElement, value as string | string[], doc);
           } else {
             success = await fillAriaDropdown(target, value as string, doc);
           }
@@ -163,26 +249,44 @@ export async function fillFormFields(
 
         case 'combobox': {
           if (target.tagName.toLowerCase() === 'select') {
-            success = fillNativeDropdown(target as HTMLSelectElement, value as string | string[], doc);
-          } else if (
-            target.getAttribute('role') === 'listbox' ||
-            target.getAttribute('aria-haspopup') === 'listbox' ||
-            target.querySelector('[aria-haspopup="listbox"], button')
-          ) {
-            success = await fillAriaDropdown(target, value as string, doc);
+            success = await fillNativeDropdown(target as HTMLSelectElement, value as string | string[], doc);
           } else {
-            const input = target.querySelector('input, textarea') || target;
-            if (input instanceof HTMLElement) {
-              success = fillTextInput(input, value as string, doc);
+            const isAriaCombobox =
+              target.getAttribute('role') === 'combobox' ||
+              target.getAttribute('role') === 'listbox' ||
+              target.getAttribute('aria-haspopup') === 'listbox' ||
+              target.getAttribute('aria-haspopup') === 'true' ||
+              target.hasAttribute('aria-haspopup') ||
+              target.matches('input[role="combobox"], [data-automation-id*="prompt"], [data-automation-id*="select"]') ||
+              Boolean(target.querySelector('[aria-haspopup], [role="listbox"], [role="combobox"], button')) ||
+              meta?.controlType === 'combobox';
+
+            if (isAriaCombobox) {
+              success = await fillAriaDropdown(target, value as string, doc);
               if (!success) {
-                failedFields.push(fieldId);
-                failureReasons[fieldId] = 'Combobox input element is disabled or readonly';
+                const input = target.querySelector('input, textarea') || target;
+                if (input instanceof HTMLInputElement || input instanceof HTMLTextAreaElement) {
+                  success = fillTextInput(input, value as string, doc);
+                }
               }
             } else {
-              success = false;
-              failedFields.push(fieldId);
-              failureReasons[fieldId] = 'Combobox input element not found';
+              const input = target.querySelector('input, textarea') || target;
+              if (input instanceof HTMLElement) {
+                success = fillTextInput(input, value as string, doc);
+                if (!success) {
+                  failedFields.push(fieldId);
+                  failureReasons[fieldId] = 'Combobox input element is disabled or readonly';
+                }
+              } else {
+                success = false;
+                failedFields.push(fieldId);
+                failureReasons[fieldId] = 'Combobox input element not found';
+              }
             }
+          }
+          if (!success && !failedFields.includes(fieldId)) {
+            failedFields.push(fieldId);
+            failureReasons[fieldId] = `No dropdown option matched value "${value}"`;
           }
           break;
         }
@@ -198,12 +302,25 @@ export async function fillFormFields(
         case 'text':
         case 'textarea':
         default: {
-          const strValue =
+          let strValue =
             typeof value === 'string'
               ? value
               : Array.isArray(value)
                 ? value.join(', ')
                 : String(value);
+
+          // If this is a subscriber phone number field and the form has a separate country phone code field,
+          // strip any leading country dialing code (e.g. "+91 9135517396" -> "9135517396")
+          const isPhoneField =
+            (meta?.label && /phone|mobile/i.test(meta.label) && !/country/i.test(meta.label)) ||
+            /phone.*number/i.test(fieldId);
+          const hasCountryCodeField = fields.some(
+            (f) => f.label && /country.*phone|phone.*country|country.*code/i.test(f.label),
+          );
+          if (isPhoneField && hasCountryCodeField && /^\+\d{1,4}/.test(strValue.trim())) {
+            strValue = strValue.trim().replace(/^\+\d{1,4}\s*[-.]?\s*/, '');
+          }
+
           success = fillTextInput(target as HTMLElement, strValue, doc);
           if (!success) {
             failedFields.push(fieldId);
@@ -215,6 +332,18 @@ export async function fillFormFields(
 
       if (success && !failedFields.includes(fieldId)) {
         filledFields.push(fieldId);
+
+        // Proactively notify/wait on downstream cascading child fields if any
+        const dependentChildren = fields.filter((f) => f.parentFieldId === fieldId);
+        for (const childMeta of dependentChildren) {
+          const childEl = findFieldElement(childMeta, doc);
+          if (childEl instanceof HTMLElement) {
+            await waitForFieldEnabled(childEl);
+            if (childMeta.controlType === 'dropdown' || childMeta.controlType === 'combobox') {
+              await waitForDynamicOptions(childEl);
+            }
+          }
+        }
       }
     } catch (err) {
       failedFields.push(fieldId);

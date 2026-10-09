@@ -10,7 +10,7 @@ export function escapeCss(str: string): string {
   if (typeof CSS !== 'undefined' && typeof CSS.escape === 'function') {
     return CSS.escape(str);
   }
-  return str.replace(/([!"#$%&'()*+,.\/:;<=>?@[\\\]^`{|}~])/g, '\\$1');
+  return str.replace(/([!"#$%&'()*+,./:;<=>?@[\\\]^`{|}~])/g, '\\$1');
 }
 
 /**
@@ -83,8 +83,15 @@ export function findOptionElement(
   // 6. Substring / partial match on text content or value
   for (const el of candidates) {
     const text = (el.textContent || '').replace(/\s+/g, ' ').trim();
+    const normText = normalize(text);
     const val = el.getAttribute('value') || el.getAttribute('data-value') || '';
-    if (normalize(text).includes(norm) || (val && normalize(val).includes(norm))) {
+    const normVal = normalize(val);
+    if (
+      normText.includes(norm) ||
+      (normVal && normVal.includes(norm)) ||
+      (normText.length >= 3 && norm.includes(normText)) ||
+      (normVal.length >= 3 && norm.includes(normVal))
+    ) {
       return el;
     }
   }

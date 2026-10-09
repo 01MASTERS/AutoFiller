@@ -191,4 +191,53 @@ describe('POST /autofill', () => {
     expect(logsRes.body.logs[0].tag).toBe('LLM_ZERO_MAPPINGS');
     expect(logsRes.body.logs[0].level).toBe('WARN');
   });
+
+  it('accepts Workday fields with platformFieldType="source" and optionSource="dynamic" without 400 validation error', async () => {
+    mapFieldsMock.mockResolvedValue({
+      'source-prompt': 'LinkedIn',
+      'country-phone-code': '+91',
+    });
+
+    const payload = {
+      fields: [
+        {
+          id: 'source-prompt',
+          label: 'How did you hear about us?',
+          controlType: 'combobox',
+          platform: 'workday',
+          platformFieldType: 'source',
+          optionSource: 'dynamic',
+          optionsLoaded: false,
+          options: [],
+        },
+        {
+          id: 'country-phone-code',
+          label: 'Country Phone Code',
+          controlType: 'combobox',
+          platform: 'workday',
+          platformFieldType: 'personal',
+          optionSource: 'dynamic',
+          optionsLoaded: false,
+          options: [
+            { label: 'India (+91)', value: '+91' },
+            { label: 'United States (+1)', value: '+1' },
+          ],
+        },
+      ],
+      provider: 'ollama',
+      model: 'gpt-oss:120b-cloud',
+    };
+
+    const response = await request(app).post('/autofill').send(payload);
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({
+      status: 'success',
+      mappings: {
+        'source-prompt': 'LinkedIn',
+        'country-phone-code': '+91',
+      },
+      durationMs: expect.any(Number),
+    });
+  });
 });

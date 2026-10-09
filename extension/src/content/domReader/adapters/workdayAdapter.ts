@@ -45,6 +45,30 @@ export function detectWorkdayWizardStep(doc: Document): string | undefined {
  * Normalizes and enriches form fields discovered on Workday application pages.
  */
 export function adaptWorkdayFields(fields: FieldMetadata[], doc: Document): void {
+  // Prune internal Workday prompt UI artifacts (multiselect containers, prompt selection labels, selectedItem lists, pills, promptOptions)
+  const internalIdPrefixes = [
+    'multiselectinputcontainer',
+    'promptselectionlabel',
+    'selecteditemlist',
+    'promptoption',
+  ];
+
+  for (let i = fields.length - 1; i >= 0; i--) {
+    const f = fields[i];
+    const rawId = (f.id || '').toLowerCase();
+    const rawLabel = (f.label || '').toLowerCase();
+
+    const isInternalWidget =
+      internalIdPrefixes.some((prefix) => rawId.startsWith(prefix)) ||
+      rawId.startsWith('pill-') ||
+      rawLabel.includes('press delete to clear value') ||
+      rawLabel.includes('items selected');
+
+    if (isInternalWidget) {
+      fields.splice(i, 1);
+    }
+  }
+
   const currentStep = detectWorkdayWizardStep(doc);
 
   for (const field of fields) {
@@ -70,12 +94,53 @@ export function adaptWorkdayFields(fields: FieldMetadata[], doc: Document): void
       field.label = 'Email';
       field.platformFieldType = 'personal';
       field.section = field.section || 'My Information';
+    } else if (
+      rawId.includes('countryphonecode') ||
+      rawId.includes('country-phone-code') ||
+      rawName.includes('countryphonecode') ||
+      (rawLabel.includes('country') && (rawLabel.includes('phone') || rawLabel.includes('code'))) ||
+      rawLabel === 'country phone code' ||
+      rawLabel === 'phone country code' ||
+      rawLabel === 'country code'
+    ) {
+      field.label = 'Country Phone Code';
+      field.platformFieldType = 'personal';
+      field.controlType = 'combobox';
+      field.optionSource = 'dynamic';
+      field.section = field.section || 'My Information';
+    } else if (
+      rawId.includes('devicetype') ||
+      rawId.includes('device-type') ||
+      rawName.includes('devicetype') ||
+      rawLabel.includes('device type')
+    ) {
+      field.label = 'Phone Device Type';
+      field.platformFieldType = 'personal';
+      field.controlType = 'combobox';
+      field.section = field.section || 'My Information';
+    } else if (rawId.includes('phoneextension') || rawName.includes('extension') || rawLabel.includes('extension')) {
+      field.label = 'Phone Extension';
+      field.platformFieldType = 'personal';
+      field.controlType = 'text';
+      field.section = field.section || 'My Information';
     } else if (rawId.includes('phone') || rawName.includes('phone') || rawLabel.includes('phone')) {
       if (!field.label || field.label === field.id || field.label === 'unlabeled-field') {
         field.label = 'Phone Number';
       }
       field.platformFieldType = 'personal';
       field.section = field.section || 'My Information';
+    } else if (
+      rawId.includes('source') ||
+      rawName.includes('source') ||
+      rawLabel.includes('hear about') ||
+      rawLabel.includes('how did you hear') ||
+      rawLabel.includes('how did you find')
+    ) {
+      field.label = 'How did you hear about us?';
+      field.platformFieldType = 'source';
+      field.section = field.section || 'Job Application';
+      field.controlType = 'combobox';
+      field.optionSource = 'dynamic';
     } else if (rawId.includes('addresssection_city') || (rawId.includes('city') && field.section === 'My Information')) {
       field.label = 'City';
       field.platformFieldType = 'personal';
@@ -128,10 +193,14 @@ export function adaptWorkdayFields(fields: FieldMetadata[], doc: Document): void
       const el = doc.querySelector(`[data-autofiller-id="${escapeCss(field.id)}"]`);
       if (el) {
         const promptBtn =
-          el.matches('button[data-automation-id*="prompt"], button[aria-haspopup="listbox"], [data-automation-id*="select"]') ||
-          el.querySelector('button[data-automation-id*="prompt"], button[aria-haspopup="listbox"]');
+          el.matches('button[data-automation-id*="prompt"], button[aria-haspopup="listbox"], button[aria-haspopup="true"], [data-automation-id*="select"], [data-automation-id*="dropdown"], [data-automation-id*="prompt"]') ||
+          el.querySelector('button[data-automation-id*="prompt"], button[aria-haspopup="listbox"], button[aria-haspopup="true"]');
         if (promptBtn) {
           field.controlType = 'combobox';
+          if (!field.options || field.options.length === 0) {
+            field.optionSource = field.parentFieldId ? 'cascading' : (field.optionSource || 'dynamic');
+            field.optionsLoaded = false;
+          }
         }
       }
     } catch {}

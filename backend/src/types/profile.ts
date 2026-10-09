@@ -33,13 +33,15 @@ export const userProfileSchema = z
   })
   .passthrough();
 
-export const fieldOptionSchema = z.object({
-  label: z.string(),
-  value: z.string().optional(),
-  selected: z.boolean().optional(),
-  disabled: z.boolean().optional(),
-  isOther: z.boolean().optional(),
-});
+export const fieldOptionSchema = z
+  .object({
+    label: z.string(),
+    value: z.string().optional(),
+    selected: z.boolean().optional(),
+    disabled: z.boolean().optional(),
+    isOther: z.boolean().optional(),
+  })
+  .passthrough();
 
 export const fieldMetadataSchema = z
   .object({
@@ -59,10 +61,13 @@ export const fieldMetadataSchema = z
       .enum(['google-forms', 'greenhouse', 'lever', 'workday', 'smartrecruiters', 'generic'])
       .optional(),
     platformFieldType: z
-      .enum(['personal', 'experience', 'custom_question', 'demographic', 'resume_upload', 'social_link', 'other'])
+      .enum(['personal', 'experience', 'custom_question', 'demographic', 'resume_upload', 'social_link', 'source', 'other'])
       .optional(),
     section: z.string().optional(),
     frameId: z.number().optional(),
+    optionSource: z.enum(['static', 'dynamic', 'cascading']).optional(),
+    optionsLoaded: z.boolean().optional(),
+    parentFieldId: z.string().optional(),
   })
   .passthrough();
 
