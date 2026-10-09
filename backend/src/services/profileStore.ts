@@ -116,10 +116,22 @@ export class ProfileStore {
   }
 
   /**
+   * Validates profile ID against path traversal and invalid characters.
+   */
+  public static validateProfileId(profileId: string): void {
+    if (!profileId || typeof profileId !== 'string' || !/^[a-zA-Z0-9_-]+$/.test(profileId)) {
+      const err = new Error('Profile ID must only contain letters, numbers, dashes, and underscores');
+      (err as unknown as { statusCode: number }).statusCode = 400;
+      throw err;
+    }
+  }
+
+  /**
    * Sets the active profile and returns the active profile data.
    */
   public static setActiveProfile(profileId: string): UserProfile {
     this.ensureInitialized();
+    this.validateProfileId(profileId);
     const filePath = path.join(this.getProfilesDir(), `${profileId}.json`);
     if (!fs.existsSync(filePath)) {
       const err = new Error(`Profile "${profileId}" not found`);
@@ -205,6 +217,9 @@ export class ProfileStore {
     }
 
     this.ensureInitialized();
+    if (profileId) {
+      this.validateProfileId(profileId);
+    }
     const targetId = profileId || this.getActiveProfileId();
     const filePath = path.join(this.getProfilesDir(), `${targetId}.json`);
 
@@ -232,6 +247,9 @@ export class ProfileStore {
    */
   public static saveProfile(profile: UserProfile, profileId?: string): void {
     this.ensureInitialized();
+    if (profileId) {
+      this.validateProfileId(profileId);
+    }
     const targetId = profileId || this.getActiveProfileId();
     const validated = userProfileSchema.parse(profile);
     const filePath = path.join(this.getProfilesDir(), `${targetId}.json`);
@@ -252,11 +270,7 @@ export class ProfileStore {
    */
   public static createProfile(profileId: string, profile: UserProfile): void {
     this.ensureInitialized();
-    if (!/^[a-zA-Z0-9_-]+$/.test(profileId)) {
-      const err = new Error('Profile ID must only contain letters, numbers, dashes, and underscores');
-      (err as unknown as { statusCode: number }).statusCode = 400;
-      throw err;
-    }
+    this.validateProfileId(profileId);
 
     const filePath = path.join(this.getProfilesDir(), `${profileId}.json`);
     if (fs.existsSync(filePath)) {
@@ -274,6 +288,7 @@ export class ProfileStore {
    */
   public static deleteProfile(profileId: string): boolean {
     this.ensureInitialized();
+    this.validateProfileId(profileId);
     if (profileId === this.getActiveProfileId()) {
       const err = new Error('Cannot delete the currently active profile. Switch to another profile first.');
       (err as unknown as { statusCode: number }).statusCode = 400;

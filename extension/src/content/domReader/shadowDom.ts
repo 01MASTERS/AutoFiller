@@ -20,7 +20,7 @@ export function getAllDOMRoots(root: Node = document): DOMQueryRoot[] {
       Boolean(node) &&
       typeof node === 'object' &&
       'querySelectorAll' in node &&
-      typeof (node as any).querySelectorAll === 'function'
+      typeof (node as { querySelectorAll?: unknown }).querySelectorAll === 'function'
     );
   };
 

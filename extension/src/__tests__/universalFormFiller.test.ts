@@ -6,8 +6,8 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { fillFormFields, applyVisualFeedback, resolveVisibleTarget } from '../content/formFiller/index.js';
-import type { FieldMetadata, FieldMappingValue } from '@autofiller/shared';
+import { fillFormFields, applyVisualFeedback } from '../content/formFiller/index.js';
+import type { FieldMetadata } from '@autofiller/shared';
 
 function makeField(overrides: Partial<FieldMetadata> & { id: string }): FieldMetadata {
   return {

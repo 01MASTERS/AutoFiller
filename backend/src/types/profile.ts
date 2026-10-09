@@ -76,11 +76,17 @@ export const autofillRequestSchema = z.object({
   provider: z.enum(['ollama', 'gemini']).optional(),
   model: z.string().optional(),
   apiKey: z.string().optional(),
-  profileId: z.string().optional(),
+  profileId: z
+    .string()
+    .regex(/^[a-zA-Z0-9_-]+$/, 'Profile ID must only contain letters, numbers, dashes, and underscores')
+    .optional(),
 });
 
 export const switchProfileRequestSchema = z.object({
-  profileId: z.string().min(1, 'Profile ID is required'),
+  profileId: z
+    .string()
+    .min(1, 'Profile ID is required')
+    .regex(/^[a-zA-Z0-9_-]+$/, 'Profile ID must only contain letters, numbers, dashes, and underscores'),
 });
 
 export const createProfileRequestSchema = z.object({

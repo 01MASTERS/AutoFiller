@@ -1,23 +1,23 @@
 {
-  "name": "Rittik Sharma",
-  "email": "rittik.pm@gmail.com",
-  "phone": "+91 9135517396",
-  "address": "Bangalore, Karnataka, India",
+  "name": "Taylor Brooks",
+  "email": "taylor.brooks@example.com",
+  "phone": "+1 (555) 017-3829",
+  "address": "New York, NY, United States",
   "education": [
     {
-      "degree": "B.Tech in Electrical and Electronics Engineering",
-      "school": "Indian Institute of Technology Patna",
-      "Graduation year": "2026",
-      "start date": "2022",
-      "end date": "2026"
+      "degree": "B.A. in Economics",
+      "school": "New York University",
+      "Graduation year": "2023",
+      "start date": "2019",
+      "end date": "2023"
     }
   ],
   "experience": [
     {
-      "title": "Associate Product Manager Intern",
-      "company": "Vivriti Capital Pvt. Ltd.",
-      "duration": "2026 - Present",
-      "description": "Owned product requirement docs (PRDs), backlog prioritization, customer discovery interviews, and sprint roadmaps for fintech credit workflows."
+      "title": "Product Manager",
+      "company": "Horizon Financial Technologies",
+      "duration": "2023 - Present",
+      "description": "Owned product requirement docs (PRDs), backlog prioritization, customer discovery interviews, and sprint roadmaps for fintech workflows."
     }
   ],
   "skills": [
@@ -33,17 +33,17 @@
     "Stakeholder Management"
   ],
   "links": {
-    "LinkedIn": "https://www.linkedin.com/in/rittik-sharmax",
-    "Portfolio": "https://rittiksharma.vercel.app"
+    "LinkedIn": "https://linkedin.com/in/taylorbrooks-demo",
+    "Portfolio": "https://taylorbrooks-demo.dev"
   },
   "custom": {
     "Headline": "Technical Product Manager & Fintech Innovator",
-    "First Name": "Rittik",
-    "Last Name": "Sharma",
-    "Gender": "Male",
+    "First Name": "Taylor",
+    "Last Name": "Brooks",
+    "Gender": "Prefer not to say",
     "Work Authorization": "Yes",
     "Require Sponsorship": "No",
-    "Preferred Location": "Bangalore, Hyderabad, Chennai, Remote",
-    "Expected Salary": "14,00,000 LPA"
+    "Preferred Location": "New York, NY; Boston, MA; Remote",
+    "Expected Salary": "$140,000"
   }
 }

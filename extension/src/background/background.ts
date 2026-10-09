@@ -350,7 +350,7 @@ export async function handleTriggerAutofill(options?: {
     if (!backendRes.ok) {
       const errData = (await backendRes.json().catch(() => ({}))) as { error?: string; details?: unknown };
       const detailStr = Array.isArray(errData.details)
-        ? `: ${errData.details.map((d: any) => `${d.path?.join('.')}: ${d.message}`).join(', ')}`
+        ? `: ${errData.details.map((d: { path?: string[]; message?: string }) => `${d.path?.join('.')}: ${d.message}`).join(', ')}`
         : '';
       const errorMsg =
         (errData.error ? `${errData.error}${detailStr}` : undefined) ||

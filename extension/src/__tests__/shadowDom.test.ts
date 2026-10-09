@@ -307,14 +307,15 @@ describe('Deep Shadow DOM & SmartRecruiters ATS Engine', () => {
     it('detects smartrecruiters from jobs.smartrecruiters.com hostname', () => {
       const originalLocation = window.location;
       try {
-        delete (window as any).location;
-        (window as any).location = {
+        const win = window as unknown as Record<string, unknown>;
+        delete win.location;
+        win.location = {
           hostname: 'jobs.smartrecruiters.com',
           pathname: '/company/job/12345/apply',
         };
         expect(detectPlatform(document)).toBe('smartrecruiters');
       } finally {
-        (window as any).location = originalLocation;
+        (window as unknown as Record<string, unknown>).location = originalLocation;
       }
     });
 

@@ -1,4 +1,4 @@
-import { cleanText, cleanLabelText, escapeCss } from '../utils.js';
+import { cleanText, escapeCss } from '../utils.js';
 
 /**
  * Common boilerplate substrings that should be stripped from resolved question labels.

@@ -77,9 +77,9 @@ describe('Profile Management & Switching API', () => {
     it('returns 200 OK with profile data for existing profile', async () => {
       const response = await request(app).get('/profiles/product-manager');
       expect(response.status).toBe(200);
-      expect(response.body.name).toBe('Rittik Sharma');
-      expect(response.body.email).toBe('rittik.pm@gmail.com');
-      expect(response.body.experience[0].title).toBe('Associate Product Manager Intern');
+      expect(response.body.name).toBe('Taylor Brooks');
+      expect(response.body.email).toBe('taylor.brooks@example.com');
+      expect(response.body.experience[0].title).toBe('Product Manager');
     });
 
     it('returns 404 for non-existent profile ID', async () => {
@@ -100,14 +100,14 @@ describe('Profile Management & Switching API', () => {
       expect(switchRes.status).toBe(200);
       expect(switchRes.body.status).toBe('success');
       expect(switchRes.body.activeProfileId).toBe('product-manager');
-      expect(switchRes.body.profile.name).toBe('Rittik Sharma');
-      expect(switchRes.body.profile.email).toBe('rittik.pm@gmail.com');
+      expect(switchRes.body.profile.name).toBe('Taylor Brooks');
+      expect(switchRes.body.profile.email).toBe('taylor.brooks@example.com');
 
       // Check active profile via GET /profile
       const activeRes = await request(app).get('/profile');
       expect(activeRes.status).toBe(200);
-      expect(activeRes.body.name).toBe('Rittik Sharma');
-      expect(activeRes.body.email).toBe('rittik.pm@gmail.com');
+      expect(activeRes.body.name).toBe('Taylor Brooks');
+      expect(activeRes.body.email).toBe('taylor.brooks@example.com');
 
       // Switch back to default
       const resetRes = await request(app)
@@ -241,7 +241,7 @@ describe('Profile Management & Switching API', () => {
   describe('POST /autofill with profileId override', () => {
     it('uses specified profileId when provided in autofill request', async () => {
       mapFieldsMock.mockResolvedValue({
-        'entry.123': 'Rittik Sharma',
+        'entry.123': 'Jordan Lee',
       });
 
       const payload = {
@@ -258,8 +258,8 @@ describe('Profile Management & Switching API', () => {
         'ollama',
         payload.fields,
         expect.objectContaining({
-          name: 'Rittik Sharma',
-          email: 'rittik.ai@gmail.com',
+          name: 'Jordan Lee',
+          email: 'jordan.lee@example.com',
         }),
         { apiKey: undefined, model: undefined },
       );
@@ -289,5 +289,35 @@ describe('Profile Management & Switching API', () => {
         { apiKey: undefined, model: undefined },
       );
     });
+
+    it('rejects path traversal in profileId with 400 Bad Request', async () => {
+      const payload = {
+        fields: [{ id: 'entry.123', label: 'Full Name' }],
+        profileId: '../package.json',
+      };
+      const response = await request(app).post('/autofill').send(payload);
+      expect(response.status).toBe(400);
+    });
+  });
+
+  describe('Security & Path Traversal Prevention', () => {
+    it('rejects invalid profileId with directory traversal in GET /profiles/:id', async () => {
+      const response = await request(app).get('/profiles/..%2f..%2fetc%2fpasswd');
+      expect(response.status).toBe(400);
+      expect(response.body.error).toContain('Profile ID must only contain letters, numbers, dashes, and underscores');
+    });
+
+    it('rejects invalid profileId in POST /profiles/switch', async () => {
+      const response = await request(app)
+        .post('/profiles/switch')
+        .send({ profileId: '../../../secret' });
+      expect(response.status).toBe(400);
+    });
+
+    it('rejects invalid profileId in DELETE /profiles/:id', async () => {
+      const response = await request(app).delete('/profiles/..%2f..%2fpackage');
+      expect(response.status).toBe(400);
+    });
   });
 });
+

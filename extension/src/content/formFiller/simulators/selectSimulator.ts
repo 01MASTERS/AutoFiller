@@ -430,7 +430,7 @@ export function extractCountrySearchQuery(targetValue: string): string {
     return targetValue.trim();
   }
 
-  // If starts with + or contains dialing code like +91 9135517396
+  // If starts with + or contains dialing code like +91 9876543210
   const match = norm.match(/^\+?(\d{1,4})/);
   if (match) {
     const code = match[1];
@@ -449,7 +449,7 @@ export function extractCountrySearchQuery(targetValue: string): string {
 
 /**
  * Finds a matching country code option element (e.g. matching "India (+91)" or "United States (+1)")
- * against target values like "+91", "91", "+91 9135517396", or "India".
+ * against target values like "+91", "91", "+91 9876543210", or "India".
  */
 export function findCountryCodeOption(
   container: Element,

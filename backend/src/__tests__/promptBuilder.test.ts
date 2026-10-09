@@ -36,10 +36,10 @@ describe('promptBuilder', () => {
     ];
 
     const profile: UserProfile = {
-      name: 'Rittik Sharma',
-      email: 'rittik@example.com',
-      phone: '+91 9135517396',
-      'alternate phone': '+91 8797966189',
+      name: 'Alex Morgan',
+      email: 'alex@example.com',
+      phone: '+91 9876543210',
+      'alternate phone': '+91 9123456789',
       custom: {
         'Reason for leaving': 'Looking for full-time opportunity',
       },
@@ -47,8 +47,8 @@ describe('promptBuilder', () => {
 
     const prompt = buildFieldMappingPrompt(fields, profile);
 
-    expect(prompt.userPrompt).toContain('+91 9135517396');
-    expect(prompt.userPrompt).toContain('+91 8797966189');
+    expect(prompt.userPrompt).toContain('+91 9876543210');
+    expect(prompt.userPrompt).toContain('+91 9123456789');
     expect(prompt.userPrompt).toContain('Reason for leaving');
     expect(prompt.systemPrompt).toContain('Disambiguation');
   });
@@ -58,15 +58,15 @@ describe('promptBuilder', () => {
       { id: 'entry.101', label: 'Mobile Number (without +91 or 0)' },
     ];
     const profile: UserProfile = {
-      name: 'Rittik Sharma',
-      email: 'rittik@example.com',
-      phone: '+91 9135517396',
+      name: 'Alex Morgan',
+      email: 'alex@example.com',
+      phone: '+91 9876543210',
     };
 
     const prompt = buildFieldMappingPrompt(fields, profile);
 
     expect(prompt.systemPrompt).toContain('without +91');
-    expect(prompt.systemPrompt).toContain('9135517396');
+    expect(prompt.systemPrompt).toContain('9876543210');
     expect(prompt.userPrompt).toContain('respecting field formatting constraints');
   });
 
@@ -208,7 +208,7 @@ describe('promptBuilder', () => {
     const profile: UserProfile = {
       name: 'Jane Doe',
       email: 'jane@example.com',
-      phone: '+91 9135517396',
+      phone: '+91 9876543210',
     };
 
     const prompt = buildFieldMappingPrompt(fields, profile);

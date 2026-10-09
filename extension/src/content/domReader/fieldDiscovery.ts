@@ -104,9 +104,15 @@ export function extractFormFields(
  * between fields (e.g. Country -> State/Province, Region -> City).
  */
 export function linkCascadingFields(fields: FieldMetadata[]): void {
-  const PAIRINGS = [
+  const PAIRINGS: Array<{
+    parentRegex: RegExp;
+    parentExcludeRegex?: RegExp;
+    childRegex: RegExp;
+    childExcludeRegex?: RegExp;
+  }> = [
     {
       parentRegex: /\b(country|nation)\b/i,
+      parentExcludeRegex: /\b(phone|mobile|dial|code|calling|tel)\b/i,
       childRegex: /\b(state|province|region|territory)\b/i,
     },
     {
@@ -126,6 +132,7 @@ export function linkCascadingFields(fields: FieldMetadata[]): void {
   for (const pair of PAIRINGS) {
     const parentField = fields.find((f) => {
       const text = `${f.label} ${f.name || ''} ${f.id}`;
+      if (pair.parentExcludeRegex && pair.parentExcludeRegex.test(text)) return false;
       return pair.parentRegex.test(text);
     });
 
@@ -134,6 +141,7 @@ export function linkCascadingFields(fields: FieldMetadata[]): void {
     const childField = fields.find((f) => {
       if (f.id === parentField.id) return false;
       const text = `${f.label} ${f.name || ''} ${f.id}`;
+      if (pair.childExcludeRegex && pair.childExcludeRegex.test(text)) return false;
       return pair.childRegex.test(text);
     });
 

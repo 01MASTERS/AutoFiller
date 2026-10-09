@@ -10,7 +10,6 @@ import {
   mockCareerFormHtml,
   mockGoogleFormHtml,
   mockDynamicOptionsFormHtml,
-  ProfileSummary,
   ProfilesListResponse,
   SwitchProfileResponse,
 } from '@autofiller/shared';
@@ -28,7 +27,7 @@ import { ParseDiagnostics } from '../services/llm/responseParser.js';
 import { ZodError } from 'zod';
 
 import { LoggerService } from '../services/loggerService.js';
-import { LogEntry, LogLevel, LogSource, LogsResponse } from '@autofiller/shared';
+import { LogLevel, LogSource, LogsResponse } from '@autofiller/shared';
 
 export const apiRouter = Router();
 let llmGatewayInstance = new LLMGateway();

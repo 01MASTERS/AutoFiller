@@ -245,15 +245,15 @@ describe('Popup UI', () => {
     const mockProfiles = [
       {
         id: 'default',
-        name: 'Rittik Sharma',
-        headline: 'AI/ML Engineer & Data Scientist',
+        name: 'Alex Morgan',
+        headline: 'Senior Full Stack Engineer',
         filename: 'default.json',
         isActive: true,
       },
       {
         id: 'product-manager',
-        name: 'Rittik Sharma',
-        headline: 'Associate Product Manager Intern',
+        name: 'Taylor Brooks',
+        headline: 'Product Manager',
         filename: 'product-manager.json',
         isActive: false,
       },
@@ -275,9 +275,9 @@ describe('Popup UI', () => {
           return Promise.resolve({
             ok: true,
             json: async () => ({
-              name: 'Rittik Sharma',
-              email: 'rittik.ai@gmail.com',
-              custom: { Headline: 'AI/ML Engineer & Data Scientist' },
+              name: 'Alex Morgan',
+              email: 'alex.morgan@example.com',
+              custom: { Headline: 'Senior Full Stack Engineer' },
             }),
           });
         }
@@ -297,8 +297,8 @@ describe('Popup UI', () => {
       const headlineEl = document.getElementById('profile-headline');
       const badgeEl = document.getElementById('profile-badge');
 
-      expect(nameEl?.textContent).toBe('Rittik Sharma');
-      expect(headlineEl?.textContent).toContain('AI/ML Engineer');
+      expect(nameEl?.textContent).toBe('Alex Morgan');
+      expect(headlineEl?.textContent).toContain('Senior Full Stack');
       expect(badgeEl?.textContent).toBe('Loaded');
       expect(badgeEl?.className).toContain('success-badge');
 
@@ -318,9 +318,9 @@ describe('Popup UI', () => {
           status: 'success',
           activeProfileId: 'product-manager',
           profile: {
-            name: 'Rittik Sharma',
-            email: 'rittik.pm@gmail.com',
-            experience: [{ title: 'Associate Product Manager Intern' }],
+            name: 'Taylor Brooks',
+            email: 'taylor.brooks@example.com',
+            experience: [{ title: 'Product Manager' }],
           },
         }),
       });
@@ -342,8 +342,8 @@ describe('Popup UI', () => {
 
       const emailEl = document.getElementById('profile-email');
       const headlineEl = document.getElementById('profile-headline');
-      expect(emailEl?.textContent).toBe('rittik.pm@gmail.com');
-      expect(headlineEl?.textContent).toBe('Associate Product Manager Intern');
+      expect(emailEl?.textContent).toBe('taylor.brooks@example.com');
+      expect(headlineEl?.textContent).toBe('Product Manager');
 
       expect(setStorageMock).toHaveBeenCalledWith({
         activeProfileId: 'product-manager',

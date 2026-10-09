@@ -1,4 +1,4 @@
-import { cleanText, escapeCss } from './utils.js';
+import { cleanText } from './utils.js';
 import {
   resolveUniversalLabel,
   sanitizeLabelText,

@@ -17,37 +17,7 @@ import {
   mockCareerFormHtml,
   mockGoogleFormHtml,
   FieldMappingValue,
-  UserProfile,
 } from '@autofiller/shared';
-
-const mockProfile: UserProfile = {
-  name: 'Jane Doe',
-  email: 'jane.doe@example.com',
-  phone: '555-123-4567',
-  address: '123 Market St, San Francisco, CA',
-  skills: ['TypeScript', 'React', 'Node.js', 'Python'],
-  links: {
-    LinkedIn: 'https://linkedin.com/in/janedoe',
-    GitHub: 'https://github.com/janedoe',
-    Portfolio: 'https://janedoe.dev',
-    Twitter: 'https://twitter.com/janedoe',
-  },
-  custom: {
-    first_name: 'Jane',
-    last_name: 'Doe',
-    role: 'Fullstack Engineer',
-    company: 'Acme Technologies',
-    years_exp: '5+',
-    authorized_us: 'yes',
-    visa_sponsorship: 'no',
-    gender: 'Female',
-    race: 'Asian',
-    veteran_status: 'I am not a veteran',
-    country: 'United States of America',
-    city: 'San Francisco',
-    bio: 'Passionate senior engineer with 6+ years building distributed frontend & cloud systems.',
-  },
-};
 
 describe('Multi-Platform E2E Form Autofill Pipeline', () => {
   beforeEach(() => {

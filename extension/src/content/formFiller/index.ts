@@ -310,7 +310,7 @@ export async function fillFormFields(
                 : String(value);
 
           // If this is a subscriber phone number field and the form has a separate country phone code field,
-          // strip any leading country dialing code (e.g. "+91 9135517396" -> "9135517396")
+          // strip any leading country dialing code (e.g. "+91 9876543210" -> "9876543210")
           const isPhoneField =
             (meta?.label && /phone|mobile/i.test(meta.label) && !/country/i.test(meta.label)) ||
             /phone.*number/i.test(fieldId);

@@ -393,4 +393,44 @@ describe('Universal DOM Reader & Smart Field Extraction Engine', () => {
       expect(found).toBe(input);
     });
   });
+
+  describe('Cascading Dropdown Dependencies', () => {
+    it('links Country to State/Province while excluding Country Phone Code from parent match', () => {
+      document.body.innerHTML = `
+        <form>
+          <div class="field">
+            <label for="country-phone-code">Country Phone Code</label>
+            <select id="country-phone-code" name="phone_country">
+              <option value="+1">United States (+1)</option>
+              <option value="+91">India (+91)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="country-selector">Country</label>
+            <select id="country-selector" name="country">
+              <option value="US">United States</option>
+              <option value="IN">India</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="state-selector">State / Province</label>
+            <select id="state-selector" name="state">
+              <option value="CA">California</option>
+              <option value="NY">New York</option>
+            </select>
+          </div>
+        </form>
+      `;
+
+      const fields = extractFormFields(document);
+      const stateField = fields.find((f) => f.id === 'state' || f.id === 'state-selector');
+      const countryField = fields.find((f) => f.id === 'country' || f.id === 'country-selector');
+
+      expect(stateField).toBeDefined();
+      expect(countryField).toBeDefined();
+      expect(stateField?.optionSource).toBe('cascading');
+      expect(stateField?.parentFieldId).toBe(countryField?.id);
+    });
+  });
 });
+

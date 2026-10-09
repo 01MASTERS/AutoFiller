@@ -341,10 +341,10 @@ describe('Workday Dynamic Prompt & Portal Simulator Tests', () => {
       { id: 'phoneNumber', label: 'Phone Number', controlType: 'text' },
     ];
 
-    // Profile has phone "+91 9135517396"
+    // Profile has phone "+91 9876543210"
     const mappings = {
       'country-phone-code-btn': '+91',
-      phoneNumber: '+91 9135517396',
+      phoneNumber: '+91 9876543210',
     };
 
     const result = await fillFormFields(mappings, fields, document);
@@ -352,7 +352,7 @@ describe('Workday Dynamic Prompt & Portal Simulator Tests', () => {
     expect(result.status).toBe('success');
     expect(codeSpan.textContent).toBe('India (+91)');
     // Phone input should have country code stripped
-    expect(phoneInput.value).toBe('9135517396');
+    expect(phoneInput.value).toBe('9876543210');
   });
 
   it('correctly splits compound preference strings and strips negations in extractCandidateValues', () => {
