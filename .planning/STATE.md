@@ -6,11 +6,11 @@
 
 | Field | Value |
 |---|---|
-| **Milestone** | 3 — Multi-Profile Support & Publishing (v1.2) [IN PROGRESS] |
-| **Current Phase** | Phase 22: Profile Editor UI (Web Dashboard) [COMPLETED] |
+| **Milestone** | 3 — Multi-Profile Support & Advanced Form Capabilities (v1.2) [IN PROGRESS] |
+| **Current Phase** | Phase 24: Dynamic Backend Option Detection & Handling for Selects and MCQs [COMPLETED] |
 | **Next Phase** | Phase 23: Chrome Web Store Publishing & Security Review |
-| **Status** | Phase 22 complete — Web-based visual profile editor dashboard served from backend (`GET /profile-ui` & `GET /profiles-ui`) with dual Visual Form & Raw JSON editors, persona switching/creation modal, delete safety guards, and extension popup launcher button (`#open-profile-editor-btn`). 241/241 monorepo tests passing. Clean production build. Ready for Phase 23. |
-| **Last Updated** | 2026-09-19 |
+| **Status** | Phase 24 complete. Dynamic and backend-fetched option classification, mutation settlement engine, topological dependency-aware form filler, and E2E test suites fully operational. |
+| **Last Updated** | 2026-09-29 |
 
 ## Decision Log
 
@@ -36,6 +36,7 @@
 | ADR-018 | Multi-Profile Directory Store with Pointer File & Dual Mirroring | Store personas in `backend/profiles/*.json` with `.active` file; mirror changes to legacy `profile.json` to guarantee zero data loss and external tool compatibility | 2026-09-19 |
 | ADR-019 | Popup Multi-Profile Switcher with Resilient Local Cache & Autofill Forwarding | Persist persona summaries in `chrome.storage.local` to enable instant offline rendering; pass active `profileId` through background worker to `/autofill` | 2026-09-19 |
 | ADR-020 | Dedicated Backend HTML Generator for Profile Editor Dashboard | Keep backend routes clean by delegating HTML generation to a dedicated module (`profileUiHtml.ts`); consume existing Phase 20 REST endpoints client-side for zero backend architectural friction | 2026-09-19 |
+| ADR-021 | Heuristic Classification & Mutation Settlement for Dynamic Backend Options & Cascading Selects | Distinguish static vs async options via DOM emptiness, pending placeholders, aria-busy, and remote data attributes; await option arrival via MutationObserver and enforce parent-before-child fill order via topological dependency sorting | 2026-09-29 |
 
 ## Patterns
 
@@ -72,7 +73,15 @@
 | `multi-frame-scan-aggregation` | Multi-frame scan discovery, top-frame prioritization, response aggregation, and frame-aware fill routing to resolve child iframe race conditions | 2026-09-21 | complete ✓ |
 | `profile-ui-save-fix` | Fix Profile Editor UI & Raw JSON save persistence, prevent stale cache reversion, restore alternate phone & custom fields, and eliminate destructive tab-switching | 2026-09-24 | complete ✓ |
 | `gforms-checkbox-grouping-fix` | Fix Google Forms checkbox group pruning and heading resolution to prevent question cards from shattering into unlabeled single checkboxes | 2026-09-24 | complete ✓ |
+| `workday-dynamic-prompt-filling-fix` | Fix Workday prompt button detection, hierarchical category drill-down ("How did you hear about us?"), dynamic Country Phone Code matching, Zod enum schema sync, and live background service | 2026-09-29 | complete ✓ |
+| `popup-log-auto-dismiss` | Auto-dismiss status banner and helper log messages on extension popup after 5 seconds instead of remaining indefinitely | 2026-10-07 | complete ✓ |
 
 ## Open Questions
 
 _(None — all initial questions resolved during milestone setup)_
+
+## Accumulated Context
+
+### Roadmap Evolution
+
+- Phase 24 added: Dynamic Backend Option Detection & Handling for Selects and MCQs — Distinguish static hardcoded options from backend-fetched options, probe dynamic listboxes, handle cascading dropdown dependencies, and support JIT option settlement.
