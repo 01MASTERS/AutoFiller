@@ -19,16 +19,17 @@ describe('CORS Middleware', () => {
     expect(response.headers['access-control-allow-origin']).toBe(origin);
   });
 
-  it('handles OPTIONS preflight requests', async () => {
+  it('handles OPTIONS preflight requests for POST, PUT, and DELETE', async () => {
     const origin = 'chrome-extension://abcdefghijklmnopqrstuvwxyz';
     const response = await request(app)
-      .options('/autofill')
+      .options('/profiles/test-id')
       .set('Origin', origin)
-      .set('Access-Control-Request-Method', 'POST');
+      .set('Access-Control-Request-Method', 'PUT');
 
     expect(response.status).toBe(204);
     expect(response.headers['access-control-allow-origin']).toBe(origin);
-    expect(response.headers['access-control-allow-methods']).toMatch(/POST/);
+    expect(response.headers['access-control-allow-methods']).toMatch(/PUT/);
+    expect(response.headers['access-control-allow-methods']).toMatch(/DELETE/);
   });
 
   it('blocks unauthorized origins with 403', async () => {

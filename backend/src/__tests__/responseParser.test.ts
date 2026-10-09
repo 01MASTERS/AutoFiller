@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import {
   parseLLMJsonResponse,
   matchFieldOption,
-  parseLLMResponseWithDiagnostics,
 } from '../services/llm/responseParser.js';
 import { LLMParseError } from '../services/llm/types.js';
 import { FieldMetadata } from '@autofiller/shared';

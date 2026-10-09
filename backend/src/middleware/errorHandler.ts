@@ -17,6 +17,15 @@ export function errorHandler(err: Error, req: Request, res: Response, _next: Nex
     });
   }
 
+  const statusCode = (err as unknown as { statusCode?: number; status?: number }).statusCode ||
+    (err as unknown as { statusCode?: number; status?: number }).status;
+  if (typeof statusCode === 'number' && statusCode >= 400 && statusCode < 600) {
+    return res.status(statusCode).json({
+      status: 'error',
+      error: err.message,
+    });
+  }
+
   console.error('Unhandled Server Error:', err);
   return res.status(500).json({
     status: 'error',

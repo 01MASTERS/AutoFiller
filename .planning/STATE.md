@@ -6,11 +6,11 @@
 
 | Field | Value |
 |---|---|
-| **Milestone** | 2 — Advanced Form Controls & Multi-Profile (v1.1) |
-| **Current Phase** | 14 — In-Browser DOM & Synthetic Event Simulation |
-| **Next Phase** | 15 — Multi-Profile Backend Store & Switching API |
-| **Status** | Phase 14 complete — Control-type dispatch architecture and synthetic DOM simulation shipped. Content script CSP IIFE fix deployed. 132/132 tests passing. |
-| **Last Updated** | 2026-09-03 |
+| **Milestone** | 3 — Multi-Profile Support & Advanced Form Capabilities (v1.2) [IN PROGRESS] |
+| **Current Phase** | Phase 24: Dynamic Backend Option Detection & Handling for Selects and MCQs [COMPLETED] |
+| **Next Phase** | Phase 23: Chrome Web Store Publishing & Security Review |
+| **Status** | Phase 24 complete. Dynamic and backend-fetched option classification, mutation settlement engine, topological dependency-aware form filler, and E2E test suites fully operational. |
+| **Last Updated** | 2026-09-29 |
 
 ## Decision Log
 
@@ -25,8 +25,18 @@
 | ADR-007 | Vitest for testing | Fast, Vite-compatible, modern | 2026-08-13 |
 | ADR-008 | Popup UI (not side panel) | Simpler UX, standard Chrome extension pattern | 2026-08-13 |
 | ADR-009 | In-Browser DOM Simulation for Advanced Controls (v1.1) | Zero external processes; fast, native event dispatch in active tab | 2026-09-03 |
-| ADR-010 | Multi-Profile File Store Architecture (v1.1) | Modular persona JSON files with instant REST switching | 2026-09-03 |
+| ADR-010 | Multi-Profile File Store Architecture (v1.2) | Modular persona JSON files with instant REST switching (deferred to Milestone 3) | 2026-09-03 |
 | ADR-011 | Standalone IIFE Content Script (`.iife.ts`) | Google Forms CSP blocks dynamic imports (`import()`) in ESM content script loaders | 2026-09-03 |
+| ADR-012 | Universal Multi-Platform Expansion for v1.1 | Expand AutoFiller beyond Google Forms into a universal form-filling engine (Workday, Greenhouse, Lever, career portals) | 2026-09-19 |
+| ADR-013 | Heuristic Label Resolution Cascade & DOM Order Sorting | Resolve labels via explicit ARIA $\to$ label[for] $\to$ wrapping $\to$ legend $\to$ container headings; sort fields by compareDocumentPosition | 2026-09-19 |
+| ADR-014 | Manifest V3 Multi-Frame (`all_frames: true`) & SPA Route Observation | Enable content script in cross-origin ATS iframes; intercept pushState/popstate and observe dynamic form mutations for multi-step wizards | 2026-09-19 |
+| ADR-015 | Modular Universal Form Filler Engine & Full Lifecycle Event Dispatch | Decompose interaction engine into dedicated simulators; dispatch complete focus $\to$ prototype setter $\to$ input $\to$ change $\to$ blur sequence across standard, rich text, and custom controls | 2026-09-19 |
+| ADR-016 | Platform Heuristic Adapters as Post-Scan Refinement Passes | Keep generic DOM reader clean and universal; run specialized ATS heuristics (Greenhouse, Lever, Workday) only on recognized domains | 2026-09-19 |
+| ADR-017 | Multi-Platform Mock Form Fixtures & Interactive QA Hub | Reusable mock HTML fixtures in `@autofiller/shared` served via backend `GET /test-forms` for automated Vitest E2E regression and live browser QA | 2026-09-19 |
+| ADR-018 | Multi-Profile Directory Store with Pointer File & Dual Mirroring | Store personas in `backend/profiles/*.json` with `.active` file; mirror changes to legacy `profile.json` to guarantee zero data loss and external tool compatibility | 2026-09-19 |
+| ADR-019 | Popup Multi-Profile Switcher with Resilient Local Cache & Autofill Forwarding | Persist persona summaries in `chrome.storage.local` to enable instant offline rendering; pass active `profileId` through background worker to `/autofill` | 2026-09-19 |
+| ADR-020 | Dedicated Backend HTML Generator for Profile Editor Dashboard | Keep backend routes clean by delegating HTML generation to a dedicated module (`profileUiHtml.ts`); consume existing Phase 20 REST endpoints client-side for zero backend architectural friction | 2026-09-19 |
+| ADR-021 | Heuristic Classification & Mutation Settlement for Dynamic Backend Options & Cascading Selects | Distinguish static vs async options via DOM emptiness, pending placeholders, aria-busy, and remote data attributes; await option arrival via MutationObserver and enforce parent-before-child fill order via topological dependency sorting | 2026-09-29 |
 
 ## Patterns
 
@@ -34,10 +44,18 @@
 - **HTTP gateway**: Background worker → backend server via `fetch()`
 - **Provider pattern**: `LLMGateway` interface with `OllamaProvider` and `GeminiProvider` implementations
 - **Dynamic script injection fallback**: Background service worker uses `chrome.scripting.executeScript` to inject content script on tabs opened prior to extension reload
+- **Heuristic label resolution**: Cascade through explicit ARIA labels, `<label for="...">`, wrapping labels, fieldset legends, container headings, and clean placeholders
+- **DOM order sorting**: Discovered fields sorted by live DOM `compareDocumentPosition` to ensure visual top-to-bottom sequence across arbitrary HTML layouts
+- **SPA route observation**: Monkey-patched `history.pushState` and `history.replaceState` coupled with `popstate`/`hashchange` to detect single-page application view transitions without full page reloads
+- **Platform adapter pipeline**: Modulates discovered fields via lightweight signatures (`isGreenhousePage`, `isLeverPage`, `isWorkdayPage`) without coupling core scanner to vendor DOM structures
 
 ## Surprises / Gotchas
 
 - **Google Forms Content Security Policy (CSP)**: `docs.google.com` enforces strict `script-src` CSP directives. Default Vite/CRXJS content script builds use an async loader (`await import(chrome.runtime.getURL(...))`) which is blocked by the host page's CSP. Renaming to `contentScript.iife.ts` instructs CRXJS to inline all dependencies into a standalone IIFE bundle, completely bypassing dynamic imports and CSP restrictions.
+- **Matrix Grid Rows vs Parent Headings**: An element's explicit `aria-label` or `aria-labelledby` on itself must precede ancestor container headings, otherwise multi-choice grid rows inherit the table title instead of their respective row names.
+- **Embedded Job Widgets (Iframes)**: Many career pages (e.g. `careers.company.com`) embed Greenhouse or Lever forms inside `<iframe>` elements. Setting `all_frames: true` in the manifest ensures the extension content script runs directly inside the child frame context.
+- **JSDOM `CSS.escape` Absence**: In Node/JSDOM environments, `window.CSS.escape` is undefined. Using native `CSS.escape` crashes unit tests with `ReferenceError`. An `escapeCss` utility with character-by-character regex fallback is required.
+- **Base ID Precedence**: Control scanners prioritize `name` attribute over `id` attribute when creating `field.id`. Adapters and test fixtures targeting compound fields must check both `f.id` and `f.name`.
 
 ## Quick Tasks Completed
 
@@ -52,8 +70,18 @@
 | `content-script-csp-iife-fix` | Fix content script blocked by Google Forms CSP by compiling to standalone IIFE (`.iife.ts`) and adding dynamic injection fallback in background worker | 2026-09-03 | complete ✓ |
 | `dropdown-options-and-selection-fix` | Extract options from closed Google Forms dropdowns, show options in logs, relay content script logs, and simulate full pointerdown/mousedown/mouseup/click sequence for reliable selection | 2026-09-03 | complete ✓ |
 | `dropdown-options-selection-fix` | Fix dropdown genuine selection via trigger resolution, coordinate-aware clicks, hover simulation, and reactive settlement; eliminate fake forced insertion | 2026-09-06 | complete ✓ |
+| `multi-frame-scan-aggregation` | Multi-frame scan discovery, top-frame prioritization, response aggregation, and frame-aware fill routing to resolve child iframe race conditions | 2026-09-21 | complete ✓ |
+| `profile-ui-save-fix` | Fix Profile Editor UI & Raw JSON save persistence, prevent stale cache reversion, restore alternate phone & custom fields, and eliminate destructive tab-switching | 2026-09-24 | complete ✓ |
+| `gforms-checkbox-grouping-fix` | Fix Google Forms checkbox group pruning and heading resolution to prevent question cards from shattering into unlabeled single checkboxes | 2026-09-24 | complete ✓ |
+| `workday-dynamic-prompt-filling-fix` | Fix Workday prompt button detection, hierarchical category drill-down ("How did you hear about us?"), dynamic Country Phone Code matching, Zod enum schema sync, and live background service | 2026-09-29 | complete ✓ |
+| `popup-log-auto-dismiss` | Auto-dismiss status banner and helper log messages on extension popup after 5 seconds instead of remaining indefinitely | 2026-10-07 | complete ✓ |
 
 ## Open Questions
 
-_(None — all initial questions resolved during project setup)_
+_(None — all initial questions resolved during milestone setup)_
 
+## Accumulated Context
+
+### Roadmap Evolution
+
+- Phase 24 added: Dynamic Backend Option Detection & Handling for Selects and MCQs — Distinguish static hardcoded options from backend-fetched options, probe dynamic listboxes, handle cascading dropdown dependencies, and support JIT option settlement.

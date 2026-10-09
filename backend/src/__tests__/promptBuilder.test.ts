@@ -36,10 +36,10 @@ describe('promptBuilder', () => {
     ];
 
     const profile: UserProfile = {
-      name: 'Rittik Sharma',
-      email: 'rittik@example.com',
-      phone: '+91 9135517396',
-      'alternate phone': '+91 8797966189',
+      name: 'Alex Morgan',
+      email: 'alex@example.com',
+      phone: '+91 9876543210',
+      'alternate phone': '+91 9123456789',
       custom: {
         'Reason for leaving': 'Looking for full-time opportunity',
       },
@@ -47,8 +47,8 @@ describe('promptBuilder', () => {
 
     const prompt = buildFieldMappingPrompt(fields, profile);
 
-    expect(prompt.userPrompt).toContain('+91 9135517396');
-    expect(prompt.userPrompt).toContain('+91 8797966189');
+    expect(prompt.userPrompt).toContain('+91 9876543210');
+    expect(prompt.userPrompt).toContain('+91 9123456789');
     expect(prompt.userPrompt).toContain('Reason for leaving');
     expect(prompt.systemPrompt).toContain('Disambiguation');
   });
@@ -58,15 +58,15 @@ describe('promptBuilder', () => {
       { id: 'entry.101', label: 'Mobile Number (without +91 or 0)' },
     ];
     const profile: UserProfile = {
-      name: 'Rittik Sharma',
-      email: 'rittik@example.com',
-      phone: '+91 9135517396',
+      name: 'Alex Morgan',
+      email: 'alex@example.com',
+      phone: '+91 9876543210',
     };
 
     const prompt = buildFieldMappingPrompt(fields, profile);
 
     expect(prompt.systemPrompt).toContain('without +91');
-    expect(prompt.systemPrompt).toContain('9135517396');
+    expect(prompt.systemPrompt).toContain('9876543210');
     expect(prompt.userPrompt).toContain('respecting field formatting constraints');
   });
 
@@ -179,5 +179,43 @@ describe('promptBuilder', () => {
     expect(prompt.systemPrompt).toContain('Company & Experience Dates Disambiguation');
     expect(prompt.systemPrompt).toContain('Extract the dates directly from the "experience" section');
     expect(prompt.systemPrompt).toContain('NEVER confuse company/work joining dates with "education" dates');
+  });
+
+  it('includes explicit instructions for dynamic and empty-option select/combobox fields', () => {
+    const fields: FieldMetadata[] = [
+      { id: 'country-prompt', label: 'Country', controlType: 'combobox', optionSource: 'dynamic', options: [] },
+    ];
+    const profile: UserProfile = {
+      name: 'Jane Doe',
+      email: 'jane@example.com',
+      phone: '555-0199',
+      location: 'India',
+    };
+
+    const prompt = buildFieldMappingPrompt(fields, profile);
+
+    expect(prompt.systemPrompt).toContain('Dynamic & Empty-Option Select / Combobox Fields');
+    expect(prompt.systemPrompt).toContain('Do NOT omit the field! Extract or deduce the best canonical text value');
+    expect(prompt.systemPrompt).toContain('The client form-filling engine uses this mapped text value to type into the search box');
+  });
+
+  it('includes explicit instructions for Phone Country Code and Job Source discovery questions', () => {
+    const fields: FieldMetadata[] = [
+      { id: 'country-code', label: 'Country Phone Code', controlType: 'combobox', optionSource: 'dynamic' },
+      { id: 'phone', label: 'Phone Number', controlType: 'text' },
+      { id: 'source', label: 'How did you hear about us?', controlType: 'combobox', optionSource: 'dynamic' },
+    ];
+    const profile: UserProfile = {
+      name: 'Jane Doe',
+      email: 'jane@example.com',
+      phone: '+91 9876543210',
+    };
+
+    const prompt = buildFieldMappingPrompt(fields, profile);
+
+    expect(prompt.systemPrompt).toContain('Phone Country Code: For country phone dialing code fields');
+    expect(prompt.systemPrompt).toContain('NEVER output the full 10-digit subscriber phone number into a country code field');
+    expect(prompt.systemPrompt).toContain('How did you hear about us?');
+    expect(prompt.systemPrompt).toContain('LinkedIn');
   });
 });

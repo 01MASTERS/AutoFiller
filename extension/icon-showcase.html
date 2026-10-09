@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AutoFiller — Extension Icon Concepts</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #090d16;
+      --card-bg: rgba(22, 27, 39, 0.7);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --accent: #6366f1;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, sans-serif;
+      padding: 40px 24px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .header {
+      text-align: center;
+      max-width: 720px;
+      margin-bottom: 48px;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      background: rgba(99, 102, 241, 0.12);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      border-radius: 999px;
+      color: #818cf8;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 16px;
+    }
+    h1 {
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 12px;
+      background: linear-gradient(135deg, #fff 40%, #94a3b8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    p.subtitle {
+      color: var(--text-muted);
+      font-size: 15px;
+      line-height: 1.6;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 28px;
+      max-width: 1360px;
+      width: 100%;
+    }
+    .concept-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 28px;
+      backdrop-filter: blur(12px);
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+      position: relative;
+    }
+    .concept-card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(99, 102, 241, 0.4);
+      box-shadow: 0 16px 32px -8px rgba(0, 0, 0, 0.5);
+    }
+    .concept-tag {
+      position: absolute;
+      top: 24px;
+      right: 24px;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text-muted);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .icon-hero {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 32px 0;
+      background: radial-gradient(circle at center, rgba(255,255,255,0.03) 0%, transparent 70%);
+      border-radius: 14px;
+      margin-bottom: 24px;
+    }
+    .icon-hero svg {
+      filter: drop-shadow(0 12px 24px rgba(0,0,0,0.45));
+    }
+    .concept-title {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+      color: #fff;
+    }
+    .concept-vibe {
+      font-size: 13px;
+      font-weight: 500;
+      color: #818cf8;
+      margin-bottom: 12px;
+    }
+    .concept-desc {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.55;
+      margin-bottom: 20px;
+      flex-grow: 1;
+    }
+    .anti-slop-box {
+      background: rgba(16, 185, 129, 0.08);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 12px;
+      color: #34d399;
+      line-height: 1.45;
+      margin-bottom: 24px;
+    }
+    .anti-slop-box strong {
+      color: #6ee7b7;
+      display: block;
+      margin-bottom: 2px;
+    }
+    .scale-preview-title {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+    .scale-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 12px 16px;
+      background: rgba(0, 0, 0, 0.35);
+      border-radius: 12px;
+      margin-bottom: 12px;
+    }
+    .scale-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+    .scale-label {
+      font-size: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      color: #64748b;
+    }
+    .toolbar-preview {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 14px;
+      border-radius: 10px;
+      font-size: 12px;
+      color: #94a3b8;
+    }
+    .toolbar-dark {
+      background: #202124;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .toolbar-light {
+      background: #f1f3f4;
+      border: 1px solid rgba(0,0,0,0.1);
+      color: #3c4043;
+    }
+    .browser-sim {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .omni-bar {
+      height: 20px;
+      width: 140px;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.08);
+    }
+    .toolbar-light .omni-bar {
+      background: #fff;
+      border: 1px solid #dadce0;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="badge">Chrome Extension Identity</div>
+    <h1>AutoFiller Icon Concepts</h1>
+    <p class="subtitle">Bespoke, vector-crafted icons built for ultra-sharp clarity across 16px toolbar favicons, 48px extension management views, and 128px Chrome Web Store listings. Zero AI slop, zero generic sparkle emojis.</p>
+  </div>
+
+  <div class="grid">
+
+    <!-- CONCEPT 1 -->
+    <div class="concept-card">
+      <div class="concept-tag">Option 1</div>
+      <div class="icon-hero">
+        <!-- SVG 1: Precision Snap -->
+        <svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="bg1" x1="16" y1="16" x2="112" y2="112" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#0F172A"/>
+              <stop offset="1" stop-color="#020617"/>
+            </linearGradient>
+            <linearGradient id="boltGrad" x1="38" y1="20" x2="98" y2="108" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#38BDF8"/>
+              <stop offset="0.6" stop-color="#6366F1"/>
+              <stop offset="1" stop-color="#10B981"/>
+            </linearGradient>
+            <filter id="glow1" x="20" y="20" width="88" height="88" filterUnits="userSpaceOnUse">
+              <feGaussianBlur stdDeviation="5" result="blur"/>
+              <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+            </filter>
+          </defs>
+          <rect x="8" y="8" width="112" height="112" rx="28" fill="url(#bg1)"/>
+          <rect x="8.5" y="8.5" width="111" height="111" rx="27.5" stroke="#334155" stroke-opacity="0.7"/>
+
+          <!-- Form slots -->
+          <rect x="24" y="32" width="80" height="14" rx="7" fill="#1E293B"/>
+          <rect x="24" y="32" width="46" height="14" rx="7" fill="#38BDF8" fill-opacity="0.9"/>
+
+          <rect x="24" y="56" width="56" height="14" rx="7" fill="#1E293B"/>
+          <rect x="24" y="56" width="32" height="14" rx="7" fill="#818CF8" fill-opacity="0.9"/>
+
+          <rect x="24" y="80" width="80" height="14" rx="7" fill="#1E293B"/>
+          <rect x="24" y="80" width="60" height="14" rx="7" fill="#10B981" fill-opacity="0.9"/>
+
+          <!-- Supersonic Fill Stroke -->
+          <path d="M72 20L52 62H76L60 108L96 54H74L86 20H72Z" fill="url(#boltGrad)" filter="url(#glow1)"/>
+          <path d="M72 20L52 62H76L60 108L96 54H74L86 20H72Z" fill="#FFFFFF" opacity="0.3"/>
+        </svg>
+      </div>
+
+      <h3 class="concept-title">The Precision Snap</h3>
+      <div class="concept-vibe">Linear / Raycast Aesthetic • High Energy</div>
+      <p class="concept-desc">Captures the instantaneous action of form completion. Stacked input tracks are filled with glowing data states, crossed by a razor-sharp supersonic fill bolt.</p>
+      
+      <div class="anti-slop-box">
+        <strong>Why it avoids AI slop</strong>
+        No amorphous rainbow dust or multi-star sparkle emojis. Uses industrial precision geometry with a clear metaphor of automated form execution.
+      </div>
+
+      <div class="scale-preview-title">Multi-scale clarity test</div>
+      <div class="scale-row">
+        <div class="scale-item">
+          <svg width="48" height="48" viewBox="0 0 128 128" fill="none">
+            <rect x="8" y="8" width="112" height="112" rx="28" fill="#090D16" stroke="#334155" stroke-width="2"/>
+            <rect x="24" y="32" width="80" height="14" rx="7" fill="#1E293B"/>
+            <rect x="24" y="32" width="46" height="14" rx="7" fill="#38BDF8"/>
+            <rect x="24" y="56" width="56" height="14" rx="7" fill="#1E293B"/>
+            <rect x="24" y="80" width="80" height="14" rx="7" fill="#1E293B"/>
+            <rect x="24" y="80" width="60" height="14" rx="7" fill="#10B981"/>
+            <path d="M72 20L52 62H76L60 108L96 54H74L86 20H72Z" fill="#38BDF8"/>
+          </svg>
+          <span class="scale-label">48px</span>
+        </div>
+        <div class="scale-item">
+          <svg width="32" height="32" viewBox="0 0 128 128" fill="none">
+            <rect x="8" y="8" width="112" height="112" rx="28" fill="#090D16"/>
+            <rect x="24" y="32" width="80" height="16" rx="8" fill="#38BDF8"/>
+            <rect x="24" y="56" width="56" height="16" rx="8" fill="#1E293B"/>
+            <rect x="24" y="80" width="80" height="16" rx="8" fill="#10B981"/>
+            <path d="M72 20L52 62H76L60 108L96 54H74L86 20H72Z" fill="#38BDF8"/>
+          </svg>
+          <span class="scale-label">32px</span>
+        </div>
+        <div class="scale-item">
+          <svg width="16" height="16" viewBox="0 0 128 128" fill="none">
+            <rect x="8" y="8" width="112" height="112" rx="28" fill="#090D16"/>
+            <rect x="20" y="32" width="88" height="20" rx="10" fill="#38BDF8"/>
+            <rect x="20" y="76" width="88" height="20" rx="10" fill="#10B981"/>
+            <path d="M72 16L48 64H78L58 112L102 54H74L88 16H72Z" fill="#FFFFFF"/>
+          </svg>
+          <span class="scale-label">16px</span>
+        </div>
+      </div>
+
+      <div class="toolbar-preview toolbar-dark" style="margin-bottom: 8px;">
+        <span>Dark Browser Bar</span>
+        <div class="browser-sim">
+          <div class="omni-bar"></div>
+          <svg width="18" height="18" viewBox="0 0 128 128" fill="none">
+            <rect x="8" y="8" width="112" height="112" rx="28" fill="#090D16" stroke="#475569" stroke-width="4"/>
+            <rect x="20" y="32" width="88" height="20" rx="10" fill="#38BDF8"/>
+            <rect x="20" y="76" width="88" height="20" rx="10" fill="#10B981"/>
+            <path d="M72 16L48 64H78L58 112L102 54H74L88 16H72Z" fill="#FFFFFF"/>
+          </svg>
+        </div>
+      </div>
+      <div class="toolbar-preview toolbar-light">
+        <span>Light Browser Bar</span>
+        <div class="browser-sim">
+          <div class="omni-bar"></div>
+          <svg width="18" height="18" viewBox="0 0 128 128" fill="none">
+            <rect x="8" y="8" width="112" height="112" rx="28" fill="#090D16"/>
+            <rect x="20" y="32" width="88" height="20" rx="10" fill="#38BDF8"/>
+            <rect x="20" y="76" width="88" height="20" rx="10" fill="#10B981"/>
+            <path d="M72 16L48 64H78L58 112L102 54H74L88 16H72Z" fill="#FFFFFF"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONCEPT 2 -->
+    <div class="concept-card">
+      <div class="concept-tag">Option 2</div>
+      <div class="icon-hero">
+        <!-- SVG 2: The Geometric Flow "AF" Monogram -->
+        <svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="bg2" x1="16" y1="16" x2="112" y2="112" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#0B0F1A"/>
+              <stop offset="1" stop-color="#05070D"/>
+            </linearGradient>
+            <linearGradient id="monogramGrad" x1="32" y1="28" x2="96" y2="100" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#A5B4FC"/>
+              <stop offset="0.4" stop-color="#818CF8"/>
+              <stop offset="1" stop-color="#6366F1"/>
+            </linearGradient>
+            <linearGradient id="accentGlow" x1="44" y1="64" x2="106" y2="64" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#34D399"/>
+              <stop offset="1" stop-color="#059669"/>
+            </linearGradient>
+            <filter id="glow2" x="24" y="24" width="88" height="88" filterUnits="userSpaceOnUse">
+              <feGaussianBlur stdDeviation="5" result="blur"/>
+              <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+            </filter>
+          </defs>
+          <rect x="8" y="8" width="112" height="112" rx="28" fill="url(#bg2)"/>
+          <rect x="8.5" y="8.5" width="111" height="111" rx="27.5" stroke="#1E293B"/>
+
+          <!-- Form Guidance Lines -->
+          <line x1="32" y1="38" x2="96" y2="38" stroke="#1E293B" stroke-width="2" stroke-linecap="round" stroke-dasharray="3 6"/>
+          <line x1="32" y1="90" x2="96" y2="90" stroke="#1E293B" stroke-width="2" stroke-linecap="round" stroke-dasharray="3 6"/>
+
+          <!-- Unified Monogram "A" Stem -->
+          <path d="M32 96L58 32C59.5 28 64.5 28 66 32L76 56" stroke="url(#monogramGrad)" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+          
+          <!-- Crossing Dynamic Flow Chevron (F-Bar & Auto-Fill stream) -->
+          <path d="M44 64H86M78 52L96 64L78 76" stroke="url(#accentGlow)" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow2)"/>
+          <path d="M44 64H86M78 52L96 64L78 76" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.3"/>
+
+          <!-- Anchor precision beacon -->
+          <circle cx="84" cy="90" r="5" fill="#818CF8"/>
+        </svg>
+      </div>
+
+      <h3 class="concept-title">The Swift Monogram</h3>
+      <div class="concept-vibe">Modern SaaS • High-End Minimalist</div>
+      <p class="concept-desc">An iconic developer-first monogram fusing the letters <strong>A</strong> and <strong>F</strong> with an energetic forward caret `&gt;`. The horizontal crossbar extends like an auto-filled data stream locking into place.</p>
+      
+      <div class="anti-slop-box">
+        <strong>Why it avoids AI slop</strong>
+        Relies on pure typographic structural balance rather than decorative noise. Instantly memorable, looks like Vercel, Supabase, or Linear.
+      </div>
+
+      <div class="scale-preview-title">Multi-scale clarity test</div>
+      <div class="scale-row">
+        <div class="scale-item">
+          <svg width="48" height="48" viewBox="0 0 128 128" fill="none">
+            <rect x="8" y="8" width="112" height="112" rx="28" fill="#0B0F1A" stroke="#1E293B" stroke-width="2"/>
+            <path d="M32 96L58 32C59.5 28 64.5 28 66 32L76 56" stroke="#818CF8" stroke-width="14" stroke-linecap="round"/>
+            <path d="M44 64H86M78 52L96 64L78 76" stroke="#34D399" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span class="scale-label">48px</span>
+        </div>
+        <div class="scale-item">
+          <svg width="32" height="32" viewBox="0 0 128 128" fill="none">
+            <rect x="8" y="8" width="112" height="112" rx="28" fill="#0B0F1A"/>
+            <path d="M32 96L58 32C59.5 28 64.5 28 66 32L76 56" stroke="#818CF8" stroke-width="16" stroke-linecap="round"/>
+            <path d="M44 64H86M78 52L96 64L78 76" stroke="#34D399" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span class="scale-label">32px</span>
+        </div>
+        <div class="scale-item">
+          <svg width="16" height="16" viewBox="0 0 128 128" fill="none">
+            <rect x="8" y="8" width="112" height="112" rx="28" fill="#0B0F1A"/>
+            <path d="M34 96L60 34L72 58" stroke="#818CF8" stroke-width="20" stroke-linecap="round"/>
+            <path d="M46 64H88M76 52L96 64L76 76" stroke="#34D399" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span class="scale-label">16px</span>
+        </div>
+      </div>
+
+      <div class="toolbar-preview toolbar-dark" style="margin-bottom: 8px;">
+        <span>Dark Browser Bar</span>
+        <div class="browser-sim">
+          <div class="omni-bar"></div>
+          <svg width="18" height="18" viewBox="0 0 128 128" fill="none">
+            <rect x="8" y="8" width="112" height="112" rx="28" fill="#0B0F1A" stroke="#475569" stroke-width="4"/>
+            <path d="M34 96L60 34L72 58" stroke="#818CF8" stroke-width="18" stroke-linecap="round"/>
+            <path d="M46 64H88M76 52L96 64L76 76" stroke="#34D399" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+      </div>
+      <div class="toolbar-preview toolbar-light">
+        <span>Light Browser Bar</span>
+        <div class="browser-sim">
+          <div class="omni-bar"></div>
+          <svg width="18" height="18" viewBox="0 0 128 128" fill="none">
+            <rect x="8" y="8" width="112" height="112" rx="28" fill="#0B0F1A"/>
+            <path d="M34 96L60 34L72 58" stroke="#818CF8" stroke-width="18" stroke-linecap="round"/>
+            <path d="M46 64H88M76 52L96 64L76 76" stroke="#34D399" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONCEPT 3 -->
+    <div class="concept-card">
+      <div class="concept-tag">Option 3</div>
+      <div class="icon-hero">
+        <!-- SVG 3: The Verified Capsule / Form Matrix -->
+        <svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="bg3" x1="16" y1="16" x2="112" y2="112" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#0F172A"/>
+              <stop offset="1" stop-color="#020617"/>
+            </linearGradient>
+            <linearGradient id="checkPillGrad" x1="26" y1="26" x2="102" y2="102" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#10B981"/>
+              <stop offset="1" stop-color="#059669"/>
+            </linearGradient>
+          </defs>
+          <rect x="8" y="8" width="112" height="112" rx="28" fill="url(#bg3)"/>
+          <rect x="8.5" y="8.5" width="111" height="111" rx="27.5" stroke="#1E293B"/>
+
+          <!-- Form Card Container -->
+          <rect x="22" y="20" width="84" height="88" rx="18" fill="#131B2E" stroke="#334155" stroke-width="2.5"/>
+
+          <!-- Field 1: Name Field (Filled) -->
+          <rect x="34" y="32" width="60" height="16" rx="8" fill="#1E293B"/>
+          <rect x="36" y="35" width="34" height="10" rx="5" fill="#38BDF8"/>
+          <path d="M78 37L81 40L87 34" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+          <!-- Field 2: Address Field (Filled) -->
+          <rect x="34" y="54" width="60" height="16" rx="8" fill="#1E293B"/>
+          <rect x="36" y="57" width="22" height="10" rx="5" fill="#818CF8"/>
+          <path d="M78 59L81 62L87 56" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+          <!-- Big Instant Action Check Pill (Active Success State) -->
+          <rect x="34" y="76" width="60" height="22" rx="11" fill="url(#checkPillGrad)"/>
+          <path d="M54 87L62 94L76 79" stroke="#FFFFFF" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+
+      <h3 class="concept-title">The Verified Field</h3>
+      <div class="concept-vibe">Modern Utility • Crystal Clear Semantics</div>
+      <p class="concept-desc">Features a stylized form card where structured inputs transition cleanly into a bold, radiant emerald verification pill. Tells the user in 100 milliseconds exactly what the extension does: perfectly validates forms.</p>
+      
+      <div class="anti-slop-box">
+        <strong>Why it avoids AI slop</strong>
+        Grounds itself in actual UI product mechanics (input fields + validation badges). Highly intuitive for end users of Google Forms & job portals.
+      </div>
+
+      <div class="scale-preview-title">Multi-scale clarity test</div>
+      <div class="scale-row">
+        <div class="scale-item">
+          <svg width="48" height="48" viewBox="0 0 128 128" fill="none">
+            <rect x="8" y="8" width="112" height="112" rx="28" fill="#090D16" stroke="#1E293B" stroke-width="2"/>
+            <rect x="22" y="20" width="84" height="88" rx="18" fill="#131B2E"/>
+            <rect x="34" y="32" width="60" height="16" rx="8" fill="#38BDF8"/>
+            <rect x="34" y="54" width="60" height="16" rx="8" fill="#818CF8"/>
+            <rect x="34" y="76" width="60" height="22" rx="11" fill="#10B981"/>
+            <path d="M54 87L62 94L76 79" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span class="scale-label">48px</span>
+        </div>
+        <div class="scale-item">
+          <svg width="32" height="32" viewBox="0 0 128 128" fill="none">
+            <rect x="8" y="8" width="112" height="112" rx="28" fill="#090D16"/>
+            <rect x="22" y="20" width="84" height="88" rx="18" fill="#131B2E"/>
+            <rect x="34" y="34" width="60" height="16" rx="8" fill="#38BDF8"/>
+            <rect x="34" y="64" width="60" height="34" rx="14" fill="#10B981"/>
+            <path d="M52 81L60 88L76 72" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span class="scale-label">32px</span>
+        </div>
+        <div class="scale-item">
+          <svg width="16" height="16" viewBox="0 0 128 128" fill="none">
+            <rect x="8" y="8" width="112" height="112" rx="28" fill="#090D16"/>
+            <rect x="20" y="20" width="88" height="88" rx="18" fill="#10B981"/>
+            <path d="M46 64L58 76L82 48" stroke="#FFFFFF" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span class="scale-label">16px</span>
+        </div>
+      </div>
+
+      <div class="toolbar-preview toolbar-dark" style="margin-bottom: 8px;">
+        <span>Dark Browser Bar</span>
+        <div class="browser-sim">
+          <div class="omni-bar"></div>
+          <svg width="18" height="18" viewBox="0 0 128 128" fill="none">
+            <rect x="8" y="8" width="112" height="112" rx="28" fill="#090D16" stroke="#475569" stroke-width="4"/>
+            <rect x="20" y="20" width="88" height="88" rx="18" fill="#10B981"/>
+            <path d="M46 64L58 76L82 48" stroke="#FFFFFF" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+      </div>
+      <div class="toolbar-preview toolbar-light">
+        <span>Light Browser Bar</span>
+        <div class="browser-sim">
+          <div class="omni-bar"></div>
+          <svg width="18" height="18" viewBox="0 0 128 128" fill="none">
+            <rect x="8" y="8" width="112" height="112" rx="28" fill="#090D16"/>
+            <rect x="20" y="20" width="88" height="88" rx="18" fill="#10B981"/>
+            <path d="M46 64L58 76L82 48" stroke="#FFFFFF" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONCEPT 4 -->
+    <div class="concept-card">
+      <div class="concept-tag">Option 4</div>
+      <div class="icon-hero">
+        <!-- SVG 4: The Neon Caret (Electric Volt & Obsidian) -->
+        <svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="bg4" x1="16" y1="16" x2="112" y2="112" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#18181B"/>
+              <stop offset="1" stop-color="#09090B"/>
+            </linearGradient>
+            <linearGradient id="voltGrad" x1="30" y1="30" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#E2FF38"/>
+              <stop offset="1" stop-color="#A3E635"/>
+            </linearGradient>
+            <filter id="glow4" x="24" y="24" width="80" height="80" filterUnits="userSpaceOnUse">
+              <feGaussianBlur stdDeviation="6" result="blur"/>
+              <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+            </filter>
+          </defs>
+          <rect x="8" y="8" width="112" height="112" rx="28" fill="url(#bg4)"/>
+          <rect x="8.5" y="8.5" width="111" height="111" rx="27.5" stroke="#27272A"/>
+
+          <!-- Input Field Brackets [  ] -->
+          <path d="M38 34H26C22.68 34 20 36.68 20 40V88C20 91.32 22.68 94 26 94H38" stroke="#3F3F46" stroke-width="5" stroke-linecap="round"/>
+          <path d="M90 34H102C105.32 34 108 36.68 108 40V88C108 91.32 105.32 94 102 94H90" stroke="#3F3F46" stroke-width="5" stroke-linecap="round"/>
+
+          <!-- Dual Dynamic Chevrons (Forward Stream) -->
+          <path d="M42 42L62 64L42 86" stroke="url(#voltGrad)" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" opacity="0.45"/>
+          <path d="M64 42L84 64L64 86" stroke="url(#voltGrad)" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow4)"/>
+          <path d="M64 42L84 64L64 86" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" opacity="0.6"/>
+        </svg>
+      </div>
+
+      <h3 class="concept-title">The Neon Fast-Caret</h3>
+      <div class="concept-vibe">Cyber Volt • Maximum Toolbar Contrast</div>
+      <p class="concept-desc">Uses input field brackets <code>[ &gt;&gt; ]</code> embracing a supersonic double-caret in electric neon volt lime. It commands instant attention and boasts the highest legibility score against both dark and light browser windows.</p>
+      
+      <div class="anti-slop-box">
+        <strong>Why it avoids AI slop</strong>
+        Ultra-punchy Swiss graphic design. Zero cheesy 3D renders or gradient pudding—pure, sharp, purposeful geometric vectors.
+      </div>
+
+      <div class="scale-preview-title">Multi-scale clarity test</div>
+      <div class="scale-row">
+        <div class="scale-item">
+          <svg width="48" height="48" viewBox="0 0 128 128" fill="none">
+            <rect x="8" y="8" width="112" height="112" rx="28" fill="#18181B" stroke="#27272A" stroke-width="2"/>
+            <path d="M38 34H26V94H38M90 34H102V94H90" stroke="#3F3F46" stroke-width="6" stroke-linecap="round"/>
+            <path d="M42 42L62 64L42 86" stroke="#A3E635" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" opacity="0.45"/>
+            <path d="M64 42L84 64L64 86" stroke="#E2FF38" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span class="scale-label">48px</span>
+        </div>
+        <div class="scale-item">
+          <svg width="32" height="32" viewBox="0 0 128 128" fill="none">
+            <rect x="8" y="8" width="112" height="112" rx="28" fill="#18181B"/>
+            <path d="M42 42L62 64L42 86" stroke="#A3E635" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" opacity="0.45"/>
+            <path d="M64 42L84 64L64 86" stroke="#E2FF38" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span class="scale-label">32px</span>
+        </div>
+        <div class="scale-item">
+          <svg width="16" height="16" viewBox="0 0 128 128" fill="none">
+            <rect x="8" y="8" width="112" height="112" rx="28" fill="#18181B"/>
+            <path d="M48 42L72 64L48 86" stroke="#E2FF38" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span class="scale-label">16px</span>
+        </div>
+      </div>
+
+      <div class="toolbar-preview toolbar-dark" style="margin-bottom: 8px;">
+        <span>Dark Browser Bar</span>
+        <div class="browser-sim">
+          <div class="omni-bar"></div>
+          <svg width="18" height="18" viewBox="0 0 128 128" fill="none">
+            <rect x="8" y="8" width="112" height="112" rx="28" fill="#18181B" stroke="#52525B" stroke-width="4"/>
+            <path d="M46 48L64 64L46 80" stroke="#A3E635" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" opacity="0.5"/>
+            <path d="M68 48L86 64L68 80" stroke="#E2FF38" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+      </div>
+      <div class="toolbar-preview toolbar-light">
+        <span>Light Browser Bar</span>
+        <div class="browser-sim">
+          <div class="omni-bar"></div>
+          <svg width="18" height="18" viewBox="0 0 128 128" fill="none">
+            <rect x="8" y="8" width="112" height="112" rx="28" fill="#18181B"/>
+            <path d="M46 48L64 64L46 80" stroke="#A3E635" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" opacity="0.5"/>
+            <path d="M68 48L86 64L68 80" stroke="#E2FF38" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONCEPT 5: THE DRAFTING STYLUS -->
+    <div class="concept-card">
+      <div class="concept-tag">Option 5</div>
+      <div class="icon-hero">
+        <!-- SVG 5: The Drafting Stylus -->
+        <svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="bg5" x1="16" y1="16" x2="112" y2="112" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#0F1117"/>
+              <stop offset="1" stop-color="#05070A"/>
+            </linearGradient>
+            <linearGradient id="nibGold" x1="40" y1="70" x2="88" y2="108" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#FCD34D"/>
+              <stop offset="0.6" stop-color="#F59E0B"/>
+              <stop offset="1" stop-color="#D97706"/>
+            </linearGradient>
+            <linearGradient id="facetLeft" x1="30" y1="20" x2="64" y2="76" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#334155"/>
+              <stop offset="1" stop-color="#1E293B"/>
+            </linearGradient>
+            <linearGradient id="facetRight" x1="64" y1="20" x2="98" y2="76" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#475569"/>
+              <stop offset="1" stop-color="#334155"/>
+            </linearGradient>
+            <filter id="glow5" x="20" y="70" width="88" height="50" filterUnits="userSpaceOnUse">
+              <feGaussianBlur stdDeviation="5" result="blur"/>
+              <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+            </filter>
+          </defs>
+          <rect x="8" y="8" width="112" height="112" rx="28" fill="url(#bg5)"/>
+          <rect x="8.5" y="8.5" width="111" height="111" rx="27.5" stroke="#1E293B"/>
+
+          <!-- Background Field Lines Being Written -->
+          <line x1="28" y1="94" x2="100" y2="94" stroke="#1E293B" stroke-width="4" stroke-linecap="round"/>
+          <line x1="28" y1="94" x2="64" y2="94" stroke="url(#nibGold)" stroke-width="4" stroke-linecap="round" filter="url(#glow5)"/>
+
+          <!-- Stylus Body (Upper facets) -->
+          <!-- Left Facet -->
+          <path d="M42 22L64 16V68L42 56Z" fill="url(#facetLeft)"/>
+          <!-- Right Facet -->
+          <path d="M86 22L64 16V68L86 56Z" fill="url(#facetRight)"/>
+          <!-- Center Ridge Line -->
+          <line x1="64" y1="16" x2="64" y2="68" stroke="#64748B" stroke-width="1.5"/>
+
+          <!-- Precision Gold Nib (Lower triangle) -->
+          <path d="M42 56L64 68L86 56L64 92L42 56Z" fill="url(#nibGold)"/>
+          <!-- Nib Center Slit & Breather Hole -->
+          <line x1="64" y1="68" x2="64" y2="88" stroke="#78350F" stroke-width="2"/>
+          <circle cx="64" cy="74" r="2.5" fill="#78350F"/>
+          
+          <!-- Luminous Point of Contact -->
+          <circle cx="64" cy="94" r="4" fill="#FEF08A" filter="url(#glow5)"/>
+        </svg>
+      </div>
+
+      <h3 class="concept-title">The Drafting Stylus</h3>
+      <div class="concept-vibe">Architectural Craft • Luxury Precision</div>
+      <p class="concept-desc">A faceted geometric drafting stylus angled directly onto a form baseline, leaving behind an illuminated gold data stroke. Treats form filling as an instrument of bespoke craft rather than brute force.</p>
+      
+      <div class="anti-slop-box">
+        <strong>Why it avoids AI slop</strong>
+        Inspired by classic drafting tools and Bauhaus industrial design. Tactile, premium, with zero cheesy AI iconography.
+      </div>
+
+      <div class="scale-preview-title">Multi-scale clarity test</div>
+      <div class="scale-row">
+        <div class="scale-item">
+          <svg width="48" height="48" viewBox="0 0 128 128" fill="none">
+            <rect x="8" y="8" width="112" height="112" rx="28" fill="#0F1117" stroke="#1E293B" stroke-width="2"/>
+            <path d="M42 22L64 16L86 22L64 92L42 22Z" fill="#334155"/>
+            <path d="M42 56L64 68L86 56L64 92L42 56Z" fill="#F59E0B"/>
+            <line x1="28" y1="94" x2="100" y2="94" stroke="#1E293B" stroke-width="6" stroke-linecap="round"/>
+            <line x1="28" y1="94" x2="64" y2="94" stroke="#F59E0B" stroke-width="6" stroke-linecap="round"/>
+          </svg>
+          <span class="scale-label">48px</span>
+        </div>
+        <div class="scale-item">
+          <svg width="32" height="32" viewBox="0 0 128 128" fill="none">
+            <rect x="8" y="8" width="112" height="112" rx="28" fill="#0F1117"/>
+            <path d="M42 22L64 16L86 22L64 90L42 22Z" fill="#475569"/>
+            <path d="M42 56L64 68L86 56L64 90L42 56Z" fill="#F59E0B"/>
+            <line x1="26" y1="94" x2="64" y2="94" stroke="#F59E0B" stroke-width="8" stroke-linecap="round"/>
+          </svg>
+          <span class="scale-label">32px</span>
+        </div>
+        <div class="scale-item">
+          <svg width="16" height="16" viewBox="0 0 128 128" fill="none">
+            <rect x="8" y="8" width="112" height="112" rx="28" fill="#0F1117"/>
+            <path d="M40 24L64 16L88 24L64 92L40 24Z" fill="#F59E0B"/>
+            <line x1="24" y1="96" x2="64" y2="96" stroke="#FEF08A" stroke-width="14" stroke-linecap="round"/>
+          </svg>
+          <span class="scale-label">16px</span>
+        </div>
+      </div>
+
+      <div class="toolbar-preview toolbar-dark" style="margin-bottom: 8px;">
+        <span>Dark Browser Bar</span>
+        <div class="browser-sim">
+          <div class="omni-bar"></div>
+          <svg width="18" height="18" viewBox="0 0 128 128" fill="none">
+            <rect x="8" y="8" width="112" height="112" rx="28" fill="#0F1117" stroke="#475569" stroke-width="4"/>
+            <path d="M40 24L64 16L88 24L64 92L40 24Z" fill="#F59E0B"/>
+            <line x1="24" y1="96" x2="64" y2="96" stroke="#FEF08A" stroke-width="12" stroke-linecap="round"/>
+          </svg>
+        </div>
+      </div>
+      <div class="toolbar-preview toolbar-light">
+        <span>Light Browser Bar</span>
+        <div class="browser-sim">
+          <div class="omni-bar"></div>
+          <svg width="18" height="18" viewBox="0 0 128 128" fill="none">
+            <rect x="8" y="8" width="112" height="112" rx="28" fill="#0F1117"/>
+            <path d="M40 24L64 16L88 24L64 92L40 24Z" fill="#F59E0B"/>
+            <line x1="24" y1="96" x2="64" y2="96" stroke="#FEF08A" stroke-width="12" stroke-linecap="round"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONCEPT 6: THE MAGNETIC SNAP (MODULAR INTERLOCK) -->
+    <div class="concept-card">
+      <div class="concept-tag">Option 6</div>
+      <div class="icon-hero">
+        <!-- SVG 6: The Magnetic Snap -->
+        <svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="bg6" x1="16" y1="16" x2="112" y2="112" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#0B0F19"/>
+              <stop offset="1" stop-color="#030712"/>
+            </linearGradient>
+            <linearGradient id="leftModule" x1="24" y1="24" x2="64" y2="104" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#60A5FA"/>
+              <stop offset="1" stop-color="#2563EB"/>
+            </linearGradient>
+            <linearGradient id="rightModule" x1="64" y1="24" x2="104" y2="104" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#34D399"/>
+              <stop offset="1" stop-color="#059669"/>
+            </linearGradient>
+            <filter id="glow6" x="50" y="20" width="28" height="88" filterUnits="userSpaceOnUse">
+              <feGaussianBlur stdDeviation="4" result="blur"/>
+              <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+            </filter>
+          </defs>
+          <rect x="8" y="8" width="112" height="112" rx="28" fill="url(#bg6)"/>
+          <rect x="8.5" y="8.5" width="111" height="111" rx="27.5" stroke="#1E293B"/>
+
+          <!-- Left Shape: Data Profile Segment (Geometric arch) -->
+          <path d="M30 92V46C30 37.16 37.16 30 46 30H58V50H46C43.79 50 42 51.79 42 54V68H58V88H46C37.16 88 30 92 30 92Z" fill="url(#leftModule)"/>
+          
+          <!-- Right Shape: Form Field Segment (Complementary Docking Key) -->
+          <path d="M98 36V82C98 90.84 90.84 98 82 98H70V78H82C84.21 78 86 76.21 86 74V60H70V40H82C90.84 40 98 36 98 36Z" fill="url(#rightModule)"/>
+
+          <!-- Magnetic Lock Core: Center Data Ingestion Pill -->
+          <rect x="52" y="54" width="24" height="20" rx="6" fill="#FFFFFF" opacity="0.95"/>
+          <rect x="52" y="54" width="24" height="20" rx="6" fill="#38BDF8" filter="url(#glow6)"/>
+          <circle cx="64" cy="64" r="3" fill="#0F172A"/>
+
+          <!-- Sub-field connection dots -->
+          <circle cx="64" cy="38" r="3" fill="#64748B"/>
+          <circle cx="64" cy="90" r="3" fill="#64748B"/>
+        </svg>
+      </div>
+
+      <h3 class="concept-title">The Magnetic Dock</h3>
+      <div class="concept-vibe">Modular Architecture • Pure Form Factor</div>
+      <p class="concept-desc">Two bold, complementary geometric modules (Your Profile & The Web Form) locking together magnetically. Where they meet in the center, a luminous data core clicks into 100% alignment.</p>
+      
+      <div class="anti-slop-box">
+        <strong>Why it avoids AI slop</strong>
+        A memorable sculptural silhouette. Rather than decorative sparkles, it focuses on the satisfaction of physical pieces snapping together flush.
+      </div>
+
+      <div class="scale-preview-title">Multi-scale clarity test</div>
+      <div class="scale-row">
+        <div class="scale-item">
+          <svg width="48" height="48" viewBox="0 0 128 128" fill="none">
+            <rect x="8" y="8" width="112" height="112" rx="28" fill="#0B0F19" stroke="#1E293B" stroke-width="2"/>
+            <path d="M30 92V46C30 37 37 30 46 30H58V50H46C43 50 42 51 42 54V68H58V88H30Z" fill="#3B82F6"/>
+            <path d="M98 36V82C98 91 91 98 82 98H70V78H82C84 78 86 76 86 74V60H70V40H98Z" fill="#10B981"/>
+            <rect x="52" y="54" width="24" height="20" rx="6" fill="#FFFFFF"/>
+          </svg>
+          <span class="scale-label">48px</span>
+        </div>
+        <div class="scale-item">
+          <svg width="32" height="32" viewBox="0 0 128 128" fill="none">
+            <rect x="8" y="8" width="112" height="112" rx="28" fill="#0B0F19"/>
+            <path d="M30 92V46C30 37 37 30 46 30H58V50H46V68H58V88H30Z" fill="#3B82F6"/>
+            <path d="M98 36V82C98 91 91 98 82 98H70V78H82V60H70V40H98Z" fill="#10B981"/>
+            <rect x="52" y="54" width="24" height="20" rx="6" fill="#FFFFFF"/>
+          </svg>
+          <span class="scale-label">32px</span>
+        </div>
+        <div class="scale-item">
+          <svg width="16" height="16" viewBox="0 0 128 128" fill="none">
+            <rect x="8" y="8" width="112" height="112" rx="28" fill="#0B0F19"/>
+            <rect x="28" y="32" width="28" height="64" rx="8" fill="#3B82F6"/>
+            <rect x="72" y="32" width="28" height="64" rx="8" fill="#10B981"/>
+            <rect x="48" y="52" width="32" height="24" rx="6" fill="#FFFFFF"/>
+          </svg>
+          <span class="scale-label">16px</span>
+        </div>
+      </div>
+
+      <div class="toolbar-preview toolbar-dark" style="margin-bottom: 8px;">
+        <span>Dark Browser Bar</span>
+        <div class="browser-sim">
+          <div class="omni-bar"></div>
+          <svg width="18" height="18" viewBox="0 0 128 128" fill="none">
+            <rect x="8" y="8" width="112" height="112" rx="28" fill="#0B0F19" stroke="#475569" stroke-width="4"/>
+            <rect x="28" y="32" width="28" height="64" rx="8" fill="#3B82F6"/>
+            <rect x="72" y="32" width="28" height="64" rx="8" fill="#10B981"/>
+            <rect x="48" y="52" width="32" height="24" rx="6" fill="#FFFFFF"/>
+          </svg>
+        </div>
+      </div>
+      <div class="toolbar-preview toolbar-light">
+        <span>Light Browser Bar</span>
+        <div class="browser-sim">
+          <div class="omni-bar"></div>
+          <svg width="18" height="18" viewBox="0 0 128 128" fill="none">
+            <rect x="8" y="8" width="112" height="112" rx="28" fill="#0B0F19"/>
+            <rect x="28" y="32" width="28" height="64" rx="8" fill="#3B82F6"/>
+            <rect x="72" y="32" width="28" height="64" rx="8" fill="#10B981"/>
+            <rect x="48" y="52" width="32" height="24" rx="6" fill="#FFFFFF"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONCEPT 7: THE ORIGAMI FOLD (DIMENSIONAL FORM) -->
+    <div class="concept-card">
+      <div class="concept-tag">Option 7</div>
+      <div class="icon-hero">
+        <!-- SVG 7: The Origami Fold -->
+        <svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="bg7" x1="16" y1="16" x2="112" y2="112" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#0F172A"/>
+              <stop offset="1" stop-color="#020617"/>
+            </linearGradient>
+            <linearGradient id="planeFront" x1="30" y1="30" x2="90" y2="90" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#F43F5E"/>
+              <stop offset="0.6" stop-color="#FB7185"/>
+              <stop offset="1" stop-color="#FDA4AF"/>
+            </linearGradient>
+            <linearGradient id="planeFold" x1="64" y1="20" x2="100" y2="80" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#E11D48"/>
+              <stop offset="1" stop-color="#BE123C"/>
+            </linearGradient>
+            <linearGradient id="planeUnder" x1="28" y1="50" x2="80" y2="104" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#38BDF8"/>
+              <stop offset="1" stop-color="#0284C7"/>
+            </linearGradient>
+            <filter id="glow7" x="20" y="20" width="88" height="88" filterUnits="userSpaceOnUse">
+              <feGaussianBlur stdDeviation="6" result="blur"/>
+              <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+            </filter>
+          </defs>
+          <rect x="8" y="8" width="112" height="112" rx="28" fill="url(#bg7)"/>
+          <rect x="8.5" y="8.5" width="111" height="111" rx="27.5" stroke="#1E293B"/>
+
+          <!-- Underlay Layer: The Application Sheet -->
+          <path d="M32 94L48 34L88 34L68 94H32Z" fill="url(#planeUnder)" opacity="0.65"/>
+
+          <!-- Front Fold: Energetic Architectural "A" Form -->
+          <!-- Main Left Wing -->
+          <path d="M28 94L58 24C60 20 64 20 66 24L82 60H52L40 94H28Z" fill="url(#planeFront)"/>
+          
+          <!-- Right Folding Corner (Dimensional Depth) -->
+          <path d="M66 24L98 84C100 88 98 94 92 94H68L82 60L66 24Z" fill="url(#planeFold)"/>
+
+          <!-- Form Completion Data Beam (Negative Space Cross-Bar) -->
+          <rect x="46" y="58" width="42" height="8" rx="4" fill="#FFFFFF" filter="url(#glow7)"/>
+          <rect x="46" y="58" width="42" height="8" rx="4" fill="#FFFFFF"/>
+        </svg>
+      </div>
+
+      <h3 class="concept-title">The Origami Form</h3>
+      <div class="concept-vibe">Modern Dimensional • Arc / Pitch Aesthetic</div>
+      <p class="concept-desc">An architectural, origami-inspired folded document sheet forming a sculpted <strong>"A"</strong>. Combines coral-rose planes with electric cyan underlay and a brilliant white data beam crossing the middle.</p>
+      
+      <div class="anti-slop-box">
+        <strong>Why it avoids AI slop</strong>
+        Rich editorial design language. Uses dimensional lighting and geometric paper planes rather than CGI sparkle blobs.
+      </div>
+
+      <div class="scale-preview-title">Multi-scale clarity test</div>
+      <div class="scale-row">
+        <div class="scale-item">
+          <svg width="48" height="48" viewBox="0 0 128 128" fill="none">
+            <rect x="8" y="8" width="112" height="112" rx="28" fill="#0F172A" stroke="#1E293B" stroke-width="2"/>
+            <path d="M28 94L58 24C60 20 64 20 66 24L82 60H52L40 94H28Z" fill="#F43F5E"/>
+            <path d="M66 24L98 84C100 88 98 94 92 94H68L82 60L66 24Z" fill="#BE123C"/>
+            <rect x="46" y="58" width="42" height="8" rx="4" fill="#FFFFFF"/>
+          </svg>
+          <span class="scale-label">48px</span>
+        </div>
+        <div class="scale-item">
+          <svg width="32" height="32" viewBox="0 0 128 128" fill="none">
+            <rect x="8" y="8" width="112" height="112" rx="28" fill="#0F172A"/>
+            <path d="M28 94L58 24L82 60H52L40 94H28Z" fill="#F43F5E"/>
+            <path d="M66 24L98 84H68L82 60L66 24Z" fill="#BE123C"/>
+            <rect x="44" y="56" width="46" height="10" rx="5" fill="#FFFFFF"/>
+          </svg>
+          <span class="scale-label">32px</span>
+        </div>
+        <div class="scale-item">
+          <svg width="16" height="16" viewBox="0 0 128 128" fill="none">
+            <rect x="8" y="8" width="112" height="112" rx="28" fill="#0F172A"/>
+            <path d="M28 94L62 24L96 94H68L62 68L56 94H28Z" fill="#F43F5E"/>
+            <rect x="40" y="54" width="48" height="14" rx="7" fill="#FFFFFF"/>
+          </svg>
+          <span class="scale-label">16px</span>
+        </div>
+      </div>
+
+      <div class="toolbar-preview toolbar-dark" style="margin-bottom: 8px;">
+        <span>Dark Browser Bar</span>
+        <div class="browser-sim">
+          <div class="omni-bar"></div>
+          <svg width="18" height="18" viewBox="0 0 128 128" fill="none">
+            <rect x="8" y="8" width="112" height="112" rx="28" fill="#0F172A" stroke="#475569" stroke-width="4"/>
+            <path d="M28 94L62 24L96 94H68L62 68L56 94H28Z" fill="#F43F5E"/>
+            <rect x="40" y="54" width="48" height="14" rx="7" fill="#FFFFFF"/>
+          </svg>
+        </div>
+      </div>
+      <div class="toolbar-preview toolbar-light">
+        <span>Light Browser Bar</span>
+        <div class="browser-sim">
+          <div class="omni-bar"></div>
+          <svg width="18" height="18" viewBox="0 0 128 128" fill="none">
+            <rect x="8" y="8" width="112" height="112" rx="28" fill="#0F172A"/>
+            <path d="M28 94L62 24L96 94H68L62 68L56 94H28Z" fill="#F43F5E"/>
+            <rect x="40" y="54" width="48" height="14" rx="7" fill="#FFFFFF"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONCEPT 8: THE BENTO FOCUS RETICLE -->
+    <div class="concept-card">
+      <div class="concept-tag">Option 8</div>
+      <div class="icon-hero">
+        <!-- SVG 8: The Bento Focus Reticle -->
+        <svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="bg8" x1="16" y1="16" x2="112" y2="112" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#141416"/>
+              <stop offset="1" stop-color="#08080A"/>
+            </linearGradient>
+            <linearGradient id="reticleAccent" x1="30" y1="30" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#38BDF8"/>
+              <stop offset="1" stop-color="#0284C7"/>
+            </linearGradient>
+            <linearGradient id="activeFill8" x1="32" y1="64" x2="96" y2="64" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#10B981"/>
+              <stop offset="1" stop-color="#34D399"/>
+            </linearGradient>
+            <filter id="glow8" x="24" y="24" width="80" height="80" filterUnits="userSpaceOnUse">
+              <feGaussianBlur stdDeviation="5" result="blur"/>
+              <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+            </filter>
+          </defs>
+          <rect x="8" y="8" width="112" height="112" rx="28" fill="url(#bg8)"/>
+          <rect x="8.5" y="8.5" width="111" height="111" rx="27.5" stroke="#27272A"/>
+
+          <!-- 4-Corner Field Target Reticles (Form Scanning & Detection) -->
+          <path d="M28 40V30C28 27.79 29.79 26 32 26H42" stroke="#52525B" stroke-width="3.5" stroke-linecap="round"/>
+          <path d="M100 40V30C100 27.79 98.21 26 96 26H86" stroke="#52525B" stroke-width="3.5" stroke-linecap="round"/>
+          <path d="M28 88V98C28 100.21 29.79 102 32 102H42" stroke="#52525B" stroke-width="3.5" stroke-linecap="round"/>
+          <path d="M100 88V98C100 100.21 98.21 102 96 102H86" stroke="#52525B" stroke-width="3.5" stroke-linecap="round"/>
+
+          <!-- Row 1: Target In-Progress Form -->
+          <rect x="36" y="38" width="56" height="14" rx="7" fill="#27272A"/>
+          <rect x="36" y="38" width="32" height="14" rx="7" fill="url(#reticleAccent)"/>
+
+          <!-- Row 2: Target Locked & Fully Auto-Filled (With Centered Pulse) -->
+          <rect x="36" y="58" width="56" height="14" rx="7" fill="url(#activeFill8)" filter="url(#glow8)"/>
+          <rect x="36" y="58" width="56" height="14" rx="7" fill="url(#activeFill8)"/>
+          <circle cx="64" cy="65" r="3.5" fill="#FFFFFF"/>
+
+          <!-- Row 3: Target Ready -->
+          <rect x="36" y="78" width="56" height="14" rx="7" fill="#27272A"/>
+          <circle cx="44" cy="85" r="3" fill="#52525B"/>
+        </svg>
+      </div>
+
+      <h3 class="concept-title">The Target Reticle</h3>
+      <div class="concept-vibe">Tactical Engineering • Computer Vision / DOM Scan</div>
+      <p class="concept-desc">Features precision viewfinder brackets locked onto DOM form fields. Shows real-time field acquisition where scanned inputs lock into an active emerald target state.</p>
+      
+      <div class="anti-slop-box">
+        <strong>Why it avoids AI slop</strong>
+        Directly references DOM parsing and field detection without cliché robot heads. Utilitarian, crisp, developer-grade.
+      </div>
+
+      <div class="scale-preview-title">Multi-scale clarity test</div>
+      <div class="scale-row">
+        <div class="scale-item">
+          <svg width="48" height="48" viewBox="0 0 128 128" fill="none">
+            <rect x="8" y="8" width="112" height="112" rx="28" fill="#141416" stroke="#27272A" stroke-width="2"/>
+            <path d="M28 40V28H40M100 40V28H88M28 88V100H40M100 88V100H88" stroke="#52525B" stroke-width="5" stroke-linecap="round"/>
+            <rect x="36" y="38" width="56" height="14" rx="7" fill="#38BDF8"/>
+            <rect x="36" y="58" width="56" height="14" rx="7" fill="#10B981"/>
+            <rect x="36" y="78" width="56" height="14" rx="7" fill="#27272A"/>
+          </svg>
+          <span class="scale-label">48px</span>
+        </div>
+        <div class="scale-item">
+          <svg width="32" height="32" viewBox="0 0 128 128" fill="none">
+            <rect x="8" y="8" width="112" height="112" rx="28" fill="#141416"/>
+            <path d="M28 42V28H42M100 42V28H86M28 86V100H42M100 86V100H86" stroke="#52525B" stroke-width="6" stroke-linecap="round"/>
+            <rect x="36" y="42" width="56" height="18" rx="9" fill="#38BDF8"/>
+            <rect x="36" y="68" width="56" height="18" rx="9" fill="#10B981"/>
+          </svg>
+          <span class="scale-label">32px</span>
+        </div>
+        <div class="scale-item">
+          <svg width="16" height="16" viewBox="0 0 128 128" fill="none">
+            <rect x="8" y="8" width="112" height="112" rx="28" fill="#141416"/>
+            <path d="M24 46V24H46M104 46V24H82M24 82V104H46M104 82V104H82" stroke="#52525B" stroke-width="12" stroke-linecap="round"/>
+            <circle cx="64" cy="64" r="16" fill="#10B981"/>
+          </svg>
+          <span class="scale-label">16px</span>
+        </div>
+      </div>
+
+      <div class="toolbar-preview toolbar-dark" style="margin-bottom: 8px;">
+        <span>Dark Browser Bar</span>
+        <div class="browser-sim">
+          <div class="omni-bar"></div>
+          <svg width="18" height="18" viewBox="0 0 128 128" fill="none">
+            <rect x="8" y="8" width="112" height="112" rx="28" fill="#141416" stroke="#475569" stroke-width="4"/>
+            <path d="M24 46V24H46M104 46V24H82M24 82V104H46M104 82V104H82" stroke="#52525B" stroke-width="12" stroke-linecap="round"/>
+            <circle cx="64" cy="64" r="16" fill="#10B981"/>
+          </svg>
+        </div>
+      </div>
+      <div class="toolbar-preview toolbar-light">
+        <span>Light Browser Bar</span>
+        <div class="browser-sim">
+          <div class="omni-bar"></div>
+          <svg width="18" height="18" viewBox="0 0 128 128" fill="none">
+            <rect x="8" y="8" width="112" height="112" rx="28" fill="#141416"/>
+            <path d="M24 46V24H46M104 46V24H82M24 82V104H46M104 82V104H82" stroke="#52525B" stroke-width="12" stroke-linecap="round"/>
+            <circle cx="64" cy="64" r="16" fill="#10B981"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div style="margin-top: 48px; text-align: center; color: var(--text-muted); font-size: 13px;">
+    Pick your preferred concept (Options 1 through 8), or let me know what direction feels closest!
+  </div>
+
+</body>
+</html>

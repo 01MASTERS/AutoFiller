@@ -11,26 +11,29 @@
 | **Language** | TypeScript (latest stable) |
 | **Repository** | https://github.com/01MASTERS/AutoFiller.git |
 | **Owner** | 01MASTERS |
-| **Status** | Milestone 2 (v1.1) — In Planning |
+| **Status** | Milestone 2 (v1.1) — Universal Multi-Platform ATS Expansion |
 
 ## Current State
 
-AutoFiller v1.0 was completed and shipped on 2026-09-03.
+AutoFiller v1.0 was completed and shipped on 2026-09-03. Google Forms advanced controls (dropdowns, radio buttons, checkboxes, dates) were implemented and verified in Phases 12–14.
 - **Shipped Version:** v1.0
 - **Milestone 1 Archive:** [v1.0-ROADMAP.md](milestones/v1.0-ROADMAP.md)
 - **Milestone 1 Audit:** [v1.0-MILESTONE-AUDIT.md](v1.0-MILESTONE-AUDIT.md)
-- **Active Test Suite:** 71 tests passing across extension and backend
-- **Core Capabilities:** Google Forms text input autofill with Ollama & Gemini, dynamic model discovery, local JSON profile store, and standalone dark-mode debug log viewer dashboard (`/logs-ui`).
+- **Active Test Suite:** 160 tests passing across extension (88) and backend (72)
+- **Core Capabilities:** Intelligent form autofilling with Ollama & Gemini, dynamic model discovery, Google Forms advanced controls (dropdowns, radios, checkboxes, dates) with genuine DOM simulation, standalone IIFE content script, and dark-mode debug log viewer (`/logs-ui`).
 
-## Milestone 2 Goals: Advanced Form Controls & Multi-Profile (v1.1)
+## Milestone 2 Goals: Universal Multi-Platform Form Filling Engine (v1.1)
 
-- **Goal:** Expand AutoFiller to handle complex Google Forms controls (dropdowns, radio buttons, checkboxes, date pickers) via in-browser DOM simulation, and add multi-profile persona management.
-- **Phase 12:** Advanced Google Form DOM Extraction & Option Parsing
-- **Phase 13:** LLM Gateway Enhancement for Constrained / Option Choice Fields
-- **Phase 14:** Content Script Advanced Form Filler (Synthetic DOM & ARIA Event Injection)
-- **Phase 15:** Multi-Profile Backend Store & Switching API
-- **Phase 16:** Extension Multi-Profile Switcher UI & Storage Sync
-- **Phase 17:** Milestone 2 End-to-End Integration, Validation & Test Suite
+- **Goal:** Expand AutoFiller from Google Forms into a universal form-filling engine supporting diverse job applications and ATS platforms (including Workday, Greenhouse, Lever, company career portals, and generic web forms) with smart field detection and synthetic interaction.
+- **Phase 12:** Advanced Google Form DOM Extraction & Option Parsing (Completed)
+- **Phase 13:** LLM Gateway Enhancement for Constrained & Choice Fields (Completed)
+- **Phase 14:** Content Script Advanced Form Filler (Synthetic DOM Interaction) (Completed)
+- **Phase 15:** Universal DOM Reader & Smart Field Extraction Engine (Planned)
+- **Phase 16:** Universal Multi-Origin Manifest & Navigation Architecture (Planned)
+- **Phase 17:** Universal Form Filler & Multi-Platform Control Simulators (Planned)
+- **Phase 18:** ATS Platform Heuristics & Adaptations (Workday, Greenhouse, Lever) (Planned)
+- **Phase 19:** Multi-Platform E2E Testing, Mock Fixtures & Verification (Planned)
+- **Future Milestones:** Multi-Profile Persona Management (Phases 20–21), Profile Editor UI (Phase 22), Chrome Web Store Publishing (Phase 23)
 
 ## Problem Statement
 

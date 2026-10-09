@@ -1,0 +1,52 @@
+{
+  "name": "Jordan Lee",
+  "email": "jordan.lee@example.com",
+  "phone": "+1 (555) 018-4920",
+  "address": "Seattle, WA, United States",
+  "education": [
+    {
+      "degree": "M.S. in Data Science",
+      "school": "University of Washington",
+      "Graduation year": "2024",
+      "start date": "2022",
+      "end date": "2024"
+    }
+  ],
+  "experience": [
+    {
+      "title": "Machine Learning Engineer",
+      "company": "Neural Innovations Inc.",
+      "duration": "2024 - Present",
+      "description": "Architected predictive models, fine-tuned transformer LLMs, and implemented automated data pipelines using PyTorch and Scikit-learn."
+    }
+  ],
+  "skills": [
+    "Python",
+    "PyTorch",
+    "TensorFlow",
+    "Machine Learning",
+    "Deep Learning",
+    "Large Language Models (LLMs)",
+    "NLP",
+    "Scikit-learn",
+    "Pandas",
+    "SQL",
+    "Docker",
+    "MLflow"
+  ],
+  "links": {
+    "LinkedIn": "https://linkedin.com/in/jordanlee-demo",
+    "GitHub": "https://github.com/jordanlee-demo",
+    "Portfolio": "https://jordanlee-demo.dev"
+  },
+  "custom": {
+    "Headline": "AI/ML Engineer & Data Scientist",
+    "First Name": "Jordan",
+    "Last Name": "Lee",
+    "Gender": "Prefer not to say",
+    "Work Authorization": "Yes",
+    "Require Sponsorship": "No",
+    "Preferred Location": "Seattle, WA; San Francisco, CA; Remote",
+    "Expected Salary": "$150,000"
+  }
+}

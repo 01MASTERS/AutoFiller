@@ -8,6 +8,11 @@
   ],
   "scripts": {
     "dev": "concurrently --names ext,srv --prefix-colors blue,green \"npm run dev -w extension\" \"npm run dev -w backend\"",
+    "start:background": "cscript //nologo start-background.vbs",
+    "stop": "cmd /c stop.bat --no-pause",
+    "status": "cmd /c status.bat --no-pause",
+    "startup:install": "cmd /c install-startup.bat --no-pause",
+    "startup:uninstall": "cmd /c uninstall-startup.bat --no-pause",
     "build": "npm run build -w shared && npm run build -w extension && npm run build -w backend",
     "test": "npm run test -w extension && npm run test -w backend",
     "lint": "eslint \"extension/src/**/*.ts\" \"backend/src/**/*.ts\" \"shared/src/**/*.ts\"",

@@ -79,6 +79,8 @@ echo  • Backend API:        http://localhost:3456
 echo  • Debug Log Dashboard: http://localhost:3456/logs-ui
 echo  • QA Test Form:       http://localhost:3456/test-form
 echo  • Extension Build:    extension/dist/ (Load in chrome://extensions)
+echo  • Silent Background:  start-background.vbs
+echo  • Windows Startup:     install-startup.bat
 echo ===================================================
 echo.
 

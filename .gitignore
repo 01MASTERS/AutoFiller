@@ -2,12 +2,41 @@ node_modules/
 dist/
 *.tsbuildinfo
 .vite/
+
+# Environment & Secrets
 .env
-.env.local
+.env.*
+!.env.example
+
+# Process daemons & logs
 *.log
+*.pid
+autofiller.pid
+
+# Testing
+coverage/
+
+# Extension packaging
+*.crx
+extension/*.zip
+
+# User Profile Data
+profile.json
+backend/profile.json
+
+# Local daemon & startup scripts (start.bat is tracked)
+start-background.bat
+start-background.vbs
+stop.bat
+status.bat
+install-startup.bat
+uninstall-startup.bat
+
+# OS & Editor
 .DS_Store
 Thumbs.db
+.vscode/
+.idea/
 
-# User Local Profile Data (do not commit personal details)
-backend/profile.json
-profile.json
+
+AGENTS.md

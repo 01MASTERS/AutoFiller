@@ -23,6 +23,7 @@ export const userProfileSchema = z
     phone: z.string().min(1, 'Phone is required'),
     alternatePhone: z.string().optional(),
     'alternate phone': z.string().optional(),
+    alternatephone: z.string().optional(),
     address: z.string().optional(),
     education: z.array(educationItemSchema).optional(),
     experience: z.array(experienceItemSchema).optional(),
@@ -32,12 +33,15 @@ export const userProfileSchema = z
   })
   .passthrough();
 
-export const fieldOptionSchema = z.object({
-  label: z.string(),
-  value: z.string().optional(),
-  selected: z.boolean().optional(),
-  disabled: z.boolean().optional(),
-});
+export const fieldOptionSchema = z
+  .object({
+    label: z.string(),
+    value: z.string().optional(),
+    selected: z.boolean().optional(),
+    disabled: z.boolean().optional(),
+    isOther: z.boolean().optional(),
+  })
+  .passthrough();
 
 export const fieldMetadataSchema = z
   .object({
@@ -48,11 +52,22 @@ export const fieldMetadataSchema = z
     ariaLabel: z.string().optional(),
     type: z.string().optional(),
     controlType: z
-      .enum(['text', 'textarea', 'dropdown', 'combobox', 'radio', 'checkbox', 'date'])
+      .enum(['text', 'textarea', 'dropdown', 'combobox', 'radio', 'checkbox', 'date', 'file'])
       .optional(),
     options: z.array(fieldOptionSchema).optional(),
     selectionMode: z.enum(['single', 'multiple']).optional(),
     required: z.boolean().optional(),
+    platform: z
+      .enum(['google-forms', 'greenhouse', 'lever', 'workday', 'smartrecruiters', 'generic'])
+      .optional(),
+    platformFieldType: z
+      .enum(['personal', 'experience', 'custom_question', 'demographic', 'resume_upload', 'social_link', 'source', 'other'])
+      .optional(),
+    section: z.string().optional(),
+    frameId: z.number().optional(),
+    optionSource: z.enum(['static', 'dynamic', 'cascading']).optional(),
+    optionsLoaded: z.boolean().optional(),
+    parentFieldId: z.string().optional(),
   })
   .passthrough();
 
@@ -61,7 +76,29 @@ export const autofillRequestSchema = z.object({
   provider: z.enum(['ollama', 'gemini']).optional(),
   model: z.string().optional(),
   apiKey: z.string().optional(),
+  profileId: z
+    .string()
+    .regex(/^[a-zA-Z0-9_-]+$/, 'Profile ID must only contain letters, numbers, dashes, and underscores')
+    .optional(),
+});
+
+export const switchProfileRequestSchema = z.object({
+  profileId: z
+    .string()
+    .min(1, 'Profile ID is required')
+    .regex(/^[a-zA-Z0-9_-]+$/, 'Profile ID must only contain letters, numbers, dashes, and underscores'),
+});
+
+export const createProfileRequestSchema = z.object({
+  id: z
+    .string()
+    .min(1, 'Profile ID is required')
+    .regex(/^[a-zA-Z0-9_-]+$/, 'Profile ID must only contain letters, numbers, dashes, and underscores'),
+  profile: userProfileSchema,
 });
 
 export type UserProfileValidated = z.infer<typeof userProfileSchema>;
 export type AutofillRequestValidated = z.infer<typeof autofillRequestSchema>;
+export type SwitchProfileRequestValidated = z.infer<typeof switchProfileRequestSchema>;
+export type CreateProfileRequestValidated = z.infer<typeof createProfileRequestSchema>;
+

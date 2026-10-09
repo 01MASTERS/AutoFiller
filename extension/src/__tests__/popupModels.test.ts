@@ -2,8 +2,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
   populateModelDropdown,
   fetchProviderModels,
-  loadSettings,
-  saveSettings,
 } from '../popup/popup.js';
 
 describe('Popup Model Discovery', () => {
