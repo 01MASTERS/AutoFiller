@@ -8,8 +8,20 @@ export default defineManifest({
     'AI-powered autofill for Google Forms, Workday, Greenhouse, Lever, and job applications',
   permissions: ['activeTab', 'storage', 'scripting', 'webNavigation'],
   host_permissions: ['<all_urls>'],
+  icons: {
+    '16': 'icons/icon-16.png',
+    '32': 'icons/icon-32.png',
+    '48': 'icons/icon-48.png',
+    '128': 'icons/icon-128.png',
+  },
   action: {
     default_popup: 'src/popup/popup.html',
+    default_icon: {
+      '16': 'icons/icon-16.png',
+      '32': 'icons/icon-32.png',
+      '48': 'icons/icon-48.png',
+      '128': 'icons/icon-128.png',
+    },
   },
   background: {
     service_worker: 'src/background/background.ts',

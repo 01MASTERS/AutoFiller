@@ -13,6 +13,8 @@ import {
   fetchProfilesList,
   switchActiveProfile,
   updateProfilePreviewUI,
+  BANNER_AUTO_DISMISS_DELAY_MS,
+  clearStatusBannerTimer,
 } from '../popup/popup.js';
 
 describe('Popup UI', () => {
@@ -81,6 +83,8 @@ describe('Popup UI', () => {
   });
 
   afterEach(() => {
+    clearStatusBannerTimer();
+    vi.useRealTimers();
     vi.unstubAllGlobals();
   });
 
@@ -95,6 +99,67 @@ describe('Popup UI', () => {
     updateStatusBannerUI('analyzing');
     const text = document.getElementById('status-text');
     expect(text?.textContent).toContain('Analyzing form');
+  });
+
+  it('auto-dismisses status banner back to idle after delay when state is done', () => {
+    vi.useFakeTimers();
+    updateStatusBannerUI('done', { filledCount: 4, durationMs: 1200 });
+
+    const banner = document.getElementById('status-banner');
+    const text = document.getElementById('status-text');
+
+    expect(banner?.className).toContain('done');
+    expect(text?.textContent).toBe('Filled 4 fields in 1.2s!');
+
+    // Advance partially
+    vi.advanceTimersByTime(BANNER_AUTO_DISMISS_DELAY_MS - 1000);
+    expect(banner?.className).toContain('done');
+
+    // Advance beyond delay
+    vi.advanceTimersByTime(1000);
+    expect(banner?.className).toContain('idle');
+    expect(text?.textContent).toBe('Ready to auto-fill form fields');
+  });
+
+  it('auto-dismisses status banner back to idle after delay when state is error', () => {
+    vi.useFakeTimers();
+    updateStatusBannerUI('error', { error: 'Gemini Quota Exceeded (429)' });
+
+    const banner = document.getElementById('status-banner');
+    const text = document.getElementById('status-text');
+
+    expect(banner?.className).toContain('error');
+    expect(text?.textContent).toContain('quota exceeded');
+
+    vi.advanceTimersByTime(BANNER_AUTO_DISMISS_DELAY_MS);
+    expect(banner?.className).toContain('idle');
+    expect(text?.textContent).toBe('Ready to auto-fill form fields');
+  });
+
+  it('does not auto-dismiss status banner when state is analyzing or filling', () => {
+    vi.useFakeTimers();
+    updateStatusBannerUI('analyzing');
+
+    const banner = document.getElementById('status-banner');
+    const text = document.getElementById('status-text');
+
+    vi.advanceTimersByTime(BANNER_AUTO_DISMISS_DELAY_MS * 2);
+    expect(banner?.className).toContain('analyzing');
+    expect(text?.textContent).toContain('Analyzing form');
+  });
+
+  it('cancels existing auto-dismiss timer when a new state arrives', () => {
+    vi.useFakeTimers();
+    updateStatusBannerUI('done', { filledCount: 3 });
+
+    // New state transition before delay expires
+    updateStatusBannerUI('filling');
+    const banner = document.getElementById('status-banner');
+    const text = document.getElementById('status-text');
+
+    vi.advanceTimersByTime(BANNER_AUTO_DISMISS_DELAY_MS);
+    expect(banner?.className).toContain('filling');
+    expect(text?.textContent).toBe('Filling form fields...');
   });
 
   it('formats raw verbose GoogleGenerativeAI quota error to a brief human-readable banner message', () => {

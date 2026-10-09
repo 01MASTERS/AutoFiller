@@ -15,6 +15,15 @@ export interface StatusDetails {
   fillDurationMs?: number;
 }
 
+let backgroundStatusResetTimer: ReturnType<typeof setTimeout> | null = null;
+
+export function clearBackgroundStatusResetTimer() {
+  if (backgroundStatusResetTimer) {
+    clearTimeout(backgroundStatusResetTimer);
+    backgroundStatusResetTimer = null;
+  }
+}
+
 export async function updateStatusState(
   state: AutofillState,
   details?: {
@@ -28,6 +37,8 @@ export async function updateStatusState(
     fillDurationMs?: number;
   },
 ): Promise<StatusDetails> {
+  clearBackgroundStatusResetTimer();
+
   const statusData: StatusDetails = {
     currentState: state,
     filledCount: details?.filledCount,
@@ -54,6 +65,20 @@ export async function updateStatusState(
     } catch {
       // Ignore errors when no popup listener is open
     }
+  }
+
+  if (state === 'done' || state === 'partial' || state === 'error') {
+    backgroundStatusResetTimer = setTimeout(async () => {
+      const idleStatus: StatusDetails = {
+        currentState: 'idle',
+        timestamp: new Date().toISOString(),
+      };
+      if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+        try {
+          await chrome.storage.local.set({ autofillStatus: idleStatus });
+        } catch {}
+      }
+    }, 5000);
   }
 
   return statusData;
@@ -323,9 +348,13 @@ export async function handleTriggerAutofill(options?: {
     const llmDurationMs = Date.now() - llmStart;
 
     if (!backendRes.ok) {
-      const errData = (await backendRes.json().catch(() => ({}))) as { error?: string };
+      const errData = (await backendRes.json().catch(() => ({}))) as { error?: string; details?: unknown };
+      const detailStr = Array.isArray(errData.details)
+        ? `: ${errData.details.map((d: any) => `${d.path?.join('.')}: ${d.message}`).join(', ')}`
+        : '';
       const errorMsg =
-        errData.error || `Backend HTTP request failed with status ${backendRes.status}`;
+        (errData.error ? `${errData.error}${detailStr}` : undefined) ||
+        `Backend HTTP request failed with status ${backendRes.status}`;
       await ExtensionLogger.log('ERROR', 'BACKGROUND', 'BACKEND_HTTP_ERROR', errorMsg, {
         httpStatus: backendRes.status,
         statusText: backendRes.statusText,
@@ -333,6 +362,7 @@ export async function handleTriggerAutofill(options?: {
         provider: options?.provider,
         model: options?.model,
         fieldsSent: aggregatedFields.length,
+        details: errData.details,
       });
       await updateStatusState('error', { error: errorMsg });
       return { status: 'error', error: errorMsg };

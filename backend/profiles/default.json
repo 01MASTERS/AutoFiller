@@ -3,6 +3,8 @@
   "email": "rittik.work1@gmail.com",
   "phone": "+91 9135517396",
   "alternatePhone": "8797966189",
+  "alternate phone": "8797966189",
+  "alternatephone": "8797966189",
   "address": "House 181, Bitho Sharif, Gaya, Bihar - 823003, India",
   "education": [
     {
@@ -47,6 +49,7 @@
     "HTML/CSS"
   ],
   "links": {
+    "Resume drive link": "https://drive.google.com/file/d/1aSJ2QxyoDdWGF9UuEBvltTK2ZMPXEX_f/view?usp=sharing",
     "LinkedIn": "https://www.linkedin.com/in/rittik-sharmax",
     "GitHub": "https://github.com/01MASTERS",
     "LeetCode": "https://leetcode.com/MASTERScp/",

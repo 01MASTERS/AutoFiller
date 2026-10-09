@@ -13,8 +13,29 @@
   <div class="popup-container">
     <header class="popup-header">
       <div class="brand">
-        <svg class="brand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+        <svg class="brand-icon" width="22" height="22" viewBox="0 0 128 128" fill="none">
+          <defs>
+            <linearGradient id="popupBgGrad" x1="16" y1="16" x2="112" y2="112" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#14161D"/>
+              <stop offset="1" stop-color="#090A0E"/>
+            </linearGradient>
+            <linearGradient id="popupScanGrad" x1="16" y1="19" x2="74" y2="44" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#38BDF8"/>
+              <stop offset="1" stop-color="#0284C7"/>
+            </linearGradient>
+            <linearGradient id="popupFillGrad" x1="16" y1="64" x2="112" y2="64" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#10B981"/>
+              <stop offset="1" stop-color="#34D399"/>
+            </linearGradient>
+          </defs>
+          <rect x="4" y="4" width="120" height="120" rx="32" fill="url(#popupBgGrad)"/>
+          <rect x="4.5" y="4.5" width="119" height="119" rx="31.5" stroke="#252A36" stroke-width="1.5"/>
+          <rect x="16" y="19" width="96" height="25" rx="12.5" fill="#181F38"/>
+          <rect x="16" y="19" width="58" height="25" rx="12.5" fill="url(#popupScanGrad)"/>
+          <rect x="16" y="51" width="96" height="27" rx="13.5" fill="url(#popupFillGrad)"/>
+          <circle cx="64" cy="64.5" r="6.5" fill="#FFFFFF"/>
+          <rect x="16" y="85" width="96" height="25" rx="12.5" fill="#212532"/>
+          <circle cx="30" cy="97.5" r="5" fill="#64748B"/>
         </svg>
         <h1 class="brand-title">AutoFiller</h1>
       </div>

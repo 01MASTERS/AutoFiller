@@ -75,6 +75,16 @@ export function formatPopupErrorMessage(rawError?: string): string {
   return clean ? `${clean}. (See Debug Logs)` : 'Auto-fill failed. See Debug Logs.';
 }
 
+let statusBannerTimer: ReturnType<typeof setTimeout> | null = null;
+export const BANNER_AUTO_DISMISS_DELAY_MS = 10000;
+
+export function clearStatusBannerTimer() {
+  if (statusBannerTimer) {
+    clearTimeout(statusBannerTimer);
+    statusBannerTimer = null;
+  }
+}
+
 export function updateStatusBannerUI(
   state: 'idle' | 'analyzing' | 'filling' | 'done' | 'partial' | 'error',
   details?: {
@@ -86,8 +96,11 @@ export function updateStatusBannerUI(
     llmDurationMs?: number;
     scanDurationMs?: number;
     fillDurationMs?: number;
+    autoResetDelayMs?: number;
   },
 ) {
+  clearStatusBannerTimer();
+
   const banner = document.getElementById('status-banner');
   const textEl = document.getElementById('status-text');
   if (!banner || !textEl) return;
@@ -129,6 +142,26 @@ export function updateStatusBannerUI(
       textEl.textContent = 'Ready to auto-fill form fields';
       banner.removeAttribute('title');
       break;
+  }
+
+  // Auto-dismiss finished / error status logs back to idle after a short duration
+  if (state === 'done' || state === 'partial' || state === 'error') {
+    const delay = details?.autoResetDelayMs ?? BANNER_AUTO_DISMISS_DELAY_MS;
+    if (delay > 0) {
+      statusBannerTimer = setTimeout(() => {
+        updateStatusBannerUI('idle');
+        if (typeof chrome !== 'undefined' && chrome.storage?.local) {
+          try {
+            chrome.storage.local.set({
+              autofillStatus: {
+                currentState: 'idle',
+                timestamp: new Date().toISOString(),
+              },
+            });
+          } catch {}
+        }
+      }, delay);
+    }
   }
 }
 
@@ -249,6 +282,11 @@ export async function fetchProviderModels(
       if (statusMsgEl) {
         statusMsgEl.className = 'helper-text success';
         statusMsgEl.textContent = `Loaded ${data.models.length} model(s)`;
+        setTimeout(() => {
+          if (statusMsgEl && statusMsgEl.textContent?.startsWith('Loaded')) {
+            statusMsgEl.classList.add('hidden');
+          }
+        }, 5000);
       }
       return data.models;
     }
@@ -259,6 +297,11 @@ export async function fetchProviderModels(
     if (statusMsgEl) {
       statusMsgEl.className = 'helper-text error';
       statusMsgEl.textContent = errorMsg;
+      setTimeout(() => {
+        if (statusMsgEl) {
+          statusMsgEl.classList.add('hidden');
+        }
+      }, 5000);
     }
     return [];
   } finally {
@@ -723,10 +766,36 @@ if (typeof document !== 'undefined') {
       try {
         const stored = await chrome.storage.local.get(['autofillStatus']);
         if (stored.autofillStatus) {
-          updateStatusBannerUI(
-            stored.autofillStatus.currentState,
-            stored.autofillStatus,
-          );
+          const status = stored.autofillStatus;
+          const terminalStates = ['done', 'partial', 'error'];
+          if (terminalStates.includes(status.currentState)) {
+            const ageMs = status.timestamp
+              ? Date.now() - new Date(status.timestamp).getTime()
+              : Infinity;
+            if (ageMs < BANNER_AUTO_DISMISS_DELAY_MS) {
+              const remainingMs = Math.max(1000, BANNER_AUTO_DISMISS_DELAY_MS - ageMs);
+              updateStatusBannerUI(status.currentState, {
+                ...status,
+                autoResetDelayMs: remainingMs,
+              });
+            } else {
+              // Stale status from prior session: initialize to idle
+              updateStatusBannerUI('idle');
+              try {
+                chrome.storage.local.set({
+                  autofillStatus: {
+                    currentState: 'idle',
+                    timestamp: new Date().toISOString(),
+                  },
+                });
+              } catch {}
+            }
+          } else {
+            updateStatusBannerUI(
+              status.currentState,
+              status,
+            );
+          }
         }
       } catch {
         // Ignore storage errors on init

@@ -1,5 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { handleTriggerAutofill, updateStatusState, getTabFrameIds } from '../background/background.js';
+import {
+  handleTriggerAutofill,
+  updateStatusState,
+  getTabFrameIds,
+  clearBackgroundStatusResetTimer,
+} from '../background/background.js';
 
 describe('background service worker', () => {
   const setStorageMock = vi.fn().mockResolvedValue(undefined);
@@ -33,6 +38,8 @@ describe('background service worker', () => {
   });
 
   afterEach(() => {
+    clearBackgroundStatusResetTimer();
+    vi.useRealTimers();
     vi.unstubAllGlobals();
   });
 
@@ -50,6 +57,21 @@ describe('background service worker', () => {
       skippedCount: undefined,
       error: undefined,
       timestamp: expect.any(String),
+    });
+  });
+
+  it('resets background status to idle in storage after 5s timeout on terminal state', async () => {
+    vi.useFakeTimers();
+    await updateStatusState('done', { filledCount: 5 });
+
+    expect(setStorageMock).toHaveBeenCalledWith({
+      autofillStatus: expect.objectContaining({ currentState: 'done', filledCount: 5 }),
+    });
+
+    vi.advanceTimersByTime(5000);
+
+    expect(setStorageMock).toHaveBeenCalledWith({
+      autofillStatus: expect.objectContaining({ currentState: 'idle' }),
     });
   });
 
