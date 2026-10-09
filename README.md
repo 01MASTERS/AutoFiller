@@ -16,7 +16,7 @@ AutoFiller is a production-ready Chrome Extension (Manifest V3) backed by a loca
 - **Dynamic Backend Options & Cascading Selects (Phase 24)**:
   - Smart heuristic classifier differentiates static options from async backend-fetched options.
   - Mutation settlement engine awaits live option arrival via `MutationObserver` on lazy-loaded dropdowns.
-  - Dependency-aware topological filling resolves upstream triggers before child dropdowns (e.g., Country $\to$ State/Region).
+  - Dependency-aware topological filling resolves upstream triggers before child dropdowns (e.g., Country → State/Region).
 - **Multi-Profile Persona Management (v1.2)**:
   - Create and maintain tailored personas (e.g., *Frontend Engineer*, *Full Stack Developer*, *Consultant*) in `backend/profiles/*.json`.
   - Instant profile switching right from the extension popup with offline caching.
@@ -41,15 +41,15 @@ AutoFiller is a production-ready Chrome Extension (Manifest V3) backed by a loca
 
 ```mermaid
 graph TD
-  subgraph Chrome Extension MV3
+  subgraph Extension["Chrome Extension MV3"]
     UI["Popup UI (popup.html / popup.ts)"]
     SW["Background Service Worker (background.ts)"]
     CS["Content Script (contentScript.iife.ts)"]
-    DOM["Web Page DOM (Google Forms / Workday / ATS / HTML5)"]
+    DOM["Web Page DOM (Google Forms / Workday / ATS)"]
     DYN["Dynamic Option Settler & Prober"]
   end
 
-  subgraph Local Node.js Backend
+  subgraph Backend["Local Node.js Backend"]
     API["Express Router (api.ts)"]
     STORE["Multi-Profile Store (backend/profiles/*.json)"]
     PUI["Profile Editor Dashboard (/profile-ui)"]
@@ -57,7 +57,7 @@ graph TD
     GW["LLM Gateway (gateway.ts)"]
   end
 
-  subgraph LLM Providers
+  subgraph LLMs["LLM Providers"]
     OL["Ollama Local (http://localhost:11434)"]
     GM["Google Gemini API (Cloud)"]
   end
@@ -68,7 +68,7 @@ graph TD
   SW <-->|SCAN_FIELDS & FILL_FIELDS| CS
   CS <-->|Observe & Settle Mutations| DYN
   CS -->|Simulate Native Events & Inputs| DOM
-  SW -->|POST /autofill (with profileId)| API
+  SW -->|POST /autofill| API
   API --> STORE
   API --> GW
   GW -->|llama3.2| OL
