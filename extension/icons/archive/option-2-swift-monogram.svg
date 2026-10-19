@@ -1,0 +1,38 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg2" x1="16" y1="16" x2="112" y2="112" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0B0F1A"/>
+      <stop offset="1" stop-color="#05070D"/>
+    </linearGradient>
+    <linearGradient id="monogramGrad" x1="32" y1="28" x2="96" y2="100" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#A5B4FC"/>
+      <stop offset="0.4" stop-color="#818CF8"/>
+      <stop offset="1" stop-color="#6366F1"/>
+    </linearGradient>
+    <linearGradient id="accentGlow" x1="44" y1="64" x2="106" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#34D399"/>
+      <stop offset="1" stop-color="#059669"/>
+    </linearGradient>
+    <filter id="glow2" x="24" y="24" width="88" height="88" filterUnits="userSpaceOnUse">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+  <!-- Background Canvas -->
+  <rect x="8" y="8" width="112" height="112" rx="28" fill="url(#bg2)"/>
+  <rect x="8.5" y="8.5" width="111" height="111" rx="27.5" stroke="#1E293B"/>
+
+  <!-- Form Guidance Lines -->
+  <line x1="32" y1="38" x2="96" y2="38" stroke="#1E293B" stroke-width="2" stroke-linecap="round" stroke-dasharray="3 6"/>
+  <line x1="32" y1="90" x2="96" y2="90" stroke="#1E293B" stroke-width="2" stroke-linecap="round" stroke-dasharray="3 6"/>
+
+  <!-- Unified Monogram "A" Stem -->
+  <path d="M32 96L58 32C59.5 28 64.5 28 66 32L76 56" stroke="url(#monogramGrad)" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Crossing Dynamic Flow Chevron (F-Bar & Auto-Fill stream) -->
+  <path d="M44 64H86M78 52L96 64L78 76" stroke="url(#accentGlow)" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow2)"/>
+  <path d="M44 64H86M78 52L96 64L78 76" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" opacity="0.3"/>
+
+  <!-- Anchor precision beacon -->
+  <circle cx="84" cy="90" r="5" fill="#818CF8"/>
+</svg>

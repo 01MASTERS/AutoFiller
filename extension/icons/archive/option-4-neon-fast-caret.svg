@@ -1,0 +1,28 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg4" x1="16" y1="16" x2="112" y2="112" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#18181B"/>
+      <stop offset="1" stop-color="#09090B"/>
+    </linearGradient>
+    <linearGradient id="voltGrad" x1="30" y1="30" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#E2FF38"/>
+      <stop offset="1" stop-color="#A3E635"/>
+    </linearGradient>
+    <filter id="glow4" x="24" y="24" width="80" height="80" filterUnits="userSpaceOnUse">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+  <!-- Background Canvas -->
+  <rect x="8" y="8" width="112" height="112" rx="28" fill="url(#bg4)"/>
+  <rect x="8.5" y="8.5" width="111" height="111" rx="27.5" stroke="#27272A"/>
+
+  <!-- Input Field Brackets [  ] -->
+  <path d="M38 34H26C22.68 34 20 36.68 20 40V88C20 91.32 22.68 94 26 94H38" stroke="#3F3F46" stroke-width="5" stroke-linecap="round"/>
+  <path d="M90 34H102C105.32 34 108 36.68 108 40V88C108 91.32 105.32 94 102 94H90" stroke="#3F3F46" stroke-width="5" stroke-linecap="round"/>
+
+  <!-- Dual Dynamic Chevrons (Forward Stream) -->
+  <path d="M42 42L62 64L42 86" stroke="url(#voltGrad)" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" opacity="0.45"/>
+  <path d="M64 42L84 64L64 86" stroke="url(#voltGrad)" stroke-width="12" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow4)"/>
+  <path d="M64 42L84 64L64 86" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" opacity="0.6"/>
+</svg>

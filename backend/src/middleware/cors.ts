@@ -17,7 +17,7 @@ const corsOptions: CorsOptions = {
       callback(new Error(`Origin ${origin} not allowed by CORS`));
     }
   },
-  methods: ['GET', 'POST', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-gemini-api-key'],
   credentials: true,
 };

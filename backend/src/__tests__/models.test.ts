@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import request from 'supertest';
 import { app } from '../index.js';
-import { setLLMGateway, apiRouter } from '../routes/api.js';
+import { setLLMGateway } from '../routes/api.js';
 import { LLMGateway } from '../services/llm/gateway.js';
 import { LLMProviderError } from '../services/llm/types.js';
 

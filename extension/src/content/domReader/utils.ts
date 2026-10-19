@@ -94,3 +94,82 @@ export function isPlaceholderOption(
 
   return false;
 }
+
+/**
+ * Checks if an option is a pending placeholder (e.g. "Loading...", "Please wait...")
+ */
+export function isPendingOption(text: string, value?: string): boolean {
+  const norm = text.toLowerCase().trim();
+  if (!value || value === '') {
+    if (norm.startsWith('loading') || norm.includes('please wait') || /^(select|choose)\s/i.test(norm)) {
+      return true;
+    }
+  }
+  return norm.startsWith('loading') || norm.includes('loading...');
+}
+
+/**
+ * Checks if an element or its immediate container has indicators of remote or asynchronous data fetching
+ */
+export function hasRemoteDataAttributes(el: Element): boolean {
+  const remoteAttrs = [
+    'data-source',
+    'data-remote',
+    'data-url',
+    'data-endpoint',
+    'data-ajax',
+    'data-api',
+    'data-fetch',
+    'data-lookup',
+  ];
+
+  for (const attr of remoteAttrs) {
+    if (el.hasAttribute(attr)) return true;
+  }
+
+  const automationId = el.getAttribute('data-automation-id') || '';
+  if (automationId.includes('prompt') || automationId.includes('search')) {
+    return true;
+  }
+
+  const classList = el.className && typeof el.className === 'string' ? el.className.toLowerCase() : '';
+  if (
+    classList.includes('select2-ajax') ||
+    classList.includes('chosen-ajax') ||
+    classList.includes('async-select') ||
+    classList.includes('is-loading') ||
+    classList.includes('spl-select')
+  ) {
+    return true;
+  }
+
+  // Check parent container
+  const parent = el.parentElement;
+  if (parent) {
+    for (const attr of remoteAttrs) {
+      if (parent.hasAttribute(attr)) return true;
+    }
+    const parentClass = parent.className && typeof parent.className === 'string' ? parent.className.toLowerCase() : '';
+    if (
+      parentClass.includes('select2-ajax') ||
+      parentClass.includes('async-select') ||
+      parentClass.includes('is-loading')
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Checks if an element is an ARIA combobox configured for autocomplete/search filtering
+ */
+export function isAsyncCombobox(el: Element): boolean {
+  const role = el.getAttribute('role');
+  if (role !== 'combobox') return false;
+
+  const autocomplete = el.getAttribute('aria-autocomplete');
+  return autocomplete === 'list' || autocomplete === 'both';
+}
+

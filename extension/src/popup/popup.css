@@ -227,6 +227,12 @@ body {
   color: var(--accent-primary);
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .badge {
   font-size: 10px;
   font-weight: 600;
@@ -239,16 +245,68 @@ body {
   color: #6ee7b7;
 }
 
+.cached-badge {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fcd34d;
+}
+
+.offline-badge {
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+}
+
+.profile-select-group {
+  margin-top: 0;
+  margin-bottom: 8px;
+}
+
+.profile-select {
+  font-weight: 500;
+  font-size: 11.5px;
+  cursor: pointer;
+  background: rgba(15, 23, 42, 0.8);
+  border-color: rgba(255, 255, 255, 0.15);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.profile-select:hover {
+  border-color: rgba(96, 165, 250, 0.5);
+}
+
+.profile-select:focus {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.25);
+}
+
 .profile-info {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.profile-title-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px;
 }
 
 .profile-name {
   font-size: 13px;
   font-weight: 600;
   color: var(--text-main);
+}
+
+.profile-headline {
+  font-size: 10.5px;
+  color: #60a5fa;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 170px;
 }
 
 .profile-email {

@@ -1,5 +1,13 @@
-import { FieldOption } from '@autofiller/shared';
-import { cleanText, escapeCss, isElementHidden, isPlaceholderOption } from './utils.js';
+import { FieldOption, OptionSource, DynamicOptionState } from '@autofiller/shared';
+import {
+  cleanText,
+  escapeCss,
+  isElementHidden,
+  isPlaceholderOption,
+  isPendingOption,
+  hasRemoteDataAttributes,
+  isAsyncCombobox,
+} from './utils.js';
 
 /**
  * Extracts options from a native HTML <select> element
@@ -168,3 +176,90 @@ export function extractRadioOrCheckboxOptions(elements: Element[]): FieldOption[
 
   return options;
 }
+
+export interface DetectedOptionClassification {
+  optionSource: OptionSource;
+  optionsLoaded: boolean;
+  dynamicState?: DynamicOptionState;
+}
+
+/**
+ * Heuristically determines whether a choice field's options are hardcoded/static,
+ * dynamic (fetched from backend / lazy-loaded), or cascading.
+ */
+export function detectOptionSource(
+  el: Element,
+  options: FieldOption[] | undefined,
+  container?: Element,
+): DetectedOptionClassification {
+  const isBusy =
+    el.getAttribute('aria-busy') === 'true' ||
+    (container && container.getAttribute('aria-busy') === 'true');
+
+  const hasRemoteAttrs =
+    hasRemoteDataAttributes(el) || (container ? hasRemoteDataAttributes(container) : false);
+
+  const isAsyncBox =
+    isAsyncCombobox(el) || (container ? isAsyncCombobox(container) : false);
+
+  const validOptionsCount = options ? options.length : 0;
+  const isAllPending =
+    validOptionsCount === 0 ||
+    (options ? options.every((o) => isPendingOption(o.label, o.value)) : true);
+
+  // Case 1: multiple valid options already in DOM, none are pending prompts, and not marked busy or remote
+  if (validOptionsCount > 1 && !isAllPending && !isBusy && !hasRemoteAttrs) {
+    return {
+      optionSource: 'static',
+      optionsLoaded: true,
+    };
+  }
+
+  // Case 2: marked busy, or remote attributes present, or combobox requiring search
+  if (hasRemoteAttrs || isBusy || (isAsyncBox && isAllPending)) {
+    return {
+      optionSource: 'dynamic',
+      optionsLoaded: validOptionsCount > 1 && !isAllPending && !isBusy,
+      dynamicState: {
+        isAsync: true,
+        requiresInputToSearch: isAsyncBox,
+        endpointUrl:
+          el.getAttribute('data-url') ||
+          el.getAttribute('data-endpoint') ||
+          el.getAttribute('data-source') ||
+          (container &&
+            (container.getAttribute('data-url') ||
+              container.getAttribute('data-endpoint') ||
+              container.getAttribute('data-source'))) ||
+          undefined,
+      },
+    };
+  }
+
+  // Case 3: native select or ARIA dropdown with 0 options or only placeholder/loading options
+  if (isAllPending) {
+    return {
+      optionSource: 'dynamic',
+      optionsLoaded: false,
+      dynamicState: {
+        isAsync: true,
+      },
+    };
+  }
+
+  return {
+    optionSource: 'static',
+    optionsLoaded: true,
+  };
+}
+
+/**
+ * Universally extracts options from either native select, ARIA listbox, or generic popup container
+ */
+export function extractOptionsFromAny(container: Element): FieldOption[] {
+  if (container.tagName.toLowerCase() === 'select') {
+    return extractSelectOptions(container as HTMLSelectElement);
+  }
+  return extractAriaListboxOptions(container);
+}
+

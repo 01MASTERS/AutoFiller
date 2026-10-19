@@ -1,14 +1,33 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { HealthResponse, AutofillResponse, FieldMetadata, FieldMappingValue } from '@autofiller/shared';
+import {
+  HealthResponse,
+  AutofillResponse,
+  FieldMetadata,
+  FieldMappingValue,
+  mockGreenhouseFormHtml,
+  mockLeverFormHtml,
+  mockWorkdayFormHtml,
+  mockCareerFormHtml,
+  mockGoogleFormHtml,
+  mockDynamicOptionsFormHtml,
+  ProfilesListResponse,
+  SwitchProfileResponse,
+} from '@autofiller/shared';
 import { ProfileStore } from '../services/profileStore.js';
-import { autofillRequestSchema } from '../types/profile.js';
+import { renderProfileEditorHtml } from './profileUiHtml.js';
+import {
+  autofillRequestSchema,
+  switchProfileRequestSchema,
+  createProfileRequestSchema,
+  userProfileSchema,
+} from '../types/profile.js';
 import { LLMGateway } from '../services/llm/gateway.js';
 import { LLMProviderError, LLMParseError } from '../services/llm/types.js';
 import { ParseDiagnostics } from '../services/llm/responseParser.js';
 import { ZodError } from 'zod';
 
 import { LoggerService } from '../services/loggerService.js';
-import { LogEntry, LogLevel, LogSource, LogsResponse } from '@autofiller/shared';
+import { LogLevel, LogSource, LogsResponse } from '@autofiller/shared';
 
 export const apiRouter = Router();
 let llmGatewayInstance = new LLMGateway();
@@ -911,13 +930,176 @@ apiRouter.get('/logs-ui', (req: Request, res: Response) => {
   res.send(html);
 });
 
+apiRouter.get('/profiles', (req: Request, res: Response, next: NextFunction) => {
+  try {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    const profiles = ProfileStore.listProfiles();
+    const activeProfileId = ProfileStore.getActiveProfileId();
+    const response: ProfilesListResponse = {
+      status: 'success',
+      profiles,
+      activeProfileId,
+    };
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+});
+
+apiRouter.get('/profiles/:id', (req: Request, res: Response, next: NextFunction) => {
+  try {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    const profileId = req.params.id as string;
+    const profile = ProfileStore.getProfile(profileId);
+    res.json(profile);
+  } catch (error) {
+    next(error);
+  }
+});
+
+apiRouter.post('/profiles/switch', (req: Request, res: Response, next: NextFunction) => {
+  try {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    const body = switchProfileRequestSchema.parse(req.body);
+    const profile = ProfileStore.setActiveProfile(body.profileId);
+
+    LoggerService.getInstance().addLog({
+      level: 'INFO',
+      source: 'BACKEND_API',
+      tag: 'PROFILE_SWITCHED',
+      message: `Switched active profile to ${body.profileId}`,
+      details: { profileId: body.profileId },
+    });
+
+    const response: SwitchProfileResponse = {
+      status: 'success',
+      activeProfileId: body.profileId,
+      profile,
+    };
+    res.json(response);
+  } catch (error) {
+    next(error);
+  }
+});
+
+apiRouter.post('/profiles', (req: Request, res: Response, next: NextFunction) => {
+  try {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    const body = createProfileRequestSchema.parse(req.body);
+    ProfileStore.createProfile(body.id, body.profile);
+
+    LoggerService.getInstance().addLog({
+      level: 'INFO',
+      source: 'BACKEND_API',
+      tag: 'PROFILE_CREATED',
+      message: `Created new profile ${body.id}`,
+      details: { profileId: body.id },
+    });
+
+    res.status(201).json({
+      status: 'success',
+      message: `Profile "${body.id}" created successfully`,
+      profileId: body.id,
+      profile: body.profile,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+apiRouter.put('/profiles/:id', (req: Request, res: Response, next: NextFunction) => {
+  try {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    const profileId = req.params.id as string;
+    const body = userProfileSchema.parse(req.body);
+    ProfileStore.saveProfile(body, profileId);
+
+    LoggerService.getInstance().addLog({
+      level: 'INFO',
+      source: 'BACKEND_API',
+      tag: 'PROFILE_UPDATED',
+      message: `Updated profile ${profileId}`,
+      details: { profileId },
+    });
+
+    res.json({
+      status: 'success',
+      message: `Profile "${profileId}" updated successfully`,
+      profileId,
+      profile: body,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+apiRouter.put('/profile', (req: Request, res: Response, next: NextFunction) => {
+  try {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    const activeProfileId = ProfileStore.getActiveProfileId();
+    const body = userProfileSchema.parse(req.body);
+    ProfileStore.saveProfile(body, activeProfileId);
+
+    LoggerService.getInstance().addLog({
+      level: 'INFO',
+      source: 'BACKEND_API',
+      tag: 'PROFILE_UPDATED',
+      message: `Updated active profile ${activeProfileId} via PUT /profile`,
+      details: { profileId: activeProfileId },
+    });
+
+    res.json({
+      status: 'success',
+      message: `Active profile "${activeProfileId}" updated successfully`,
+      profileId: activeProfileId,
+      profile: body,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+apiRouter.delete('/profiles/:id', (req: Request, res: Response, next: NextFunction) => {
+  try {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+    const profileId = req.params.id as string;
+    ProfileStore.deleteProfile(profileId);
+
+    LoggerService.getInstance().addLog({
+      level: 'INFO',
+      source: 'BACKEND_API',
+      tag: 'PROFILE_DELETED',
+      message: `Deleted profile ${profileId}`,
+      details: { profileId },
+    });
+
+    res.json({
+      status: 'success',
+      message: `Profile "${profileId}" deleted successfully`,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 apiRouter.get('/profile', (req: Request, res: Response, next: NextFunction) => {
   try {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     const profile = ProfileStore.getProfile();
     res.json(profile);
   } catch (error) {
     next(error);
   }
+});
+
+apiRouter.get('/profile-ui', (req: Request, res: Response) => {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(renderProfileEditorHtml());
+});
+
+apiRouter.get('/profiles-ui', (req: Request, res: Response) => {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(renderProfileEditorHtml());
 });
 
 apiRouter.get('/models', async (req: Request, res: Response, next: NextFunction) => {
@@ -962,7 +1144,7 @@ apiRouter.get('/models', async (req: Request, res: Response, next: NextFunction)
 apiRouter.post('/autofill', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const body = autofillRequestSchema.parse(req.body);
-    const profile = ProfileStore.getProfile();
+    const profile = ProfileStore.getProfile(body.profileId);
 
     const provider = body.provider || 'ollama';
     const apiKey = (req.headers['x-gemini-api-key'] as string) || body.apiKey;
@@ -1126,55 +1308,129 @@ apiRouter.post('/autofill', async (req: Request, res: Response, next: NextFuncti
   }
 });
 
-apiRouter.get('/test-form', (req: Request, res: Response) => {
-  const html = `<!DOCTYPE html>
+// Multi-Platform Mock Form Endpoints
+apiRouter.get('/test-forms/greenhouse', (req: Request, res: Response) => {
+  res.setHeader('Content-Type', 'text/html');
+  res.send(mockGreenhouseFormHtml);
+});
+
+apiRouter.get('/test-forms/lever', (req: Request, res: Response) => {
+  res.setHeader('Content-Type', 'text/html');
+  res.send(mockLeverFormHtml);
+});
+
+apiRouter.get('/test-forms/workday', (req: Request, res: Response) => {
+  res.setHeader('Content-Type', 'text/html');
+  res.send(mockWorkdayFormHtml);
+});
+
+apiRouter.get('/test-forms/career', (req: Request, res: Response) => {
+  res.setHeader('Content-Type', 'text/html');
+  res.send(mockCareerFormHtml);
+});
+
+apiRouter.get('/test-forms/dynamic-options', (req: Request, res: Response) => {
+  res.setHeader('Content-Type', 'text/html');
+  res.send(mockDynamicOptionsFormHtml);
+});
+
+apiRouter.get(['/test-form', '/test-forms/google-forms'], (req: Request, res: Response) => {
+  res.setHeader('Content-Type', 'text/html');
+  res.send(mockGoogleFormHtml);
+});
+
+apiRouter.get('/test-forms', (req: Request, res: Response) => {
+  const hubHtml = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Google Form QA Test Fixture — AutoFiller</title>
+  <title>AutoFiller — Test Forms Hub</title>
   <style>
-    body { font-family: sans-serif; background: #f1f5f9; padding: 30px; max-width: 600px; margin: auto; }
-    .form-card { background: white; padding: 24px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-    h1 { color: #1e293b; font-size: 20px; margin-bottom: 20px; }
-    .item { margin-bottom: 20px; }
-    .heading { font-weight: 600; font-size: 14px; margin-bottom: 8px; color: #334155; }
-    input, textarea { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; }
-    .required-star { color: #ef4444; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0f172a; color: #f8fafc; padding: 40px 20px; margin: 0; }
+    .container { max-width: 800px; margin: auto; }
+    h1 { font-size: 28px; margin-bottom: 8px; color: #38bdf8; }
+    p.lead { color: #94a3b8; font-size: 16px; margin-bottom: 32px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media (max-width: 640px) { .grid { grid-template-columns: 1fr; } }
+    .card { background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 24px; transition: transform 0.15s, border-color 0.15s; text-decoration: none; color: inherit; display: flex; flex-direction: column; justify-content: space-between; }
+    .card:hover { transform: translateY(-3px); border-color: #38bdf8; }
+    .badge { display: inline-block; padding: 4px 10px; border-radius: 9999px; font-size: 12px; font-weight: 600; text-transform: uppercase; margin-bottom: 12px; width: fit-content; }
+    .badge-gh { background: #065f46; color: #34d399; }
+    .badge-lever { background: #064e3b; color: #10b981; }
+    .badge-wd { background: #1e3a8a; color: #60a5fa; }
+    .badge-career { background: #581c87; color: #c084fc; }
+    .badge-gf { background: #7c2d12; color: #fb923c; }
+    .badge-dyn { background: #0c4a6e; color: #38bdf8; }
+    h3 { margin: 0 0 8px 0; font-size: 18px; color: #f1f5f9; }
+    p.desc { font-size: 14px; color: #94a3b8; margin: 0 0 16px 0; line-height: 1.5; }
+    .btn { background: #2563eb; color: #fff; padding: 8px 16px; border-radius: 6px; font-size: 14px; font-weight: 600; text-align: center; margin-top: auto; }
   </style>
 </head>
 <body>
-  <div class="form-card">
-    <h1>AutoFiller Test Form (Google Form Fixture)</h1>
-    <form>
-      <div role="listitem" class="item">
-        <div role="heading" class="heading">Full Name <span class="required-star">*</span></div>
-        <input type="text" name="entry.101" aria-label="Full Name" required placeholder="Enter your full name" />
-      </div>
+  <div class="container">
+    <h1>AutoFiller Test Forms Hub</h1>
+    <p class="lead">Live interactive mock job applications for evaluating and testing AutoFiller's universal form filling engine.</p>
 
-      <div role="listitem" class="item">
-        <div role="heading" class="heading">Email Address <span class="required-star">*</span></div>
-        <input type="email" name="entry.102" aria-label="Email Address" required placeholder="name@example.com" />
-      </div>
+    <div class="grid">
+      <a href="/test-forms/greenhouse" class="card" target="_blank">
+        <div>
+          <span class="badge badge-gh">Greenhouse</span>
+          <h3>Greenhouse Application</h3>
+          <p class="desc">Personal details, resume upload dropzone, bracketed social links (LinkedIn/GitHub), Select2 dropdowns, and EEO demographics.</p>
+        </div>
+        <div class="btn">Open Greenhouse Form →</div>
+      </a>
 
-      <div role="listitem" class="item">
-        <div role="heading" class="heading">Phone Number</div>
-        <input type="tel" name="entry.103" aria-label="Phone Number" placeholder="(555) 000-0000" />
-      </div>
+      <a href="/test-forms/lever" class="card" target="_blank">
+        <div>
+          <span class="badge badge-lever">Lever</span>
+          <h3>Lever Application</h3>
+          <p class="desc">Candidate wrapper, single Full Name input, bracketed network URLs (urls[LinkedIn]), styled custom questions, and demographic survey.</p>
+        </div>
+        <div class="btn">Open Lever Form →</div>
+      </a>
 
-      <div role="listitem" class="item">
-        <div role="heading" class="heading">Alternate Phone Number</div>
-        <input type="tel" name="entry.105" aria-label="Alternate Phone Number" placeholder="(555) 000-0000" />
-      </div>
+      <a href="/test-forms/workday" class="card" target="_blank">
+        <div>
+          <span class="badge badge-wd">Workday</span>
+          <h3>Workday Application</h3>
+          <p class="desc">Multi-step wizard progress bar, compound name/address fields, and button combobox prompts with body portal dropdown lists.</p>
+        </div>
+        <div class="btn">Open Workday Form →</div>
+      </a>
 
-      <div role="listitem" class="item">
-        <div role="heading" class="heading">Short Bio</div>
-        <textarea name="entry.104" aria-label="Short Bio" placeholder="Tell us about yourself..."></textarea>
-      </div>
-    </form>
+      <a href="/test-forms/career" class="card" target="_blank">
+        <div>
+          <span class="badge badge-career">HTML5 Career</span>
+          <h3>Generic Career Portal</h3>
+          <p class="desc">Standard HTML5 career form with fieldsets, legends, selects, radio groups, checkboxes, and textarea bio.</p>
+        </div>
+        <div class="btn">Open Career Form →</div>
+      </a>
+
+      <a href="/test-forms/dynamic-options" class="card" target="_blank">
+        <div>
+          <span class="badge badge-dyn">Dynamic / Async</span>
+          <h3>Dynamic Backend Options</h3>
+          <p class="desc">Asynchronous remote option loading, delayed country calling codes, cascading Country & State selects, and search comboboxes.</p>
+        </div>
+        <div class="btn">Open Dynamic Options Form →</div>
+      </a>
+
+      <a href="/test-form" class="card" target="_blank">
+        <div>
+          <span class="badge badge-gf">Google Forms</span>
+          <h3>Google Forms Fixture</h3>
+          <p class="desc">Classic Google Forms QA fixture featuring role="listitem" containers, headings, and input entries.</p>
+        </div>
+        <div class="btn">Open Google Form →</div>
+      </a>
+    </div>
   </div>
 </body>
 </html>`;
 
   res.setHeader('Content-Type', 'text/html');
-  res.send(html);
+  res.send(hubHtml);
 });
+

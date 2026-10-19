@@ -1,0 +1,49 @@
+{
+  "name": "Taylor Brooks",
+  "email": "taylor.brooks@example.com",
+  "phone": "+1 (555) 017-3829",
+  "address": "New York, NY, United States",
+  "education": [
+    {
+      "degree": "B.A. in Economics",
+      "school": "New York University",
+      "Graduation year": "2023",
+      "start date": "2019",
+      "end date": "2023"
+    }
+  ],
+  "experience": [
+    {
+      "title": "Product Manager",
+      "company": "Horizon Financial Technologies",
+      "duration": "2023 - Present",
+      "description": "Owned product requirement docs (PRDs), backlog prioritization, customer discovery interviews, and sprint roadmaps for fintech workflows."
+    }
+  ],
+  "skills": [
+    "Product Management",
+    "PRDs",
+    "Agile / Scrum",
+    "User Research",
+    "Roadmap Strategy",
+    "Data Analytics",
+    "SQL",
+    "A/B Testing",
+    "Wireframing",
+    "Stakeholder Management"
+  ],
+  "links": {
+    "LinkedIn": "https://linkedin.com/in/taylorbrooks-demo",
+    "Portfolio": "https://taylorbrooks-demo.dev"
+  },
+  "custom": {
+    "Headline": "Technical Product Manager & Fintech Innovator",
+    "First Name": "Taylor",
+    "Last Name": "Brooks",
+    "Gender": "Prefer not to say",
+    "Work Authorization": "Yes",
+    "Require Sponsorship": "No",
+    "Preferred Location": "New York, NY; Boston, MA; Remote",
+    "Expected Salary": "$140,000"
+  }
+}

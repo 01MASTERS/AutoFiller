@@ -10,7 +10,10 @@ export type FieldControlType =
   | 'combobox'
   | 'radio'
   | 'checkbox'
-  | 'date';
+  | 'date'
+  | 'file';
+
+export type FormPlatform = 'google-forms' | 'greenhouse' | 'lever' | 'workday' | 'smartrecruiters' | 'generic';
 
 export type SelectionMode = 'single' | 'multiple';
 
@@ -20,6 +23,24 @@ export interface FieldOption {
   selected?: boolean;
   disabled?: boolean;
   isOther?: boolean;
+}
+
+export type PlatformFieldType =
+  | 'personal'
+  | 'experience'
+  | 'custom_question'
+  | 'demographic'
+  | 'resume_upload'
+  | 'social_link'
+  | 'source'
+  | 'other';
+
+export type OptionSource = 'static' | 'dynamic' | 'cascading';
+
+export interface DynamicOptionState {
+  isAsync?: boolean;
+  requiresInputToSearch?: boolean;
+  endpointUrl?: string;
 }
 
 export interface FieldMetadata {
@@ -33,12 +54,48 @@ export interface FieldMetadata {
   options?: FieldOption[];
   selectionMode?: SelectionMode;
   required?: boolean;
+  platform?: FormPlatform;
+  platformFieldType?: PlatformFieldType;
+  section?: string;
+  frameId?: number;
+  optionSource?: OptionSource;
+  parentFieldId?: string;
+  optionsLoaded?: boolean;
+  dynamicState?: DynamicOptionState;
 }
 
 export interface AutofillRequest {
   fields: FieldMetadata[];
   provider?: 'ollama' | 'gemini';
   model?: string;
+  profileId?: string;
+}
+
+export interface ProfileSummary {
+  id: string;
+  name: string;
+  headline?: string;
+  filename: string;
+  isActive: boolean;
+}
+
+export interface ProfilesListResponse {
+  status: 'success' | 'error';
+  activeProfileId: string;
+  profiles: ProfileSummary[];
+  error?: string;
+}
+
+export interface SwitchProfileRequest {
+  profileId: string;
+}
+
+export interface SwitchProfileResponse {
+  status: 'success' | 'error';
+  activeProfileId: string;
+  message?: string;
+  profile?: UserProfile;
+  error?: string;
 }
 
 export type FieldMappingValue = string | string[] | boolean;
@@ -56,6 +113,7 @@ export interface UserProfile {
   phone: string;
   alternatePhone?: string;
   'alternate phone'?: string;
+  alternatephone?: string;
   address?: string;
   education?: Array<{
     degree?: string;
@@ -115,3 +173,5 @@ export interface LogsResponse {
   total: number;
   error?: string;
 }
+
+export * from './fixtures/mockForms.js';
